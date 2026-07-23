@@ -493,73 +493,7 @@ export const ClientPortalLogin = () => {
             </Box>
           </form>
 
-          {/* Divider */}
-          <Divider sx={{ my: 3, borderColor: 'rgba(255,255,255,0.12)' }}>
-            <Chip
-              label={t('quick_login')}
-              size="small"
-              sx={{
-                fontSize: '0.6rem',
-                fontWeight: 800,
-                bgcolor: 'rgba(255,255,255,0.08)',
-                color: 'rgba(255,255,255,0.5)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                letterSpacing: '0.05em'
-              }}
-            />
-          </Divider>
 
-          {/* Quick Login Buttons */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5 }}>
-            <Button
-              variant="outlined"
-              size="small"
-              fullWidth
-              onClick={() => handleQuickLogin('CL2001')}
-              disabled={isLoading}
-              sx={{
-                textTransform: 'none',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                borderRadius: 2.5,
-                py: 1.1,
-                color: 'rgba(255,255,255,0.8)',
-                borderColor: 'rgba(255,255,255,0.2)',
-                bgcolor: 'rgba(255,255,255,0.05)',
-                '&:hover': {
-                  borderColor: '#C59B27',
-                  color: '#E5C058',
-                  bgcolor: 'rgba(197,155,39,0.08)'
-                }
-              }}
-            >
-              {t('elena_btn')}
-            </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              fullWidth
-              onClick={() => handleQuickLogin('CL2002')}
-              disabled={isLoading}
-              sx={{
-                textTransform: 'none',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                borderRadius: 2.5,
-                py: 1.1,
-                color: 'rgba(255,255,255,0.8)',
-                borderColor: 'rgba(255,255,255,0.2)',
-                bgcolor: 'rgba(255,255,255,0.05)',
-                '&:hover': {
-                  borderColor: '#C59B27',
-                  color: '#E5C058',
-                  bgcolor: 'rgba(197,155,39,0.08)'
-                }
-              }}
-            >
-              {t('chloe_btn')}
-            </Button>
-          </Box>
 
           {/* Support Text */}
           <Box sx={{ mt: 3.5, textAlign: 'center' }}>
