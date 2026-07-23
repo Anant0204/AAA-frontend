@@ -2434,7 +2434,7 @@ export const ClientPortalDocs = () => {
                             style={{ marginTop: 3, transform: 'scale(1.1)', cursor: 'pointer' }}
                           />
                           <label htmlFor="billing-tc-checkbox" style={{ fontSize: '0.75rem', color: '#6B7280', cursor: 'pointer', lineHeight: 1.3, fontWeight: 500 }}>
-                            I agree to Spain Visa Terms of Service, <strong>50% Refund Guarantee</strong> policies if refused, and relocation conditions.
+                            I agree to Spain Visa <a href="https://aaabusinessconsultancy.com/terms-conditions/" target="_blank" rel="noopener noreferrer" style={{ color: '#051A3B', textDecoration: 'underline', fontWeight: 700 }}>Terms of Service</a>, <strong>50% Refund Guarantee</strong> policies if refused, and relocation conditions.
                           </label>
                         </Box>
 
