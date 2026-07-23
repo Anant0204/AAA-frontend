@@ -251,6 +251,7 @@ export const LeadSelfFillForm = () => {
   const [step, setStep] = useState(1); // 1: unified form, 2: success
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [warningPopup, setWarningPopup] = useState(null);
   // Optional lookup state
   const [lookupOpen, setLookupOpen] = useState(false);
   const [lookupEmail, setLookupEmail] = useState("");
@@ -295,6 +296,7 @@ export const LeadSelfFillForm = () => {
     const searchString = window.location.search || (window.location.hash.includes("?") ? window.location.hash.split("?")[1] : "");
     const params = new URLSearchParams(searchString);
     const idParam = params.get("id") || "";
+    const tokenParam = params.get("token") || "";
     const phoneParam = params.get("phone") || params.get("whatsapp") || "";
     const emailParam = params.get("email") || "";
     const serviceParam = params.get("service") || params.get("program") || "";
@@ -315,7 +317,61 @@ export const LeadSelfFillForm = () => {
       }
     }
 
-    if (idParam) {
+    if (tokenParam) {
+      setLoading(true);
+      axios.get(`${API_URL}/booking/prefill?token=${tokenParam}`)
+        .then((res) => {
+          if (res.data.success) {
+            const data = res.data.data;
+            
+            const serviceTypeLower = (data.serviceType || "").toLowerCase();
+            if (serviceTypeLower.includes("property") || serviceTypeLower.includes("investment")) {
+              setServiceCategory("property");
+            } else if (serviceTypeLower.includes("translation") || serviceTypeLower.includes("sworn")) {
+              setServiceCategory("translation");
+            } else if (serviceTypeLower.includes("assessment")) {
+              setServiceCategory("case_assessment");
+            } else {
+              setServiceCategory("visa");
+            }
+
+            setForm((prev) => {
+              const applicantsVal = data.applicantsCount || prev.applicantsCount;
+              const count = getDepsCount(applicantsVal);
+              const initialDeps = [];
+              for (let i = 0; i < count; i++) {
+                initialDeps.push({ firstName: "", lastName: "", relation: "Spouse", passportNumber: "", nationality: "" });
+              }
+              return {
+                ...prev,
+                firstName: data.firstName || "",
+                lastName: data.lastName || "",
+                email: data.email || "",
+                phone: data.phone || "",
+                nationality: data.nationality || "",
+                countryOfResidence: data.countryOfResidence || "",
+                preferredLanguage: data.preferredLanguage || "English",
+                serviceId: data.serviceType || "dnv",
+                applicantsCount: applicantsVal,
+                dependentsDetails: initialDeps,
+                meetingPreferredDate: "",
+                meetingPreferredTime: "",
+                meetingPreferredLanguage: data.preferredLanguage || "English",
+                meetingNotes: "",
+                preferableAreaInSpain: data.preferableArea || "",
+                budget: data.budget || "€100k - €250k"
+              };
+            });
+            setIsExistingLead(true);
+          }
+        })
+        .catch((err) => {
+          setError(err.response?.data?.message || "Invalid or expired re-booking token.");
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    } else if (idParam) {
       setLoading(true);
       axios.get(`${API_URL}/leads/${idParam}/public-details`)
         .then((res) => {
@@ -528,10 +584,31 @@ export const LeadSelfFillForm = () => {
       }
       setStep(2);
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        "Something went wrong. Please try again.",
-      );
+      const errData = err.response?.data || {};
+      if (errData.code === 'BLACKLISTED') {
+        setWarningPopup({
+          title: "⚠️ Assessment Limit Reached (No-Show)",
+          message: "Our system detected a previous missed free appointment associated with this profile. Under our policy, you are not eligible for another free assessment. Please check your WhatsApp/Email for the €250 Case Review payment link to proceed, or contact support.",
+          code: 'BLACKLISTED'
+        });
+      } else if (errData.code === 'DUPLICATE_LEAD') {
+        setWarningPopup({
+          title: "🗓️ Active Booking Exists",
+          message: "You already have an active eligibility assessment booked or under review. Please check your email for your confirmation details or contact support to reschedule.",
+          code: 'DUPLICATE_LEAD'
+        });
+      } else if (errData.code === 'BLOCKED') {
+        setWarningPopup({
+          title: "🚫 Account Restricted",
+          message: "Your profile cannot be processed automatically due to account restrictions. Please contact our support desk for assistance.",
+          code: 'BLOCKED'
+        });
+      } else {
+        setError(
+          err.response?.data?.message ||
+          "Something went wrong. Please try again.",
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -1299,6 +1376,69 @@ export const LeadSelfFillForm = () => {
           © 2026 AAA Visa Consultancy · All rights reserved
         </p>
       </div>
+
+      {/* Warning Popup Modal */}
+      {warningPopup && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 99999,
+            background: "rgba(10, 8, 28, 0.85)",
+            backdropFilter: "blur(12px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px"
+          }}
+        >
+          <div
+            style={{
+              background: "#1E1B3A",
+              border: "1px solid rgba(255, 255, 255, 0.15)",
+              borderRadius: "20px",
+              padding: "36px",
+              maxWidth: "500px",
+              width: "100%",
+              boxShadow: "0 25px 50px rgba(0, 0, 0, 0.6)",
+              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "20px"
+            }}
+          >
+            <h3 style={{ color: "#ff4d4d", fontSize: "24px", fontWeight: 700, margin: 0 }}>
+              {warningPopup.title}
+            </h3>
+            <p style={{ color: "rgba(255, 255, 255, 0.8)", fontSize: "15px", lineHeight: 1.6, margin: 0 }}>
+              {warningPopup.message}
+            </p>
+            <button
+              onClick={() => setWarningPopup(null)}
+              style={{
+                background: "linear-gradient(135deg, #ff4d4d 0%, #cc0000 100%)",
+                border: "none",
+                borderRadius: "10px",
+                color: "#fff",
+                padding: "12px 28px",
+                fontSize: "14px",
+                fontWeight: 700,
+                cursor: "pointer",
+                boxShadow: "0 4px 15px rgba(255, 77, 77, 0.3)",
+                transition: "transform 0.2s"
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.05)"}
+              onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+            >
+              Okay, I Understand
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
