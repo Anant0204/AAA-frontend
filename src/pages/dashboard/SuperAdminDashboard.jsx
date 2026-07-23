@@ -67,6 +67,61 @@ export const SuperAdminDashboard = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  // AI CEO Dashboard states & handlers
+  const [loadingBrief, setLoadingBrief] = useState(false);
+  const [briefText, setBriefText] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+
+  const handleBriefMyDay = async () => {
+    setLoadingBrief(true);
+    try {
+      const data = await dbService.getCeoBrief();
+      if (data && data.success) {
+        setBriefText(data.brief);
+        setSuggestions(data.suggestions || []);
+        showAlert('AI Daily briefing compiled successfully!', 'success');
+      } else {
+        showAlert('Failed to generate daily brief.', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showAlert('Server error compiling briefing.', 'error');
+    } finally {
+      setLoadingBrief(false);
+    }
+  };
+
+  const renderFormattedBrief = (text) => {
+    if (!text) return null;
+    const lines = text.split('\n');
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {lines.map((line, idx) => {
+          if (line.trim().startsWith('•') || line.trim().startsWith('-')) {
+            const cleanLine = line.replace(/^[•-]\s*/, '');
+            // Highlight bold text markdown **text**
+            const parts = cleanLine.split('**');
+            return (
+              <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                <span style={{ color: '#8B5CF6', fontSize: '1.2rem', lineHeight: '1.2' }}>•</span>
+                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)', fontWeight: 500 }}>
+                  {parts.map((part, pIdx) => pIdx % 2 === 1 ? <strong key={pIdx} style={{ color: '#fff', fontWeight: 700 }}>{part}</strong> : part)}
+                </Typography>
+              </div>
+            );
+          }
+          // Normal greeting or text
+          const parts = line.split('**');
+          return (
+            <Typography key={idx} variant="body2" sx={{ color: '#fff', fontWeight: 600, mb: 1, fontSize: '0.98rem' }}>
+              {parts.map((part, pIdx) => pIdx % 2 === 1 ? <strong key={pIdx} style={{ color: '#14B8A6', fontWeight: 800 }}>{part}</strong> : part)}
+            </Typography>
+          );
+        })}
+      </div>
+    );
+  };
   const [fromFocused, setFromFocused] = useState(false);
   const [toFocused, setToFocused] = useState(false);
   const [showCustomDate, setShowCustomDate] = useState(false);
@@ -542,6 +597,151 @@ export const SuperAdminDashboard = () => {
           )
         }
       />
+
+      {/* AI CEO Dashboard Section */}
+      <Box sx={{
+        mb: 4,
+        p: 3,
+        borderRadius: '16px',
+        background: 'linear-gradient(135deg, rgba(30, 27, 58, 0.75) 0%, rgba(15, 12, 38, 0.85) 100%)',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.4)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2
+      }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: 1 }}>
+              <span>✨</span> AI CEO Dashboard
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)', fontWeight: 500 }}>
+              Get a personalized executive summary based on live CRM data.
+            </Typography>
+          </Box>
+          <Button
+            variant="contained"
+            onClick={handleBriefMyDay}
+            disabled={loadingBrief}
+            sx={{
+              background: 'linear-gradient(45deg, #FF512F 0%, #DD2476 50%, #8E2DE2 100%)',
+              backgroundSize: '200% auto',
+              color: '#fff',
+              fontWeight: 800,
+              px: 3,
+              py: 1,
+              borderRadius: '8px',
+              boxShadow: '0 4px 15px rgba(221, 36, 118, 0.4)',
+              transition: 'all 0.3s ease',
+              animation: loadingBrief ? 'none' : 'pulse-gold 2s infinite',
+              '&:hover': {
+                backgroundPosition: 'right center',
+                boxShadow: '0 6px 20px rgba(221, 36, 118, 0.6)',
+                transform: 'translateY(-2px)'
+              },
+              '@keyframes pulse-gold': {
+                '0%': { boxShadow: '0 0 0 0 rgba(221, 36, 118, 0.7)' },
+                '70%': { boxShadow: '0 0 0 10px rgba(221, 36, 118, 0)' },
+                '100%': { boxShadow: '0 0 0 0 rgba(221, 36, 118, 0)' }
+              }
+            }}
+          >
+            {loadingBrief ? '🤖 Briefing Your Day...' : '💼 Brief My Day'}
+          </Button>
+        </Box>
+
+        {/* Expandable briefing area */}
+        {(briefText || loadingBrief) && (
+          <Box sx={{
+            mt: 2,
+            p: 2.5,
+            borderRadius: '12px',
+            background: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid rgba(255, 255, 255, 0.05)',
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: 3
+          }}>
+            {/* Left side: AI Greeting and Summary */}
+            <Box sx={{ flex: 1.5 }}>
+              <Typography variant="subtitle2" sx={{ color: '#14B8A6', fontWeight: 800, mb: 1.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Daily Briefing
+              </Typography>
+              {loadingBrief ? (
+                <Box sx={{ py: 3, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <span style={{ display: 'inline-block', animation: 'spin 1.5s linear infinite' }}>🔄</span> Scanning active leads, consultations, and payment logs...
+                  </Typography>
+                  <style>
+                    {`
+                      @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                      }
+                    `}
+                  </style>
+                </Box>
+              ) : (
+                <Box sx={{
+                  color: '#fff',
+                  lineHeight: 1.6,
+                  fontFamily: 'Outfit, sans-serif',
+                  '& p': { mb: 2, fontSize: '0.95rem' },
+                  '& ul': { pl: 2, mb: 0 },
+                  '& li': { mb: 1, fontSize: '0.92rem', color: 'rgba(255, 255, 255, 0.9)' }
+                }}>
+                  {renderFormattedBrief(briefText)}
+                </Box>
+              )}
+            </Box>
+
+            {/* Divider */}
+            {!isMobile && <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255, 255, 255, 0.08)' }} />}
+
+            {/* Right side: Suggestions Checklist */}
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="subtitle2" sx={{ color: '#EC4899', fontWeight: 800, mb: 1.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                AI Assistant Recommendations
+              </Typography>
+              {loadingBrief ? (
+                <Box sx={{ py: 3 }}>
+                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.4)', fontStyle: 'italic' }}>
+                    Compiling action items...
+                  </Typography>
+                </Box>
+              ) : (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2 }}>
+                  {suggestions.map((sug, idx) => (
+                    <Box
+                      key={idx}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 1.5,
+                        p: 1.5,
+                        borderRadius: '8px',
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        border: '1px solid rgba(255, 255, 255, 0.04)',
+                        transition: 'background 0.2s',
+                        '&:hover': {
+                          background: 'rgba(255, 255, 255, 0.04)'
+                        }
+                      }}
+                    >
+                      <span style={{ color: '#F59E0B', fontSize: '1.1rem', marginTop: '-2px' }}>💡</span>
+                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.85)', fontWeight: 500, lineHeight: 1.4 }}>
+                        {sug}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+              )}
+            </Box>
+          </Box>
+        )}
+      </Box>
+
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: isMobile ? '100%' : 'auto', mb: 3 }}>
             {/* Row 1: Presets + Custom toggle */}
             <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', flexWrap: 'wrap' }}>

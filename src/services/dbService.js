@@ -482,4 +482,10 @@ export const dbService = {
     const res = await apiClient.patch(`/cases/cycles/${id}`, data);
     return res.data;
   },
+
+  // ─── AI CEO Dashboard ───────────────────────────────────────────────────
+  getCeoBrief: async () => {
+    const res = await apiClient.get('/ai/ceo-brief');
+    return res.data;
+  },
 };
