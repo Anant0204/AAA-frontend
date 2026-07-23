@@ -356,15 +356,28 @@ export const dbService = {
   receiveSocialMessage: async ({ conversationId, message, isActive }) => {
     return { success: true };
   },
-  sendSocialMessage: async ({ conversationId, message }) => {
+  sendSocialMessage: async ({ conversationId, phone, message }) => {
     try {
-      const res = await apiClient.get('/social/conversations');
-      const conversations = res.data;
-      const conv = conversations.find(c => c.id === conversationId);
-      const phone = conv ? conv.phone : conversationId.replace('conv_phone_', '');
+      let targetPhone = phone;
+      if (!targetPhone && conversationId) {
+        if (conversationId.includes('+')) {
+          targetPhone = conversationId;
+        } else if (conversationId.startsWith('conv_phone_')) {
+          targetPhone = conversationId.replace('conv_phone_', '');
+        } else {
+          try {
+            const res = await apiClient.get('/social/conversations');
+            const conv = res.data?.find(c => c.id === conversationId);
+            if (conv) targetPhone = conv.phone;
+          } catch (err) {
+            console.warn('Could not resolve phone from conversations list:', err.message);
+          }
+        }
+      }
+      const textContent = typeof message === 'string' ? message : (message?.text || '');
       const sendRes = await apiClient.post('/social/messages/send', {
-        phone: phone,
-        text: message.text
+        phone: targetPhone || conversationId,
+        text: textContent
       });
       return sendRes.data;
     } catch (e) {

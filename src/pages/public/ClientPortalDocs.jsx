@@ -474,10 +474,9 @@ export const ClientPortalDocs = () => {
       const match = generalSettings.swornTranslationRates.find(r => r.name === lang);
       if (match) return match.rate;
     }
-    if (lang === 'Arabic' || lang === 'Chinese') return 0.16;
-    if (lang === 'French' || lang === 'German') return 0.14;
-    if (lang === 'Urdu') return 0.15;
-    return 0.12;
+    if (lang === 'Urdu') return 0.40;
+    if (lang === 'Arabic') return 0.25;
+    return 0.15;
   };
 
   useEffect(() => {
@@ -1588,19 +1587,11 @@ export const ClientPortalDocs = () => {
                         disabled={translationPaid}
                         sx={{ borderRadius: 2.5 }}
                       >
-                        {generalSettings && Array.isArray(generalSettings.swornTranslationRates) && generalSettings.swornTranslationRates.length > 0 ? (
-                          generalSettings.swornTranslationRates.map((langPair) => (
-                            <MenuItem key={langPair.id} value={langPair.name}>
-                              {langPair.name} (€{Number(langPair.rate).toFixed(2)} / word)
-                            </MenuItem>
-                          ))
-                        ) : (
-                          ['English', 'French', 'German', 'Arabic', 'Chinese', 'Urdu'].map((name) => (
-                            <MenuItem key={name} value={name}>
-                              {name} (€{getRateForLang(name).toFixed(2)} / word)
-                            </MenuItem>
-                          ))
-                        )}
+                        {['English', 'Arabic', 'Urdu'].map((name) => (
+                          <MenuItem key={name} value={name}>
+                            {name} (€{getRateForLang(name).toFixed(2)} / word)
+                          </MenuItem>
+                        ))}
                       </Select>
                     </FormControl>
 
@@ -1785,7 +1776,7 @@ export const ClientPortalDocs = () => {
                                   label="Source Language"
                                   sx={{ borderRadius: 2 }}
                                 >
-                                  {['English', 'French', 'German', 'Arabic', 'Chinese', 'Urdu'].map((name) => (
+                                  {['English', 'Arabic', 'Urdu'].map((name) => (
                                     <MenuItem key={name} value={name}>
                                       {name} (€{getRateForLang(name).toFixed(2)} / word)
                                     </MenuItem>

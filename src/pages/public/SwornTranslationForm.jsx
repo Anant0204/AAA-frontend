@@ -142,6 +142,7 @@ const SwornTranslationForm = () => {
   const [quote, setQuote] = useState(null);
   const [error, setError] = useState(null);
   const [isDragActive, setIsDragActive] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const handleInputChange = (e) => {
     setFormData({
@@ -297,26 +298,6 @@ const SwornTranslationForm = () => {
               Upload your PDF document to get an instant word count and estimated price.
             </p>
 
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '12px',
-              padding: '14px 16px',
-              textAlign: 'left',
-              fontSize: '13px',
-              lineHeight: 1.5,
-              color: 'rgba(255, 255, 255, 0.7)'
-            }}>
-              <strong style={{ color: '#fff', display: 'block', marginBottom: '6px' }}>💰 Translation Rates (excluding 5% VAT):</strong>
-              <ul style={{ margin: 0, paddingLeft: '18px', color: '#cbd5e0' }}>
-                <li>English to Spanish: <strong>€0.15</strong> per word</li>
-                <li>Arabic to Spanish: <strong>€0.25</strong> per word</li>
-                <li>Urdu to Spanish: <strong>€0.40</strong> per word</li>
-              </ul>
-              <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.4)', display: 'block', marginTop: '6px' }}>
-                * Delivery within maximum 7 working days from payment confirmation.
-              </span>
-            </div>
           </div>
 
           <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -639,22 +620,98 @@ const SwornTranslationForm = () => {
               <h3 style={{ color: '#fff', fontSize: '15px', fontWeight: 700, margin: '0 0 16px', textAlign: 'center' }}>
                 📊 Your Estimated Quote
               </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '18px' }}>
-                <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <span style={{ display: 'block', color: 'rgba(255,255,255,0.5)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>Word Count</span>
-                  <span style={{ color: '#fff', fontSize: '20px', fontWeight: 800 }}>{quote.wordCount} words</span>
-                </div>
-                <div style={{ textAlign: 'center', background: 'rgba(56, 239, 125, 0.06)', padding: '12px', borderRadius: '10px', border: '1px solid rgba(56, 239, 125, 0.2)' }}>
-                  <span style={{ display: 'block', color: 'rgba(56, 239, 125, 0.7)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>Estimated Price</span>
-                  <span style={{ color: '#38ef7d', fontSize: '20px', fontWeight: 800 }}>
-                    {new Intl.NumberFormat('en-IE', { style: 'currency', currency: quote.currency }).format(quote.estimatedPrice)}
-                  </span>
-                </div>
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '10px',
+                padding: '12px 14px',
+                marginBottom: '16px',
+                fontSize: '12px',
+                color: 'rgba(255, 255, 255, 0.7)',
+                textAlign: 'left'
+              }}>
+                <strong style={{ color: '#fff', display: 'block', marginBottom: '6px' }}>💰 Translation Rates (excluding 5% VAT):</strong>
+                <ul style={{ margin: 0, paddingLeft: '18px', color: '#cbd5e0' }}>
+                  <li>English to Spanish: <strong>€0.15</strong> per word</li>
+                  <li>Arabic to Spanish: <strong>€0.25</strong> per word</li>
+                  <li>Urdu to Spanish: <strong>€0.40</strong> per word</li>
+                </ul>
+                <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.4)', display: 'block', marginTop: '6px' }}>
+                  * Delivery within maximum 7 working days from payment confirmation.
+                </span>
               </div>
+
+              {(() => {
+                const subtotal = quote.subtotal ? Number(quote.subtotal) : Number((quote.estimatedPrice / 1.05).toFixed(2));
+                const vat = quote.vat ? Number(quote.vat) : Number((quote.estimatedPrice - subtotal).toFixed(2));
+                const total = quote.estimatedPrice ? Number(quote.estimatedPrice) : Number((subtotal + vat).toFixed(2));
+
+                return (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '12px' }}>
+                      <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <span style={{ display: 'block', color: 'rgba(255,255,255,0.5)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>Word Count</span>
+                        <span style={{ color: '#fff', fontSize: '18px', fontWeight: 800 }}>{quote.wordCount} words</span>
+                      </div>
+                      <div style={{ textAlign: 'center', background: 'rgba(56, 239, 125, 0.06)', padding: '12px', borderRadius: '10px', border: '1px solid rgba(56, 239, 125, 0.2)' }}>
+                        <span style={{ display: 'block', color: 'rgba(56, 239, 125, 0.7)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>Total Incl. 5% VAT</span>
+                        <span style={{ color: '#38ef7d', fontSize: '18px', fontWeight: 800 }}>
+                          {new Intl.NumberFormat('en-IE', { style: 'currency', currency: quote.currency || 'EUR' }).format(total)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* VAT Breakdown */}
+                    <div style={{
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px solid rgba(255, 255, 255, 0.06)',
+                      borderRadius: '8px',
+                      padding: '10px 14px',
+                      marginBottom: '16px',
+                      fontSize: '12px',
+                      color: 'rgba(255,255,255,0.6)',
+                      display: 'flex',
+                      justifyContent: 'space-between'
+                    }}>
+                      <span>Subtotal: <strong>€{subtotal.toFixed(2)}</strong></span>
+                      <span>+ 5% VAT: <strong>€{vat.toFixed(2)}</strong></span>
+                    </div>
+                  </>
+                );
+              })()}
+
+              {/* Mandatory Terms Checkbox */}
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '10px',
+                padding: '12px 14px',
+                marginBottom: '18px',
+                textAlign: 'left'
+              }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', color: '#fff', fontSize: '13px', cursor: 'pointer', lineHeight: 1.4 }}>
+                  <input
+                    type="checkbox"
+                    checked={termsAccepted}
+                    onChange={(e) => setTermsAccepted(e.target.checked)}
+                    style={{ width: '18px', height: '18px', marginTop: '2px', accentColor: '#38ef7d', cursor: 'pointer', flexShrink: 0 }}
+                  />
+                  <span>
+                    I have read and accepted the Company's <a href="https://aaabusinessconsultancy.com/terms-conditions/" target="_blank" rel="noopener noreferrer" style={{ color: '#38ef7d', textDecoration: 'underline' }}>Terms and Conditions</a>. *
+                  </span>
+                </label>
+              </div>
+
               <div>
                 <button
                   onClick={handleProceed}
-                  style={btnCheckoutStyle}
+                  disabled={!termsAccepted}
+                  style={{
+                    ...btnCheckoutStyle,
+                    opacity: termsAccepted ? 1 : 0.4,
+                    cursor: termsAccepted ? 'pointer' : 'not-allowed',
+                    background: termsAccepted ? 'linear-gradient(135deg, #11998e, #38ef7d)' : '#4a5568'
+                  }}
                 >
                   💳 Proceed with Payment (Stripe Checkout)
                 </button>

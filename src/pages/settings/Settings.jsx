@@ -116,14 +116,10 @@ export const Settings = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  // Sworn Translation Rates State
   const [ratesForm, setRatesForm] = useState([
-    { id: 'lang_en', name: 'English', rate: 0.12 },
-    { id: 'lang_fr', name: 'French', rate: 0.14 },
-    { id: 'lang_de', name: 'German', rate: 0.14 },
-    { id: 'lang_ar', name: 'Arabic', rate: 0.16 },
-    { id: 'lang_zh', name: 'Chinese', rate: 0.16 },
-    { id: 'lang_ur', name: 'Urdu', rate: 0.15 }
+    { id: 'lang_en', name: 'English', rate: 0.15 },
+    { id: 'lang_ar', name: 'Arabic', rate: 0.25 },
+    { id: 'lang_ur', name: 'Urdu', rate: 0.40 }
   ]);
 
   // Form states to Add New Language

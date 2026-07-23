@@ -141,8 +141,7 @@ export const SocialInbox = () => {
   });
 
   const sendSocialMessageMutation = useMutation({
-    mutationFn: ({ conversationId, message }) =>
-      dbService.sendSocialMessage(conversationId, message),
+    mutationFn: (payload) => dbService.sendSocialMessage(payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['conversations'] })
   });
   const [activeConvId, setActiveConvId] = useState('conv1');
@@ -301,22 +300,11 @@ export const SocialInbox = () => {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    sendSocialMessageMutation.mutate({ conversationId: activeConvId, message: newMsg });
-    
-    // Auto mock reply after 1.5 seconds (1500 ms) as per verification guide
-    const currentConvId = activeConvId;
-    setTimeout(() => {
-      const clientMsg = {
-        sender: 'customer',
-        text: 'Thank you for the update! I will look into this and get back to you shortly.',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      receiveSocialMessageMutation.mutate({
-        conversationId: currentConvId,
-        message: clientMsg,
-        isActive: true
-      });
-    }, 1500);
+    sendSocialMessageMutation.mutate({ 
+      conversationId: activeConvId, 
+      phone: activeConv.phone, 
+      message: newMsg 
+    });
 
     setReplyText('');
     setSelectedTemplate('');
