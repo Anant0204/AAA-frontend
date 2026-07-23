@@ -17,6 +17,10 @@ import Autocomplete from '@mui/material/Autocomplete';
 import List from '@mui/material/List';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
+import Switch from '@mui/material/Switch';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Alert from '@mui/material/Alert';
+import Chip from '@mui/material/Chip';
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import AddIcon from '@mui/icons-material/Add';
@@ -98,6 +102,56 @@ const navigate = useNavigate();
   const [duration, setDuration] = useState(30);
   const [agentId, setAgentId] = useState(isConsultant ? currentUser?.id || 'c1' : 'c1');
   const [meetingNotes, setMeetingNotes] = useState('');
+
+  // Manual Consultant Reassignment Toggle & Modal state
+  const [manualModeEnabled, setManualModeEnabled] = useState(false);
+  const [reassignModalOpen, setReassignModalOpen] = useState(false);
+  const [selectedMeetingForReassign, setSelectedMeetingForReassign] = useState(null);
+  const [targetConsultantId, setTargetConsultantId] = useState('');
+  const [reassignReason, setReassignReason] = useState('');
+  const [conflictWarning, setConflictWarning] = useState(null);
+
+  const reassignMutation = useMutation({
+    mutationFn: ({ id, payload }) => dbService.reassignConsultation(id, payload),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['consultations'] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      showAlert('success', data.message || 'Consultant reassigned successfully!');
+      setReassignModalOpen(false);
+      setSelectedMeetingForReassign(null);
+      setTargetConsultantId('');
+      setReassignReason('');
+      setConflictWarning(null);
+    },
+    onError: (err) => {
+      if (err.response?.status === 409 && err.response?.data?.conflict) {
+        setConflictWarning(err.response.data.message);
+      } else {
+        showAlert('error', err.response?.data?.message || 'Failed to reassign consultant');
+      }
+    }
+  });
+
+  const handleOpenReassignModal = (meeting, e) => {
+    e.stopPropagation();
+    setSelectedMeetingForReassign(meeting);
+    setTargetConsultantId(meeting.assignedConsultantId || '');
+    setReassignReason('');
+    setConflictWarning(null);
+    setReassignModalOpen(true);
+  };
+
+  const handleConfirmReassign = (allowConflict = false) => {
+    if (!selectedMeetingForReassign || !targetConsultantId) return;
+    reassignMutation.mutate({
+      id: selectedMeetingForReassign.id,
+      payload: {
+        consultantId: targetConsultantId,
+        reason: reassignReason,
+        allowConflict
+      }
+    });
+  };
 
   // Sync with currentUser role/id changes
   useEffect(() => {
@@ -294,9 +348,28 @@ const navigate = useNavigate();
         <Box sx={{ flex: 1, minWidth: { md: '320px' }, width: '100%', display: 'flex', flexDirection: 'column', gap: 3 }}>
           {/* Filter */}
           <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
-            <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
-              Agent Filter
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                Agent Filter
+              </Typography>
+              {!isConsultant && (
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={manualModeEnabled}
+                      onChange={(e) => setManualModeEnabled(e.target.checked)}
+                      color="secondary"
+                      size="small"
+                    />
+                  }
+                  label={
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: manualModeEnabled ? 'secondary.main' : 'text.secondary' }}>
+                      {manualModeEnabled ? '🔄 Manual ON' : '⚡ Auto Mode'}
+                    </Typography>
+                  }
+                />
+              )}
+            </Box>
             <TextField
               select
               value={activeAgentId}
@@ -358,12 +431,25 @@ const navigate = useNavigate();
                             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                               {mt.clientName}
                             </Typography>
-                            <Typography variant="caption" sx={{ fontWeight: 700, color: 'secondary.main' }}>
-                              {mt.meetingTime}
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography variant="caption" sx={{ fontWeight: 700, color: 'secondary.main' }}>
+                                {mt.meetingTime}
+                              </Typography>
+                              {manualModeEnabled && !isConsultant && (
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  color="secondary"
+                                  onClick={(e) => handleOpenReassignModal(mt, e)}
+                                  sx={{ textTransform: 'none', py: 0.2, px: 1, fontSize: '0.7rem', borderRadius: 1 }}
+                                >
+                                  Reassign
+                                </Button>
+                              )}
+                            </Box>
                           </Box>
                         }
-                        secondary={`Host: ${c ? c.name : 'Unknown'} (${mt.durationMinutes} min)`}
+                        secondary={`Host: ${c ? c.name : 'Unassigned'} (${mt.durationMinutes} min)`}
                       />
                     </ListItemButton>
                   );
@@ -575,6 +661,71 @@ const navigate = useNavigate();
             rows={3}
             fullWidth
             placeholder="Inquire passive income proofs or check remote work details..."
+          />
+        </Box>
+      </AppModal>
+
+      {/* Reassign Expert Modal */}
+      <AppModal
+        open={reassignModalOpen}
+        onClose={() => {
+          setReassignModalOpen(false);
+          setConflictWarning(null);
+        }}
+        title="Reassign Consultant (Manual Override)"
+        confirmText={conflictWarning ? "Override Conflict & Reassign" : "Confirm Reassignment"}
+        onConfirm={() => handleConfirmReassign(!!conflictWarning)}
+        confirmButtonProps={{ color: conflictWarning ? 'warning' : 'primary', loading: reassignMutation.isPending }}
+      >
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+          {selectedMeetingForReassign && (
+            <Paper sx={{ p: 2, bgcolor: 'background.neutral', borderRadius: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                {selectedMeetingForReassign.clientName}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block">
+                Date: <strong>{selectedMeetingForReassign.date || selectedDate}</strong> | Time: <strong>{selectedMeetingForReassign.meetingTime}</strong>
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block">
+                Current Host: <strong>{agents.find(a => a.id === selectedMeetingForReassign.assignedConsultantId)?.name || 'Unassigned'}</strong>
+              </Typography>
+            </Paper>
+          )}
+
+          {conflictWarning && (
+            <Alert severity="warning" sx={{ borderRadius: 2 }}>
+              {conflictWarning}
+            </Alert>
+          )}
+
+          <FormControl fullWidth size="small" required>
+            <InputLabel id="new-agent-select-label">Select New Consultant Host</InputLabel>
+            <Select
+              labelId="new-agent-select-label"
+              value={targetConsultantId}
+              onChange={(e) => {
+                setTargetConsultantId(e.target.value);
+                setConflictWarning(null);
+              }}
+              label="Select New Consultant Host"
+            >
+              {agents.filter(a => a.role === 'consultant').map((c) => (
+                <MenuItem key={c.id} value={c.id}>
+                  {c.name} ({c.email || c.role})
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <TextField
+            value={reassignReason}
+            onChange={(e) => setReassignReason(e.target.value)}
+            label="Reason for Reassignment (Audit Log)"
+            placeholder="e.g. Consultant out sick, customer requested Arabic speaker, load balancing..."
+            multiline
+            rows={2}
+            fullWidth
+            required
           />
         </Box>
       </AppModal>

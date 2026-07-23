@@ -69,6 +69,11 @@ export const dbService = {
     const res = await apiClient.post('/consultations/create-for-lead', data);
     return res.data;
   },
+  // Reassign consultation to a different consultant with audit log
+  reassignConsultation: async (consultationId, { consultantId, reason, allowConflict }) => {
+    const res = await apiClient.patch(`/consultations/${consultationId}/reassign`, { consultantId, reason, allowConflict });
+    return res.data;
+  },
 
   // CLIENTS & CASES
   getClients: async () => {
