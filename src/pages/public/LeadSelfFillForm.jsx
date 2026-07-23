@@ -113,6 +113,8 @@ const parsePhone = (rawPhone) => {
     countryCode: "+971",
     localNumber: clean.replace(/[^\d]/g, "")
   };
+};
+
 const SearchableCountrySelect = ({ label, value, onChange, options, placeholder, disabled, labelStyle, inputStyle }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
