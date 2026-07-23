@@ -175,6 +175,11 @@ const SwornTranslationForm = () => {
       
       const formDataUpload = new FormData();
       formDataUpload.append('document', file);
+      formDataUpload.append('firstName', formData.firstName);
+      formDataUpload.append('lastName', formData.lastName);
+      formDataUpload.append('email', formData.email);
+      formDataUpload.append('phone', formData.phone);
+      formDataUpload.append('nationality', formData.nationality);
       formDataUpload.append('sourceLanguage', formData.sourceLanguage);
       formDataUpload.append('targetLanguage', formData.targetLanguage);
 

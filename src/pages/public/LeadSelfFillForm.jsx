@@ -252,6 +252,11 @@ export const LeadSelfFillForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [warningPopup, setWarningPopup] = useState(null);
+  // Reschedule & Cancel state
+  const [rescheduleConsultationId, setRescheduleConsultationId] = useState(null);
+  const [cancelConsultationId, setCancelConsultationId] = useState(null);
+  const [actionDoneMsg, setActionDoneMsg] = useState("");
+
   // Optional lookup state
   const [lookupOpen, setLookupOpen] = useState(false);
   const [lookupEmail, setLookupEmail] = useState("");
@@ -302,6 +307,15 @@ export const LeadSelfFillForm = () => {
     const serviceParam = params.get("service") || params.get("program") || "";
     const applicantsParam = params.get("applicants") || "";
     const nationalityParam = params.get("nationality") || "";
+    const isReschedule = params.get("reschedule") === "true";
+    const isCancel = params.get("cancel") === "true";
+    const cId = params.get("consultationId");
+
+    if (isReschedule && cId) {
+      setRescheduleConsultationId(cId);
+    } else if (isCancel && cId) {
+      setCancelConsultationId(cId);
+    }
 
     // Set initial category from URL parameter
     if (serviceParam) {
@@ -529,8 +543,55 @@ export const LeadSelfFillForm = () => {
     return 0;
   };
 
+  const handleCancelBooking = async () => {
+    if (!cancelConsultationId) return;
+    try {
+      setLoading(true);
+      setError("");
+      const res = await axios.patch(`${API_URL}/consultations/public/cancel`, {
+        consultationId: cancelConsultationId
+      });
+      if (res.data.success) {
+        setActionDoneMsg("Your appointment booking has been successfully cancelled.");
+        setCancelConsultationId(null);
+        setStep(2);
+      }
+    } catch (cErr) {
+      setError(cErr.response?.data?.message || "Failed to cancel consultation.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (rescheduleConsultationId) {
+      if (!form.meetingPreferredDate || !form.meetingPreferredTime) {
+        setError("Please select your preferred meeting date and time.");
+        return;
+      }
+      try {
+        setLoading(true);
+        setError("");
+        const res = await axios.patch(`${API_URL}/consultations/public/reschedule`, {
+          consultationId: rescheduleConsultationId,
+          date: form.meetingPreferredDate,
+          timeSlot: form.meetingPreferredTime
+        });
+        if (res.data.success) {
+          setActionDoneMsg(`Your consultation has been rescheduled to ${form.meetingPreferredDate} at ${form.meetingPreferredTime} (UTC).`);
+          setRescheduleConsultationId(null);
+          setStep(2);
+          return;
+        }
+      } catch (rErr) {
+        setError(rErr.response?.data?.message || "Failed to reschedule consultation.");
+        setLoading(false);
+        return;
+      }
+    }
+
     if (!form.firstName || !form.lastName || !form.email || !form.phone) {
       setError("Please fill in all required personal details (Name, Email, Phone).");
       return;
@@ -745,8 +806,59 @@ export const LeadSelfFillForm = () => {
           }}
         >
           {/* ─── STEP 1: Unified Booking & Intake Form ─── */}
-          {step === 1 && (
+          {step === 1 && cancelConsultationId && (
+            <div style={{ textAlign: "center", padding: "20px 0" }}>
+              <div style={{ fontSize: "40px", marginBottom: "16px" }}>⚠️</div>
+              <h3 style={{ color: "#ff4d4d", fontSize: "20px", fontWeight: 700, margin: "0 0 12px" }}>
+                Cancel Consultation Appointment
+              </h3>
+              <p style={{ color: "rgba(255,255,255,0.8)", fontSize: "14px", lineHeight: 1.6, marginBottom: "24px" }}>
+                Are you sure you want to cancel your scheduled Spain Visa Eligibility Assessment?
+              </p>
+              <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+                <button
+                  type="button"
+                  onClick={handleCancelBooking}
+                  disabled={loading}
+                  style={{
+                    background: "#ef4444",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "10px",
+                    padding: "12px 20px",
+                    fontWeight: 700,
+                    cursor: "pointer"
+                  }}
+                >
+                  {loading ? "Cancelling..." : "❌ Yes, Cancel Booking"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCancelConsultationId(null)}
+                  style={{
+                    background: "rgba(255,255,255,0.1)",
+                    color: "#fff",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    borderRadius: "10px",
+                    padding: "12px 20px",
+                    fontWeight: 600,
+                    cursor: "pointer"
+                  }}
+                >
+                  🔙 Keep My Booking
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 1 && !cancelConsultationId && (
             <>
+              {rescheduleConsultationId && (
+                <div style={{ background: "rgba(79, 70, 229, 0.2)", border: "1px solid rgba(79, 70, 229, 0.5)", borderRadius: "10px", padding: "12px 16px", marginBottom: "20px", color: "#a5b4fc", fontSize: "13px", fontWeight: 600 }}>
+                  🔄 Rescheduling Consultation Booking #{rescheduleConsultationId.substring(0, 8)} — Please select your new date & time below.
+                </div>
+              )}
+
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
                 <h2
                   style={{
@@ -756,7 +868,7 @@ export const LeadSelfFillForm = () => {
                     margin: 0,
                   }}
                 >
-                  Book Assessment 📅
+                  {rescheduleConsultationId ? "Reschedule Assessment 🔄" : "Book Assessment 📅"}
                 </h2>
               </div>
 
@@ -1319,9 +1431,13 @@ export const LeadSelfFillForm = () => {
                   margin: "0 0 28px",
                 }}
               >
-                Thank you! Your details and meeting preferences have been saved.
-                <br />
-                Our team will contact you shortly with a confirmed meeting time.
+                {actionDoneMsg || (
+                  <>
+                    Thank you! Your details and meeting preferences have been saved.
+                    <br />
+                    Our team will contact you shortly with a confirmed meeting time.
+                  </>
+                )}
               </p>
               <div
                 style={{

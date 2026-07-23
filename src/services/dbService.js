@@ -501,4 +501,9 @@ export const dbService = {
     const res = await apiClient.get('/ai/ceo-brief');
     return res.data;
   },
+
+  summarizeClient: async (clientId) => {
+    const res = await apiClient.post('/ai/summarize-client', { clientId });
+    return res.data;
+  },
 };
