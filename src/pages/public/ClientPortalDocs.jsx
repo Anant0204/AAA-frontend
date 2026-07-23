@@ -2194,6 +2194,15 @@ export const ClientPortalDocs = () => {
           const totalApplicants = getApplicantsCount(client.applicantsCount);
           const addApplicants = totalApplicants - 1;
 
+          // Check for €250 assessment credit in the last 14 days
+          const paidAssessment = allPayments.find(p =>
+            p.clientId === client.id &&
+            p.status === 'Paid' &&
+            p.amount === 262.50 &&
+            (new Date() - new Date(p.createdAt)) < 14 * 24 * 60 * 60 * 1000
+          );
+          const assessmentCredit = paidAssessment ? 250 : 0;
+
           // Option A: Full Processing (base €3500, additional €500)
           const optionAPrice = 3500 + (addApplicants * 500);
 
@@ -2262,7 +2271,12 @@ export const ClientPortalDocs = () => {
                             <CardContent>
                               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                                 <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>OPTION A: FULL PROCESSING PACKAGE</Typography>
-                                <Typography variant="h6" color="secondary.main" sx={{ fontWeight: 800 }}>€{optionAPrice}</Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  {assessmentCredit > 0 && (
+                                    <Typography variant="body2" sx={{ textDecoration: 'line-through', color: 'text.secondary', fontWeight: 500 }}>€{optionAPrice}</Typography>
+                                  )}
+                                  <Typography variant="h6" color="secondary.main" sx={{ fontWeight: 800 }}>€{optionAPrice - assessmentCredit}</Typography>
+                                </Box>
                               </Box>
                               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                                 Complete professional end-to-end support for Spain Residency applications from eligibility to submission.
@@ -2287,7 +2301,12 @@ export const ClientPortalDocs = () => {
                             <CardContent>
                               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                                 <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>OPTION B: PREMIUM PACKAGE</Typography>
-                                <Typography variant="h6" color="secondary.main" sx={{ fontWeight: 800 }}>€{optionBPrice}</Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  {assessmentCredit > 0 && (
+                                    <Typography variant="body2" sx={{ textDecoration: 'line-through', color: 'text.secondary', fontWeight: 500 }}>€{optionBPrice}</Typography>
+                                  )}
+                                  <Typography variant="h6" color="secondary.main" sx={{ fontWeight: 800 }}>€{optionBPrice - assessmentCredit}</Typography>
+                                </Box>
                               </Box>
                               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                                 Everything in Full Process + complete relocation administrative assistance (NIE/TIE fingerprint appointments, empadronamiento local registration, Social Security, Spanish Bank setup).
@@ -2312,7 +2331,12 @@ export const ClientPortalDocs = () => {
                             <CardContent>
                               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                                 <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>OPTION C: ADMINISTRATIVE RELOCATION PACKAGE</Typography>
-                                <Typography variant="h6" color="secondary.main" sx={{ fontWeight: 800 }}>€{optionCPrice}</Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  {assessmentCredit > 0 && (
+                                    <Typography variant="body2" sx={{ textDecoration: 'line-through', color: 'text.secondary', fontWeight: 500 }}>€{optionCPrice}</Typography>
+                                  )}
+                                  <Typography variant="h6" color="secondary.main" sx={{ fontWeight: 800 }}>€{optionCPrice - assessmentCredit}</Typography>
+                                </Box>
                               </Box>
                               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                                 Post-approval administrative relocation support for clients who already have their visa approved and need settlement help in Spain.
@@ -2332,48 +2356,64 @@ export const ClientPortalDocs = () => {
                         <Divider sx={{ my: 1.5 }} />
 
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="body2" color="text.secondary">Base Relocation Fee:</Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 700 }}>€{client.serviceId === 'tourism' || client.serviceId === 'tourist' ? schengenPrice : baseServicePrice}</Typography>
-                          </Box>
+                          {/* Correct, clean calculations */}
+                          {(() => {
+                            const baseFee = 
+                              client.serviceId === 'tourism' || client.serviceId === 'tourist' 
+                                ? schengenPrice 
+                                : (selectedPackage === 'relocation' ? optionCPrice : optionAPrice);
 
-                          {selectedPackage === 'premium' && client.serviceId !== 'tourism' && client.serviceId !== 'tourist' && (
-                            <>
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <Typography variant="body2" color="text.secondary">Relocation Add-on:</Typography>
-                                <Typography variant="body2" sx={{ fontWeight: 700 }}>+€700</Typography>
-                              </Box>
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', color: 'success.main' }}>
-                                <Typography variant="body2" color="inherit">Bilingual Applicant Discounts:</Typography>
-                                <Typography variant="body2" sx={{ fontWeight: 700 }}>-€{optionBDiscount}</Typography>
-                              </Box>
-                            </>
-                          )}
+                            const premiumAddon = 
+                              selectedPackage === 'premium' && client.serviceId !== 'tourism' && client.serviceId !== 'tourist'
+                                ? optionBPrice - optionAPrice 
+                                : 0;
 
-                          {selectedPackage === 'relocation' && client.serviceId !== 'tourism' && client.serviceId !== 'tourist' && (
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', color: 'error.main' }}>
-                              <Typography variant="body2" color="inherit">Administrative Mode Override:</Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 700 }}>-€{baseServicePrice}</Typography>
-                            </Box>
-                          )}
+                            const isDeductible = ['full_process', 'premium', 'relocation'].includes(selectedPackage);
+                            const activeCredit = isDeductible ? assessmentCredit : 0;
+                            
+                            const subtotalBeforeVat = Math.max(0, baseFee + premiumAddon - activeCredit);
+                            const calculatedVat = subtotalBeforeVat * 0.05;
+                            const calculatedTotal = subtotalBeforeVat * 1.05;
 
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="body2" color="text.secondary">VAT (5%):</Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                              €{(parseFloat(selectedPackage === 'premium' ? optionBPrice - optionBDiscount : (selectedPackage === 'relocation' ? optionCPrice : (client.serviceId === 'tourism' || client.serviceId === 'tourist' ? schengenPrice : optionAPrice))) * 0.05).toFixed(2)}
-                            </Typography>
-                          </Box>
+                            return (
+                              <>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                  <Typography variant="body2" color="text.secondary">Base Relocation Fee:</Typography>
+                                  <Typography variant="body2" sx={{ fontWeight: 700 }}>€{baseFee}</Typography>
+                                </Box>
 
-                          <Divider sx={{ my: 1 }} />
+                                {premiumAddon > 0 && (
+                                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <Typography variant="body2" color="text.secondary">Relocation Add-on:</Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 700 }}>+€{premiumAddon}</Typography>
+                                  </Box>
+                                )}
 
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Payable Total:</Typography>
-                            <Typography variant="h5" color="secondary.main" sx={{ fontWeight: 900 }}>
-                              €{(
-                                parseFloat(selectedPackage === 'premium' ? optionBPrice - optionBDiscount : (selectedPackage === 'relocation' ? optionCPrice : (client.serviceId === 'tourism' || client.serviceId === 'tourist' ? schengenPrice : optionAPrice))) * 1.05
-                              ).toFixed(2)}
-                            </Typography>
-                          </Box>
+                                {activeCredit > 0 && (
+                                  <Box sx={{ display: 'flex', justifyContent: 'space-between', color: 'success.main' }}>
+                                    <Typography variant="body2" color="inherit">Assessment Fee Credit:</Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 700, fontWeight: 700 }}>-€{activeCredit}.00</Typography>
+                                  </Box>
+                                )}
+
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                  <Typography variant="body2" color="text.secondary">VAT (5%):</Typography>
+                                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                                    €{calculatedVat.toFixed(2)}
+                                  </Typography>
+                                </Box>
+
+                                <Divider sx={{ my: 1 }} />
+
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Payable Total:</Typography>
+                                  <Typography variant="h5" color="secondary.main" sx={{ fontWeight: 900 }}>
+                                    €{calculatedTotal.toFixed(2)}
+                                  </Typography>
+                                </Box>
+                              </>
+                            );
+                          })()}
                         </Box>
 
                         <Divider sx={{ my: 2 }} />
@@ -2416,8 +2456,22 @@ export const ClientPortalDocs = () => {
                               showAlert('You must accept the terms and refund policy to check out.', 'warning');
                               return;
                             }
-                            const finalAmount = parseFloat(selectedPackage === 'premium' ? optionBPrice : (selectedPackage === 'relocation' ? optionCPrice : (client.serviceId === 'tourism' || client.serviceId === 'tourist' ? schengenPrice : optionAPrice)));
-                            const finalDiscount = selectedPackage === 'premium' ? optionBDiscount : 0;
+                            
+                            const baseFee = 
+                              client.serviceId === 'tourism' || client.serviceId === 'tourist' 
+                                ? schengenPrice 
+                                : (selectedPackage === 'relocation' ? optionCPrice : optionAPrice);
+
+                            const premiumAddon = 
+                              selectedPackage === 'premium' && client.serviceId !== 'tourism' && client.serviceId !== 'tourist'
+                                ? optionBPrice - optionAPrice 
+                                : 0;
+
+                            const isDeductible = ['full_process', 'premium', 'relocation'].includes(selectedPackage);
+                            const activeCredit = isDeductible ? assessmentCredit : 0;
+                            const finalAmount = Math.max(0, baseFee + premiumAddon - activeCredit);
+                            const finalDiscount = 0;
+
                             selectAndPayPackageMutation.mutate({
                               packageId: selectedPackage,
                               amount: finalAmount,

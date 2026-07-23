@@ -69,6 +69,7 @@ import ClientPortalLogin from '../pages/public/ClientPortalLogin';
 import ClientPortalChangePassword from '../pages/public/ClientPortalChangePassword';
 import ClientPortalDocs from '../pages/public/ClientPortalDocs';
 import LeadSelfFillForm from '../pages/public/LeadSelfFillForm';
+import PaymentSuccess from '../pages/public/PaymentSuccess';
 import AdminDocumentVerificationDashboard from '../pages/documents/AdminDocumentVerificationDashboard';
 import OperationsDocumentVerificationDashboard from '../pages/documents/OperationsDocumentVerificationDashboard';
 
@@ -293,6 +294,7 @@ export const AppRoutes = () => {
       <Route path="/public/eligibility-booking" element={<Navigate to="/public/lead-form" replace />} />
       <Route path="/public/intake/client/:clientId" element={<ClientIntakeForm />} />
       <Route path="/public/translation" element={<SwornTranslationForm />} />
+      <Route path="/public/payment-success" element={<PaymentSuccess />} />
 
 
       {/* Public Landing Page */}

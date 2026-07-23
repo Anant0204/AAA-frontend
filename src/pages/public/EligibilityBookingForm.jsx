@@ -11,6 +11,7 @@ const EligibilityBookingForm = () => {
   });
   const [fingerprint, setFingerprint] = useState(null);
   const [status, setStatus] = useState(null);
+  const [isPrefilled, setIsPrefilled] = useState(false);
 
   useEffect(() => {
     const initFingerprint = async () => {
@@ -19,6 +20,40 @@ const EligibilityBookingForm = () => {
       setFingerprint(result.visitorId);
     };
     initFingerprint();
+  }, []);
+
+  // Parse URL query parameters on mount to check for re-booking token
+  useEffect(() => {
+    const searchString = window.location.search || (window.location.hash.includes("?") ? window.location.hash.split("?")[1] : "");
+    const params = new URLSearchParams(searchString);
+    const tokenParam = params.get("token") || "";
+
+    if (tokenParam) {
+      setStatus('loading');
+      axios.get(`https://aaa-consultancy-production.up.railway.app/api/v1/booking/prefill?token=${tokenParam}`)
+        .then((res) => {
+          if (res.data.success) {
+            const data = res.data.data;
+            setFormData((prev) => ({
+              ...prev,
+              firstName: data.firstName || '',
+              lastName: data.lastName || '',
+              email: data.email || '',
+              phone: data.phone || '',
+              nationality: data.nationality || '',
+              countryOfResidence: data.countryOfResidence || '',
+              preferredLanguage: data.preferredLanguage || 'English',
+              serviceType: data.serviceType || '',
+              applicantsCount: data.applicantsCount || 'Main Only',
+            }));
+            setIsPrefilled(true);
+            setStatus(null);
+          }
+        })
+        .catch((err) => {
+          setStatus('error');
+        });
+    }
   }, []);
 
   const handleChange = (e) => {
@@ -36,7 +71,12 @@ const EligibilityBookingForm = () => {
         setStatus('success');
       }
     } catch (err) {
-      if (err.response?.status === 403) {
+      const errData = err.response?.data || {};
+      if (errData.code === 'BLACKLISTED') {
+        setStatus('blacklisted');
+      } else if (errData.code === 'DUPLICATE_LEAD') {
+        setStatus('duplicate');
+      } else if (errData.code === 'BLOCKED' || err.response?.status === 403) {
         setStatus('blocked');
       } else {
         setStatus('error');
@@ -55,12 +95,52 @@ const EligibilityBookingForm = () => {
     );
   }
 
+  if (status === 'blacklisted') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full mx-auto bg-white p-8 border border-gray-200 rounded-lg shadow text-center">
+          <span className="text-4xl">⚠️</span>
+          <h2 className="text-2xl font-bold text-red-600 mt-4 mb-4">Assessment Limit Reached (No-Show)</h2>
+          <p className="text-gray-700 text-sm leading-relaxed mb-6">
+            Our system detected a previous missed free appointment associated with this profile. Under our policy, you are not eligible for another free assessment. Please check your WhatsApp/Email for the €250 Case Review payment link to proceed, or contact support.
+          </p>
+          <button onClick={() => setStatus(null)} className="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none">
+            Okay, I Understand
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'duplicate') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full mx-auto bg-white p-8 border border-gray-200 rounded-lg shadow text-center">
+          <span className="text-4xl">🗓️</span>
+          <h2 className="text-2xl font-bold text-blue-600 mt-4 mb-4">Active Booking Exists</h2>
+          <p className="text-gray-700 text-sm leading-relaxed mb-6">
+            You already have an active eligibility assessment booked or under review. Please check your email for your confirmation details or contact support to reschedule.
+          </p>
+          <button onClick={() => setStatus(null)} className="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none">
+            Okay, I Understand
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (status === 'blocked') {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full mx-auto bg-white p-8 border border-gray-200 rounded-lg shadow">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Action Required</h2>
-          <p>Your booking cannot be processed automatically. Please contact our support team at info@aaabusinessconsultancy.com.</p>
+        <div className="max-w-md w-full mx-auto bg-white p-8 border border-gray-200 rounded-lg shadow text-center">
+          <span className="text-4xl">🚫</span>
+          <h2 className="text-2xl font-bold text-red-600 mt-4 mb-4">Account Restricted</h2>
+          <p className="text-gray-700 text-sm leading-relaxed mb-6">
+            Your profile cannot be processed automatically due to account restrictions. Please contact our support desk for assistance.
+          </p>
+          <button onClick={() => setStatus(null)} className="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none">
+            Okay, I Understand
+          </button>
         </div>
       </div>
     );
@@ -78,27 +158,27 @@ const EligibilityBookingForm = () => {
           <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-gray-700">First Name</label>
-              <input type="text" required name="firstName" value={formData.firstName} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
+              <input type="text" required name="firstName" value={formData.firstName} onChange={handleChange} disabled={isPrefilled} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Last Name</label>
-              <input type="text" required name="lastName" value={formData.lastName} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
+              <input type="text" required name="lastName" value={formData.lastName} onChange={handleChange} disabled={isPrefilled} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Email Address</label>
-              <input type="email" required name="email" value={formData.email} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
+              <input type="email" required name="email" value={formData.email} onChange={handleChange} disabled={isPrefilled} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Phone Number</label>
-              <input type="tel" required name="phone" value={formData.phone} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
+              <input type="tel" required name="phone" value={formData.phone} onChange={handleChange} disabled={isPrefilled} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Nationality</label>
-              <input type="text" name="nationality" value={formData.nationality} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
+              <input type="text" name="nationality" value={formData.nationality} onChange={handleChange} disabled={isPrefilled} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Country of Residence</label>
-              <input type="text" name="countryOfResidence" value={formData.countryOfResidence} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
+              <input type="text" name="countryOfResidence" value={formData.countryOfResidence} onChange={handleChange} disabled={isPrefilled} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed" />
             </div>
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700">Service Type</label>
