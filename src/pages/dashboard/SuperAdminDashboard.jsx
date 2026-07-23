@@ -72,6 +72,7 @@ export const SuperAdminDashboard = () => {
   const [loadingBrief, setLoadingBrief] = useState(false);
   const [briefText, setBriefText] = useState('');
   const [suggestions, setSuggestions] = useState([]);
+  const [briefSource, setBriefSource] = useState(''); // 'openai' or 'fallback'
 
   const handleBriefMyDay = async () => {
     setLoadingBrief(true);
@@ -80,6 +81,7 @@ export const SuperAdminDashboard = () => {
       if (data && data.success) {
         setBriefText(data.brief);
         setSuggestions(data.suggestions || []);
+        setBriefSource(data.aiSource || 'fallback');
         showAlert('AI Daily briefing compiled successfully!', 'success');
       } else {
         showAlert('Failed to generate daily brief.', 'error');
@@ -665,9 +667,25 @@ export const SuperAdminDashboard = () => {
           }}>
             {/* Left side: AI Greeting and Summary */}
             <Box sx={{ flex: 1.5 }}>
-              <Typography variant="subtitle2" sx={{ color: '#14B8A6', fontWeight: 800, mb: 1.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Daily Briefing
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+                <Typography variant="subtitle2" sx={{ color: '#14B8A6', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Daily Briefing
+                </Typography>
+                {briefSource && (
+                  <Box sx={{
+                    px: 1.2, py: 0.3,
+                    borderRadius: '20px',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.05em',
+                    background: briefSource === 'openai' ? 'rgba(20, 184, 166, 0.15)' : 'rgba(251, 191, 36, 0.15)',
+                    color: briefSource === 'openai' ? '#14B8A6' : '#FBBF24',
+                    border: `1px solid ${briefSource === 'openai' ? 'rgba(20,184,166,0.4)' : 'rgba(251,191,36,0.4)'}`,
+                  }}>
+                    {briefSource === 'openai' ? '✦ Powered by OpenAI GPT' : '⚡ Heuristic Mode'}
+                  </Box>
+                )}
+              </Box>
               {loadingBrief ? (
                 <Box sx={{ py: 3, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                   <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 1 }}>
