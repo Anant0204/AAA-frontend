@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import dayjs from 'dayjs';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -29,12 +30,14 @@ import ErrorIcon from '@mui/icons-material/Error';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import CircularProgress from '@mui/material/CircularProgress';
 import Avatar from '@mui/material/Avatar';
+import EventIcon from '@mui/icons-material/Event';
 
 // Services & Components
 import PageHeader from '../../components/PageHeader';
 import { dbService } from '../../services/dbService';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
+import { SERVICES } from '../../constants/mockData';
 const FollowUpDatePickerInput = ({ value, onChange, isDue, style = {} }) => {
   const [val, setVal] = useState(() => value ? dayjs(value).format('YYYY-MM-DD') : '');
 
