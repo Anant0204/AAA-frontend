@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dbService } from '../../services/dbService';
+import { renderWhatsAppText } from '../../utils/whatsappFormatter';
 import { io } from 'socket.io-client';
 import Box from '@mui/material/Box';
 
@@ -457,10 +458,10 @@ export const OperationsSocialInbox = () => {
           </Box>
         )}
 
-        {/* Regular plain text — only render if not credential, not raw base64 */}
+        {/* Regular plain text — formatted with WhatsApp rich text parser */}
         {!hasPortalLink && !isRawBase64(text) && cleanText && (
-          <Typography variant='body2' sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-            {cleanText}
+          <Typography variant='body2' component='div' sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+            {renderWhatsAppText(cleanText, isAgent)}
           </Typography>
         )}
       </>
@@ -889,10 +890,18 @@ export const OperationsSocialInbox = () => {
                         <TextField
                           fullWidth
                           size="small"
-                          placeholder={`Type a reply via ${activeConv.platform}...`}
+                          multiline
+                          minRows={1}
+                          maxRows={4}
+                          placeholder={`Type a reply via ${activeConv.platform}... (Shift+Enter for new line)`}
                           value={replyText}
                           onChange={(e) => setReplyText(e.target.value)}
-                          onKeyPress={(e) => { if (e.key === 'Enter') handleSend(); }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              handleSend();
+                            }
+                          }}
                           inputProps={{ style: { fontSize: '0.875rem' } }}
                         />
                         <Button
