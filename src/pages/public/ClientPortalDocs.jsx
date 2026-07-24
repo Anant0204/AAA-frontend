@@ -1550,6 +1550,7 @@ export const ClientPortalDocs = () => {
                             </AccordionDetails>
                           </Accordion>
                         );
+                      })}
                     </Box>
                   </Paper>
                 </Box>
