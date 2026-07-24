@@ -436,6 +436,16 @@ export const SuperAdminAgents = () => {
     };
   };
 
+  const getAgentStats = (agent) => {
+    if (!agent) return { leadsCount: 0, clientsCount: 0 };
+    const agentLeads = allLeads.filter((ld) => ld.assignedToId === agent.id || ld.assignedConsultantId === agent.id);
+    const agentClients = allClients.filter((cl) => cl.assignedToId === agent.id || cl.assignedConsultantId === agent.id);
+    return {
+      leadsCount: agentLeads.length,
+      clientsCount: agentClients.length
+    };
+  };
+
   // Compute KPIs for the active Agent (supporting date-range filters)
   const getAgentKPIs = (agent, rangeType = 'All Time', customDaysVal = 14) => {
     if (!agent) return {};
@@ -457,16 +467,7 @@ export const SuperAdminAgents = () => {
     );
 
     // Total Consultations
-    const getAgentStats = (agent) => {
-    const agentLeads = allLeads.filter((ld) => ld.assignedToId === agent.id || ld.assignedConsultantId === agent.id);
-    const agentClients = allClients.filter((cl) => cl.assignedToId === agent.id || cl.assignedConsultantId === agent.id);
-    return {
-      leadsCount: agentLeads.length,
-      clientsCount: agentClients.length
-    };
-  };
-
-  const totalConsultations = agentConsultations.length;
+    const totalConsultations = agentConsultations.length;
 
     // Today's Consultations
     const today = new Date();

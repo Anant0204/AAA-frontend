@@ -1149,17 +1149,14 @@ export const DashboardLayout = () => {
                 }}
               >
                 <MenuItem value="super_admin">CEO 👑</MenuItem>
+                <MenuItem value="admin">Manager 💼</MenuItem>
+                <MenuItem value="operations">Ops ⚙️</MenuItem>
+                <MenuItem value="consultant">Agent 🧑‍💼</MenuItem>
+                <MenuItem value="finance">Finance 💵</MenuItem>
+                <MenuItem value="marketing">Marketing 📣</MenuItem>
                 {customizationSettings?.rolesDefinition?.map(role => (
                   <MenuItem key={role.id} value={role.id}>{role.label.split('(')[0].trim()}</MenuItem>
-                )) || (
-                    <>
-                      <MenuItem value="admin">Manager 💼</MenuItem>
-                      <MenuItem value="operations">Ops ⚙️</MenuItem>
-                      <MenuItem value="consultant">Agent 🧑‍💼</MenuItem>
-                      <MenuItem value="finance">Finance 💵</MenuItem>
-                      <MenuItem value="marketing">Marketing 📣</MenuItem>
-                    </>
-                  )}
+                ))}
               </Select>
             </FormControl>
 
