@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Box from '@mui/material/Box';
@@ -433,6 +434,16 @@ export const SuperAdminAgents = () => {
     return {
       start: formatDate(start),
       end: formatDate(end)
+    };
+  };
+
+  const getAgentStats = (agent) => {
+    if (!agent) return { leadsCount: 0, clientsCount: 0 };
+    const agentLeads = allLeads.filter((ld) => ld.assignedToId === agent.id || ld.assignedConsultantId === agent.id);
+    const agentClients = allClients.filter((cl) => cl.assignedToId === agent.id || cl.assignedConsultantId === agent.id);
+    return {
+      leadsCount: agentLeads.length,
+      clientsCount: agentClients.length
     };
   };
 

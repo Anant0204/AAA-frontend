@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dbService } from '../../services/dbService';
 import Box from '@mui/material/Box';
 
@@ -315,7 +315,112 @@ export const FinanceDashboard = () => {
           )}
         </AppCard>
       </Box>
+
+      {/* Refund Claims & Guarantees Section */}
+      <Box sx={{ mt: 3 }}>
+        <RefundClaimsTable />
+      </Box>
     </Box>
+  );
+};
+
+const RefundClaimsTable = () => {
+  const queryClient = useQueryClient();
+  const { data: refundClaims = [], isLoading } = useQuery({
+    queryKey: ['refundClaims'],
+    queryFn: dbService.getRefundRequests
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ paymentId, refundStatus, rejectionReason }) =>
+      dbService.updateRefundStatus(paymentId, refundStatus, null, null, rejectionReason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['refundClaims'] });
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+    }
+  });
+
+  const refundColumns = [
+    { header: 'Client Name', accessor: 'clientName', cell: (row) => <strong>{row.clientName}</strong> },
+    { header: 'Total Paid (€)', accessor: 'totalPaid', cell: (row) => `€${(row.totalPaid || row.amount || 0).toLocaleString()}` },
+    { 
+      header: '50% Refund Amount (€)', 
+      accessor: 'calculatedRefundAmount', 
+      cell: (row) => <strong style={{ color: '#DC2626' }}>€{(row.calculatedRefundAmount || 0).toLocaleString()}</strong> 
+    },
+    { 
+      header: 'Refund Status', 
+      accessor: 'refundStatus', 
+      cell: (row) => (
+        <span style={{ 
+          padding: '4px 8px', 
+          borderRadius: '4px', 
+          fontSize: '0.75rem', 
+          fontWeight: 700, 
+          backgroundColor: row.refundStatus === 'Refund Completed' ? '#DCFCE7' : row.refundStatus === 'Refund Rejected' ? '#FEE2E2' : '#FEF3C7',
+          color: row.refundStatus === 'Refund Completed' ? '#15803D' : row.refundStatus === 'Refund Rejected' ? '#B91C1C' : '#B45309'
+        }}>
+          {row.refundStatus || row.status || 'Refund Eligible'}
+        </span>
+      ) 
+    },
+    {
+      header: 'Actions',
+      accessor: 'id',
+      cell: (row) => (
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          {row.refundStatus !== 'Refund Approved' && row.refundStatus !== 'Refund Completed' && (
+            <Button 
+              size="small" 
+              variant="outlined" 
+              color="primary"
+              onClick={() => updateStatusMutation.mutate({ paymentId: row.id, refundStatus: 'Refund Approved' })}
+            >
+              Approve
+            </Button>
+          )}
+          {row.refundStatus !== 'Refund Completed' && (
+            <Button 
+              size="small" 
+              variant="contained" 
+              color="success"
+              onClick={() => updateStatusMutation.mutate({ paymentId: row.id, refundStatus: 'Refund Completed' })}
+            >
+              Complete Payout
+            </Button>
+          )}
+          {row.refundStatus !== 'Refund Rejected' && (
+            <Button 
+              size="small" 
+              variant="outlined" 
+              color="error"
+              onClick={() => {
+                const reason = prompt('Enter reason for rejecting refund claim:');
+                if (reason) updateStatusMutation.mutate({ paymentId: row.id, refundStatus: 'Refund Rejected', rejectionReason: reason });
+              }}
+            >
+              Reject
+            </Button>
+          )}
+        </Box>
+      )
+    }
+  ];
+
+  return (
+    <AppCard
+      title="Refund Claims & 50% Guarantee Engine"
+      subheader="Review eligible claims, auto-calculated 50% money-back amounts, and process payouts"
+      noPadding
+    >
+      {refundClaims.length === 0 ? (
+        <Typography variant="body2" color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
+          No active refund claims or eligible guarantee requests found.
+        </Typography>
+      ) : (
+        <AppTable columns={refundColumns} data={refundClaims} />
+      )}
+    </AppCard>
   );
 };
 
