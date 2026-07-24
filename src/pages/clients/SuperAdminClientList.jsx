@@ -29,7 +29,48 @@ import ReceiptIcon from '@mui/icons-material/Receipt';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 
-// Services & Components
+import dayjs from 'dayjs';
+
+const FollowUpDatePickerInput = ({ value, onChange, style = {} }) => {
+  const [val, setVal] = useState(() => value ? dayjs(value).format('YYYY-MM-DD') : '');
+
+  React.useEffect(() => {
+    setVal(value ? dayjs(value).format('YYYY-MM-DD') : '');
+  }, [value]);
+
+  return (
+    <input
+      type="date"
+      value={val}
+      onClick={(e) => e.stopPropagation()}
+      onChange={(evt) => {
+        evt.stopPropagation();
+        const newVal = evt.target.value;
+        setVal(newVal);
+        if (!newVal || /^\d{4}-\d{2}-\d{2}$/.test(newVal)) {
+          onChange(newVal);
+        }
+      }}
+      onBlur={() => {
+        if (val && /^\d{4}-\d{2}-\d{2}$/.test(val) && val !== (value ? dayjs(value).format('YYYY-MM-DD') : '')) {
+          onChange(val);
+        }
+      }}
+      style={{
+        padding: '4px 8px',
+        borderRadius: '6px',
+        border: '1px solid #CBD5E1',
+        fontSize: '0.75rem',
+        fontFamily: 'inherit',
+        backgroundColor: '#FFFFFF',
+        color: '#1E293B',
+        cursor: 'pointer',
+        outline: 'none',
+        ...style
+      }}
+    />
+  );
+};
 import { dbService } from '../../services/dbService';
 import PageHeader from '../../components/PageHeader';
 import SearchBar from '../../components/SearchBar';
@@ -299,6 +340,16 @@ export const SuperAdminClientList = () => {
     setSortColumn(columnId);
   };
 
+  const updateClientFollowUpMutation = useMutation({
+    mutationFn: ({ clientId, visaStatus, status, nextFollowUpDate }) =>
+      dbService.updateClientVisaStatus(clientId, visaStatus, status, nextFollowUpDate),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['activeCases'] });
+      showAlert('Client follow-up date updated!', 'success');
+    }
+  });
+
   const columns = [
     { 
       id: 'clientCode', 
@@ -324,6 +375,24 @@ export const SuperAdminClientList = () => {
     },
     { id: 'status', label: 'Financial Status', sortable: true },
     { id: 'visaStatus', label: 'Case Status', sortable: true },
+    {
+      id: 'nextFollowUpDate',
+      label: 'Next Follow-Up',
+      minWidth: 140,
+      render: (row) => (
+        <FollowUpDatePickerInput
+          value={row.nextFollowUpDate}
+          onChange={(dateStr) =>
+            updateClientFollowUpMutation.mutate({
+              clientId: row.id,
+              visaStatus: row.visaStatus,
+              status: row.status,
+              nextFollowUpDate: dateStr
+            })
+          }
+        />
+      )
+    },
     {
       id: 'assignedConsultant',
       label: 'Case Manager',

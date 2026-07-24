@@ -258,13 +258,16 @@ export const SuperAdminClientDetails = () => {
   };
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ clientId, visaStatus, status }) =>
-      dbService.updateClientVisaStatus(clientId, visaStatus, status),
+    mutationFn: ({ clientId, visaStatus, status, nextFollowUpDate }) =>
+      dbService.updateClientVisaStatus(clientId, visaStatus, status, nextFollowUpDate),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['client', id] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
-      showAlert('Client status updated', 'success');
+      queryClient.invalidateQueries({ queryKey: ['activeCases'] });
+      showAlert('Client details & follow-up date updated successfully!', 'success');
       setStatusModalOpen(false);
-    } });
+    } 
+  });
 
   const uploadDocMutation = useMutation({
     mutationFn: dbService.uploadDocument,
