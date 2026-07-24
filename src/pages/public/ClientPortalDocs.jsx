@@ -1497,6 +1497,7 @@ export const ClientPortalDocs = () => {
                                 clientId={client.id}
                                 clientName={`${client.firstName} ${client.lastName}`}
                                 categories={docsNeeded}
+                                isLoading={uploadDocMutation.isPending}
                               />
 
                               <Divider sx={{ my: 3, borderColor: 'rgba(0,0,0,0.06)' }} />

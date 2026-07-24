@@ -540,6 +540,7 @@ export const AdminClientDetails = () => {
                     onUpload={handleDocUploaded}
                     clientId={client.id}
                     clientName={`${client.firstName} ${client.lastName}`}
+                    isLoading={uploadDocMutation.isPending}
                   />
 
                   <Divider sx={{ my: 3 }} />

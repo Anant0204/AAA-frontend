@@ -1142,13 +1142,7 @@ export const AgentLeadDetails = () => {
               Cancel
             </Button>
             <Button
-              onClick={() => {
-                convertLeadMutation.mutate({
-                  lead,
-                  packageId: selectedPackageId,
-                  count: applicantsCount
-                });
-              }}
+              onClick={handleConvertSubmit}
               variant="contained"
               color="secondary"
               disabled={convertLeadMutation.isPending}
