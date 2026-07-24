@@ -1129,24 +1129,19 @@ export const Agents = () => {
             <Box>
               {modalType === 'consultation' && (
                 <List>
-                  {modalData.map((item, idx) => {
-                    const client = allClients.find(c => c.id === item.clientId);
-                    const clientName = client ? `${client.firstName} ${client.lastName}` : `Client #${item.clientId || 'Unknown'}`;
-                    const clientLang = client?.preferredLanguage || client?.language || 'N/A';
-                    return (
-                      <Box key={idx} sx={{ mb: 1.5, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                          Meeting Date: {item.meetingDate} | Time: {item.slot}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                          Client Name: {clientName} | Language: {clientLang}
-                        </Typography>
-                        <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 600 }}>
-                          Status: <Chip label={item.status} size="small" color={item.status === 'Completed' ? 'success' : item.status === 'Scheduled' ? 'primary' : 'default'} />
-                        </Typography>
-                      </Box>
-                    );
-                  })}
+                  {modalData.map((item, idx) => (
+                    <Box key={idx} sx={{ mb: 1.5, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                        Meeting Date: {item.meetingDate} | Time: {item.slot}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                        Client Name: {item.clientName || 'N/A'} | Language: {item.clientLanguage || 'N/A'}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 600 }}>
+                        Status: <Chip label={item.status} size="small" color={item.status === 'Completed' ? 'success' : item.status === 'Scheduled' ? 'primary' : 'default'} />
+                      </Typography>
+                    </Box>
+                  ))}
                 </List>
               )}
               {modalType === 'client' && (
