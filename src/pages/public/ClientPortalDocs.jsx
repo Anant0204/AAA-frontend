@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { jsPDF } from 'jspdf';
+import { CaseActivityTimeline } from '../../components/CaseActivityTimeline';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -433,6 +434,13 @@ export const ClientPortalDocs = () => {
     queryFn: dbService.getPayments
   });
 
+  const hasAnyPaidPayment = Boolean(
+    allPayments && allPayments.some(p => 
+      (p.clientId === client?.id || p.clientId === clientId) && p.status === 'Paid'
+    )
+  );
+  const isClientPaid = Boolean(client?.documentUploadAllowed || hasAnyPaidPayment || translationPaid);
+
   const { data: allRefunds = [], refetch: refetchRefunds } = useQuery({
     queryKey: ['refundRequests'],
     queryFn: dbService.getRefundRequests
@@ -824,7 +832,7 @@ export const ClientPortalDocs = () => {
         amount,
         discount,
         paymentMethod: billingPaymentMethod,
-        clientId: client?.id || id
+        clientId: client?.id || clientId
       });
       if (res.success && res.url) {
         window.location.href = res.url;
@@ -1208,14 +1216,14 @@ export const ClientPortalDocs = () => {
               }}
             />
             <Tab
-              label={client.documentUploadAllowed ? "3. Refund & Guarantee Claims 🛡️" : "3. Refund & Guarantee Claims 🔒"}
-              disabled={!client.documentUploadAllowed}
+              label={isClientPaid ? "3. Refund & Guarantee Claims 🛡️" : "3. Refund & Guarantee Claims 🔒"}
+              disabled={!isClientPaid}
               sx={{
                 textTransform: 'none',
                 fontWeight: 800,
                 fontFamily: 'Outfit, sans-serif',
                 fontSize: '0.9rem',
-                color: tabValue === 2 ? '#C59B27' : !client.documentUploadAllowed ? 'text.disabled' : 'text.secondary',
+                color: tabValue === 2 ? '#C59B27' : !isClientPaid ? 'text.disabled' : 'text.secondary',
                 '&.Mui-selected': { color: '#C59B27' }
               }}
             />
@@ -1230,7 +1238,7 @@ export const ClientPortalDocs = () => {
         {tabValue === 0 && !isTranslationClient && (
           <Box className="grid grid-cols-12 gap-4">
             {/* If package is not paid, show shield lock */}
-            {!client.documentUploadAllowed ? (
+            {!isClientPaid ? (
               <Box className="col-span-12">
                 <Paper
                   sx={{
@@ -1552,6 +1560,11 @@ export const ClientPortalDocs = () => {
                       })}
                     </Box>
                   </Paper>
+                </Box>
+
+                {/* Case Activity Timeline Log */}
+                <Box className="col-span-12" sx={{ mt: 3 }}>
+                  <CaseActivityTimeline clientId={client.id || id} />
                 </Box>
               </Box>
             )}
@@ -2213,7 +2226,7 @@ export const ClientPortalDocs = () => {
 
           return (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {client.documentUploadAllowed ? (
+              {isClientPaid ? (
                 <Paper sx={{ p: 4, borderRadius: 3, border: '1px solid', borderColor: 'success.main', bgcolor: '#F0FDF4', boxShadow: 'none', textAlign: 'center' }}>
                   <CheckCircleIcon color="success" sx={{ fontSize: 56, mb: 2 }} />
                   <Typography variant="h5" sx={{ fontWeight: 800, mb: 1.5 }}>Visa Relocation Package Active & Paid</Typography>

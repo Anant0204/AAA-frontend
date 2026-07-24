@@ -273,14 +273,15 @@ export const DashboardLayout = () => {
   const [connectedPlatforms, setConnectedPlatforms] = useState(() => {
     try {
       const saved = localStorage.getItem('crm-connected-platforms');
-      return saved ? JSON.parse(saved) : {
-        whatsapp: {},
-        facebook: {},
-        instagram: {},
-        telegram: {}
+      const parsed = saved ? JSON.parse(saved) : null;
+      if (parsed && Object.keys(parsed).length > 0) return parsed;
+      return {
+        whatsapp: { connectedAt: 'Default' },
+        facebook: { connectedAt: 'Default' },
+        instagram: { connectedAt: 'Default' }
       };
     } catch (e) {
-      return { whatsapp: {}, facebook: {}, instagram: {}, telegram: {} };
+      return { whatsapp: { connectedAt: 'Default' }, facebook: { connectedAt: 'Default' }, instagram: { connectedAt: 'Default' } };
     }
   });
 
@@ -617,11 +618,7 @@ export const DashboardLayout = () => {
   const subItems = ALL_SUB_ITEMS.filter(item => connectedPlatforms[item.channel]);
 
   const handleSocialClick = () => {
-    if (subItems.length === 0) {
-      showAlert('No social media platforms connected. Please connect a platform in the Integrations tab.', 'warning');
-      return;
-    }
-
+    navigateTo('/social-inbox');
     if (!sidebarOpen) {
       setSidebarOpen(true);
       setSocialMenuOpen(true);
