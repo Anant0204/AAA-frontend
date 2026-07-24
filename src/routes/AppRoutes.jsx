@@ -516,6 +516,22 @@ export const AppRoutes = () => {
           }
         />
         <Route
+          path="/agent/payments/refund-commission"
+          element={
+            <ProtectedRoute allowedRoles={['agent', 'consultant', 'finance', 'operations', 'admin', 'super_admin']}>
+              <SuperAdminRefundCommissionHub />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/:role/payments/refund-commission"
+          element={
+            <ProtectedRoute allowedRoles={['agent', 'consultant', 'finance', 'operations', 'admin', 'super_admin']}>
+              <SuperAdminRefundCommissionHub />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/super_admin/documents/storage"
           element={
             <ProtectedRoute allowedRoles={['super_admin']}>
@@ -1134,7 +1150,7 @@ export const AppRoutes = () => {
         <Route
           path="/agent/payments"
           element={
-            <ProtectedRoute allowedRoles={['consultant', 'super_admin']}>
+            <ProtectedRoute allowedRoles={['agent', 'consultant', 'super_admin', 'admin', 'operations', 'finance']}>
               <FinancePaymentDashboard />
             </ProtectedRoute>
           }
