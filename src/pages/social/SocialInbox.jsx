@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dbService } from '../../services/dbService';
+import { renderWhatsAppText } from '../../utils/whatsappFormatter';
 import { io } from 'socket.io-client';
 import Box from '@mui/material/Box';
 
@@ -625,8 +626,8 @@ export const SocialInbox = () => {
                                 borderColor: isAgent ? 'none' : 'divider'
                               }}
                             >
-                              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                                {msg.text}
+                              <Typography variant="body2" component="div" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                                {renderWhatsAppText(msg.text, isAgent)}
                               </Typography>
                             </Paper>
                             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, mx: 1, display: 'flex', gap: 0.8, alignItems: 'center' }}>
@@ -689,11 +690,17 @@ export const SocialInbox = () => {
                         <TextField
                           fullWidth
                           size="small"
-                          placeholder={`Type a reply via ${activeConv.platform}...`}
+                          multiline
+                          minRows={1}
+                          maxRows={4}
+                          placeholder={`Type a reply via ${activeConv.platform}... (Shift+Enter for new line)`}
                           value={replyText}
                           onChange={(e) => setReplyText(e.target.value)}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') handleSend();
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              handleSend();
+                            }
                           }}
                           inputProps={{ style: { fontSize: '0.875rem' } }}
                         />
