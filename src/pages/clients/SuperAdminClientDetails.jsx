@@ -41,6 +41,49 @@ import AiSummaryModal from '../../components/AiSummaryModal';
 import CredentialsModal from '../../components/CredentialsModal';
 import { CommunicationHistoryTab } from '../../components/CommunicationHistoryTab';
 
+import dayjs from 'dayjs';
+
+const FollowUpDatePickerInput = ({ value, onChange, style = {} }) => {
+  const [val, setVal] = useState(() => value ? dayjs(value).format('YYYY-MM-DD') : '');
+
+  React.useEffect(() => {
+    setVal(value ? dayjs(value).format('YYYY-MM-DD') : '');
+  }, [value]);
+
+  return (
+    <input
+      type="date"
+      value={val}
+      onClick={(e) => e.stopPropagation()}
+      onChange={(evt) => {
+        evt.stopPropagation();
+        const newVal = evt.target.value;
+        setVal(newVal);
+        if (!newVal || /^\d{4}-\d{2}-\d{2}$/.test(newVal)) {
+          onChange(newVal);
+        }
+      }}
+      onBlur={() => {
+        if (val && /^\d{4}-\d{2}-\d{2}$/.test(val) && val !== (value ? dayjs(value).format('YYYY-MM-DD') : '')) {
+          onChange(val);
+        }
+      }}
+      style={{
+        padding: '6px 10px',
+        borderRadius: '6px',
+        border: '1px solid #CBD5E1',
+        fontSize: '0.8rem',
+        fontFamily: 'inherit',
+        backgroundColor: '#FFFFFF',
+        color: '#1E293B',
+        cursor: 'pointer',
+        outline: 'none',
+        ...style
+      }}
+    />
+  );
+};
+
 export const SuperAdminClientDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -377,6 +420,16 @@ export const SuperAdminClientDetails = () => {
               <Box>
                 <Typography variant="caption" color="text.secondary" display="block">Phone Contact</Typography>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{client.phone}</Typography>
+              </Box>
+              <Box sx={{ my: 1, p: 1.5, bgcolor: '#FEF3C7', borderRadius: 2, border: '1px solid #FCD34D' }}>
+                <Typography variant="caption" sx={{ fontWeight: 700, color: '#B45309', display: 'block', mb: 0.5 }}>
+                  📅 Next Follow-Up Date
+                </Typography>
+                <FollowUpDatePickerInput
+                  value={client.nextFollowUpDate}
+                  onChange={(dateStr) => updateStatusMutation.mutate({ clientId: client.id, visaStatus: client.visaStatus, status: client.status, nextFollowUpDate: dateStr })}
+                  style={{ width: '100%' }}
+                />
               </Box>
               <Box>
                 <Typography variant="caption" color="text.secondary" display="block">Nationality</Typography>

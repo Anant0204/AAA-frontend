@@ -88,8 +88,8 @@ export const dbService = {
     const res = await apiClient.post('/clients', client);
     return res.data;
   },
-  updateClientVisaStatus: async (clientId, visaStatus, status) => {
-    const res = await apiClient.patch(`/clients/${clientId}/status`, { visaStatus, status });
+  updateClientVisaStatus: async (clientId, visaStatus, status, nextFollowUpDate) => {
+    const res = await apiClient.patch(`/clients/${clientId}/status`, { visaStatus, status, nextFollowUpDate });
     return res.data;
   },
   updateClient: async (client) => {
