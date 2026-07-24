@@ -46,6 +46,8 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AddIcon from '@mui/icons-material/Add';
 import CancelIcon from '@mui/icons-material/Cancel';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 
 
 // Custom components
@@ -373,11 +375,11 @@ export const SuperAdminDashboard = () => {
     {
       title: "Today's Clients",
       value: clientsToday.length,
-      icon: <AddIcon />,
+      icon: <PersonAddIcon />,
       color: '#14B8A6',
       trend: getTrend(clientsToday.length, clientsYesterday.length),
       trendLabel: 'vs yesterday',
-      onClick: () => navigate('/super_admin/clients', { state: { filterStatus: '', startDate: todayDateStr, endDate: todayDateStr, cardInfo: { title: "Today's Clients", value: clientsToday.length, color: '#14B8A6', trend: getTrend(clientsToday.length, clientsYesterday.length), iconType: 'Add' } } })
+      onClick: () => navigate('/super_admin/clients', { state: { filterStatus: '', startDate: todayDateStr, endDate: todayDateStr, cardInfo: { title: "Today's Clients", value: clientsToday.length, color: '#14B8A6', trend: getTrend(clientsToday.length, clientsYesterday.length), iconType: 'PersonAdd' } } })
     },
     {
       title: 'Total Consultations',
@@ -391,11 +393,11 @@ export const SuperAdminDashboard = () => {
     {
       title: "Today's Consultations",
       value: leadsToday.length,
-      icon: <AddIcon />,
+      icon: <CalendarTodayIcon />,
       color: '#EC4899',
       trend: getTrend(leadsToday.length, leadsYesterday.length),
       trendLabel: 'vs yesterday',
-      onClick: () => navigate('/super_admin/leads', { state: { filterToday: true, filterStatus: '', startDate: todayDateStr, endDate: todayDateStr, cardInfo: { title: "Today's Consultations", value: leadsToday.length, color: '#EC4899', trend: getTrend(leadsToday.length, leadsYesterday.length), iconType: 'Add' } } })
+      onClick: () => navigate('/super_admin/leads', { state: { filterToday: true, filterStatus: '', startDate: todayDateStr, endDate: todayDateStr, cardInfo: { title: "Today's Consultations", value: leadsToday.length, color: '#EC4899', trend: getTrend(leadsToday.length, leadsYesterday.length), iconType: 'CalendarToday' } } })
     },
     {
       title: 'Upcoming Meetings',
@@ -506,15 +508,15 @@ export const SuperAdminDashboard = () => {
   }));
 
   // REVENUE STATS — computed from real payments
-  const totalRevenue = payments.filter(p => p.status === 'Paid').reduce((s, p) => s + (p.totalPaid || p.amount || 0), 0);
-  const revenueToday = payments.filter(p => p.status === 'Paid' && (p.paymentDate || p.dueDate || '').startsWith(todayDateStr)).reduce((s, p) => s + (p.totalPaid || p.amount || 0), 0);
+  const totalRevenue = payments.filter(p => p.status === 'Paid').reduce((s, p) => s + (p.totalPaid || 0), 0);
+  const revenueToday = payments.filter(p => p.status === 'Paid' && (p.paymentDate || p.dueDate || '').startsWith(todayDateStr)).reduce((s, p) => s + (p.totalPaid || 0), 0);
   const outstandingRevenue = payments.filter(p => p.status === 'Pending').reduce((s, p) => s + (p.amount || 0), 0);
-  const refundedRevenue = payments.filter(p => p.status === 'Refunded').reduce((s, p) => s + (p.totalPaid || p.amount || 0), 0);
+  const refundedRevenue = payments.filter(p => p.status === 'Refunded').reduce((s, p) => s + (p.totalPaid || 0), 0);
   const revenueStats = [
-    { title: 'Total Revenue', value: `€${totalRevenue.toLocaleString()}`, icon: <AccountBalanceWalletIcon />, color: '#3F51B5', trend: null },
-    { title: 'Revenue Today', value: `€${revenueToday.toLocaleString()}`, icon: <TrendingUpIcon />, color: '#14B8A6', trend: null },
-    { title: 'Outstanding Revenue', value: `€${outstandingRevenue.toLocaleString()}`, icon: <AccountBalanceWalletIcon />, color: '#F59E0B', trend: null },
-    { title: 'Refunded (50% Rejections)', value: `€${refundedRevenue.toLocaleString()}`, icon: <CancelIcon />, color: '#EF4444', trend: null },
+    { title: 'Total Revenue', value: `€${totalRevenue.toLocaleString()}`, icon: <AccountBalanceWalletIcon />, color: '#3F51B5', trend: null, onClick: () => navigate('/payments/invoices', { state: { filterStatus: 'Paid' } }) },
+    { title: 'Revenue Today', value: `€${revenueToday.toLocaleString()}`, icon: <TrendingUpIcon />, color: '#14B8A6', trend: null, onClick: () => navigate('/payments/invoices', { state: { filterStatus: 'Paid', startDate: todayDateStr, endDate: todayDateStr } }) },
+    { title: 'Outstanding Revenue', value: `€${outstandingRevenue.toLocaleString()}`, icon: <AccountBalanceWalletIcon />, color: '#F59E0B', trend: null, onClick: () => navigate('/payments/invoices', { state: { filterStatus: 'Pending' } }) },
+    { title: 'Refunded (50% Rejections)', value: `€${refundedRevenue.toLocaleString()}`, icon: <CancelIcon />, color: '#EF4444', trend: null, onClick: () => navigate('/super_admin/payments/refund-commission') },
   ];
 
   // FINANCIAL TABLE — from real clients + payments
@@ -875,6 +877,7 @@ export const SuperAdminDashboard = () => {
             trend={stat.trend}
             trendDirection={parseFloat(stat.trend) >= 0 ? 'up' : 'down'}
             color={stat.color}
+            onClick={stat.onClick}
           />
         ))}
       </Box>
@@ -941,7 +944,12 @@ export const SuperAdminDashboard = () => {
         Client Financial View
       </Typography>
       <AppCard title="Global Client Accounts" noPadding sx={{ height: 'auto' }}>
-        <AppTable columns={financialColumns} data={financialRows} maxHeight={320} />
+        <AppTable 
+          columns={financialColumns} 
+          data={financialRows} 
+          maxHeight={320} 
+          onRowClick={(row) => navigate(`/super_admin/clients/details/${row.id}`)}
+        />
       </AppCard>
 
       <Divider sx={{ my: isMobile ? 2 : 4 }} />
