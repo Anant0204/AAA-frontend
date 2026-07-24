@@ -824,7 +824,7 @@ export const ClientPortalDocs = () => {
         amount,
         discount,
         paymentMethod: billingPaymentMethod,
-        clientId: client?.id || id
+        clientId: client?.id || clientId
       });
       if (res.success && res.url) {
         window.location.href = res.url;
