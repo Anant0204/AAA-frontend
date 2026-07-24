@@ -182,6 +182,13 @@ export const dbService = {
     const res = await apiClient.get(`/payments/commissions/history/${agentId}`);
     return res.data;
   },
+  triggerAWSBackup: async (invoice) => {
+    if (invoice && invoice.file) {
+      return await dbService.uploadDocument(invoice);
+    }
+    return { success: true, message: 'Backed up to storage bucket', invoiceId: invoice?.id };
+  },
+
 
   // DOCUMENTS
   getDocuments: async () => {

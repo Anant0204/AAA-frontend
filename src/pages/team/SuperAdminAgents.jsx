@@ -801,8 +801,11 @@ export const SuperAdminAgents = () => {
               </Box>
 
                 <List sx={{ flexGrow: 1, overflowY: 'auto', p: 1 }}>
-                  {agents.map((agent) => (
-                    <ListItemButton
+                  {agents.map((agent) => {
+                    const agentLeadsCount = allLeads.filter((ld) => ld.assignedConsultantId === agent.id).length;
+                    const agentClientsCount = allClients.filter((cl) => cl.assignedConsultantId === agent.id).length;
+                    return (
+                      <ListItemButton
                       key={agent.id}
                       selected={activeAgentId === agent.id}
                       onClick={() => {
@@ -925,20 +928,35 @@ export const SuperAdminAgents = () => {
                           </Box>
                         }
                         secondary={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                            <Typography variant="caption" color="text.secondary" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {agent.email}
-                            </Typography>
-                            {agent.customPermissions?.enabled && (
-                              <Typography variant="caption" sx={{ color: '#7C3AED', fontWeight: 600, flexShrink: 0 }}>
-                                · {(agent.customPermissions.menus || []).length}M / {(agent.customPermissions.cards || []).length}C
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mt: 0.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <Typography variant="caption" color="text.secondary" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {agent.email}
                               </Typography>
-                            )}
+                              {agent.customPermissions?.enabled && (
+                                <Typography variant="caption" sx={{ color: '#7C3AED', fontWeight: 600, flexShrink: 0 }}>
+                                  · {(agent.customPermissions.menus || []).length}M / {(agent.customPermissions.cards || []).length}C
+                                </Typography>
+                              )}
+                            </Box>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <Chip
+                                label={`${agentLeadsCount} Leads`}
+                                size="small"
+                                sx={{ height: 16, fontSize: '0.65rem', fontWeight: 800, bgcolor: '#1E40AF', color: '#FFFFFF' }}
+                              />
+                              <Chip
+                                label={`${agentClientsCount} Cases`}
+                                size="small"
+                                sx={{ height: 16, fontSize: '0.65rem', fontWeight: 800, bgcolor: '#065F46', color: '#FFFFFF' }}
+                              />
+                            </Box>
                           </Box>
                         }
                       />
                     </ListItemButton>
-                  ))}
+                    );
+                   })}
                 </List>
             </Paper>
           </Box>

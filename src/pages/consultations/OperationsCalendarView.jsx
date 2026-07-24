@@ -146,6 +146,26 @@ const navigate = useNavigate();
       notes: meetingNotes });
   };
 
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState('all');
+
+  const matchesCategoryFilter = (c, filterType) => {
+    if (!filterType || filterType === 'all') return true;
+    const todayStr = dayjs().format('YYYY-MM-DD');
+    const meetingDate = (c.meetingDate || c.date || '').split('T')[0];
+    const st = (c.status || '').toLowerCase();
+    if (filterType === 'today') return meetingDate === todayStr;
+    if (filterType === 'upcoming') return meetingDate > todayStr && !['cancelled', 'canceled', 'no show', 'no-show', 'no_show', 'completed'].includes(st);
+    if (filterType === 'completed') return st === 'completed';
+    if (filterType === 'cancelled') return st === 'cancelled' || st === 'canceled';
+    if (filterType === 'noshow') return st === 'no show' || st === 'no-show' || st === 'no_show';
+    if (filterType === 'rescheduled') return st === 'rescheduled' || c.isRescheduled;
+    return true;
+  };
+
+  const handleCardClick = (category) => {
+    setActiveCategoryFilter(prev => prev === category ? 'all' : category);
+  };
+
   const currentMonth = dayjs().add(monthOffset, 'month').startOf('month');
   const daysInMonth = currentMonth.daysInMonth();
   const yearMonthPrefix = currentMonth.format('YYYY-MM');
@@ -155,22 +175,55 @@ const navigate = useNavigate();
     const dateStr = `${yearMonthPrefix}-${String(dayNum).padStart(2, '0')}`;
     const dayMeetings = consultations.filter(
       (c) =>
-        c.meetingDate === dateStr &&
+        (c.meetingDate || c.date || '').split('T')[0] === dateStr &&
         (activeAgentId 
-          ? (c.assignedConsultantId === activeAgentId || (isConsultant && !c.assignedConsultantId))
-          : true)
+          ? (c.assignedConsultantId === activeAgentId || c.consultantId === activeAgentId)
+          : true) &&
+        matchesCategoryFilter(c, activeCategoryFilter)
     );
     return { dayNum, dateStr, meetings: dayMeetings };
   });
 
-  // Current selected day meetings list
-  const selectedDayMeetings = consultations.filter(
-    (c) =>
-      c.meetingDate === selectedDate &&
-      (activeAgentId 
-        ? (c.assignedConsultantId === activeAgentId || (isConsultant && !c.assignedConsultantId))
-        : true)
-  );
+  // Current selected day meetings list (with category filter support)
+  const selectedDayMeetings = consultations.filter((c) => {
+    const cDate = (c.meetingDate || c.date || '').split('T')[0];
+    const dateMatches = activeCategoryFilter !== 'all' ? true : (cDate === selectedDate);
+    const agentMatches = activeAgentId
+      ? (c.assignedConsultantId === activeAgentId || c.consultantId === activeAgentId)
+      : true;
+    return dateMatches && agentMatches && matchesCategoryFilter(c, activeCategoryFilter);
+  });
+
+  // 6 Key Calendar Dashboard Counters — scoped by agent filter or all
+  const calendarMetrics = React.useMemo(() => {
+    const todayStr = dayjs().format('YYYY-MM-DD');
+    let todayCount = 0;
+    let upcomingCount = 0;
+    let completedCount = 0;
+    let cancelledCount = 0;
+    let noShowCount = 0;
+    let rescheduledCount = 0;
+
+    const filtered = activeAgentId
+      ? consultations.filter(c => c.assignedConsultantId === activeAgentId || c.consultantId === activeAgentId)
+      : consultations;
+
+    filtered.forEach((c) => {
+      const cDate = (c.meetingDate || c.date || '').split('T')[0];
+      const isToday = cDate === todayStr;
+      const isFuture = cDate > todayStr;
+      const st = (c.status || '').toLowerCase();
+
+      if (isToday) todayCount++;
+      if (isFuture && !['cancelled', 'canceled', 'no show', 'no-show', 'no_show', 'completed'].includes(st)) upcomingCount++;
+      if (st === 'completed') completedCount++;
+      if (st === 'cancelled' || st === 'canceled') cancelledCount++;
+      if (st === 'no show' || st === 'no-show' || st === 'no_show') noShowCount++;
+      if (st === 'rescheduled' || c.isRescheduled) rescheduledCount++;
+    });
+
+    return { todayCount, upcomingCount, completedCount, cancelledCount, noShowCount, rescheduledCount };
+  }, [consultations, activeAgentId]);
 
   return (
     <Box>
@@ -197,6 +250,70 @@ const navigate = useNavigate();
           )
         }
       />
+
+      {/* 6 Key Calendar Dashboard Counters */}
+      <Box className="grid grid-cols-12 gap-2 sm:gap-3 mb-4">
+        <Box className="col-span-6 sm:col-span-4 md:col-span-2">
+          <StatCard
+            title="Today's Appointments"
+            value={calendarMetrics.todayCount}
+            icon={<CalendarMonthIcon />}
+            color="#2563EB"
+            onClick={() => handleCardClick('today')}
+            sx={activeCategoryFilter === 'today' ? { borderColor: '#2563EB', boxShadow: '0 0 12px rgba(37,99,235,0.4)', bgcolor: '#F0F7FF' } : {}}
+          />
+        </Box>
+        <Box className="col-span-6 sm:col-span-4 md:col-span-2">
+          <StatCard
+            title="Upcoming Appointments"
+            value={calendarMetrics.upcomingCount}
+            icon={<AssignmentIcon />}
+            color="#7C3AED"
+            onClick={() => handleCardClick('upcoming')}
+            sx={activeCategoryFilter === 'upcoming' ? { borderColor: '#7C3AED', boxShadow: '0 0 12px rgba(124,58,237,0.4)', bgcolor: '#F5F3FF' } : {}}
+          />
+        </Box>
+        <Box className="col-span-6 sm:col-span-4 md:col-span-2">
+          <StatCard
+            title="Completed Appointments"
+            value={calendarMetrics.completedCount}
+            icon={<CheckCircleOutlinedIcon />}
+            color="#10B981"
+            onClick={() => handleCardClick('completed')}
+            sx={activeCategoryFilter === 'completed' ? { borderColor: '#10B981', boxShadow: '0 0 12px rgba(16,185,129,0.4)', bgcolor: '#ECFDF5' } : {}}
+          />
+        </Box>
+        <Box className="col-span-6 sm:col-span-4 md:col-span-2">
+          <StatCard
+            title="Cancelled Appointments"
+            value={calendarMetrics.cancelledCount}
+            icon={<WarningAmberIcon />}
+            color="#F59E0B"
+            onClick={() => handleCardClick('cancelled')}
+            sx={activeCategoryFilter === 'cancelled' ? { borderColor: '#F59E0B', boxShadow: '0 0 12px rgba(245,158,11,0.4)', bgcolor: '#FFFBEB' } : {}}
+          />
+        </Box>
+        <Box className="col-span-6 sm:col-span-4 md:col-span-2">
+          <StatCard
+            title="No-Show Appointments"
+            value={calendarMetrics.noShowCount}
+            icon={<WarningAmberIcon />}
+            color="#EF4444"
+            onClick={() => handleCardClick('noshow')}
+            sx={activeCategoryFilter === 'noshow' ? { borderColor: '#EF4444', boxShadow: '0 0 12px rgba(239,68,68,0.4)', bgcolor: '#FEF2F2' } : {}}
+          />
+        </Box>
+        <Box className="col-span-6 sm:col-span-4 md:col-span-2">
+          <StatCard
+            title="Rescheduled Appointments"
+            value={calendarMetrics.rescheduledCount}
+            icon={<TrendingUpIcon />}
+            color="#0D9488"
+            onClick={() => handleCardClick('rescheduled')}
+            sx={activeCategoryFilter === 'rescheduled' ? { borderColor: '#0D9488', boxShadow: '0 0 12px rgba(13,148,136,0.4)', bgcolor: '#F0FDFA' } : {}}
+          />
+        </Box>
+      </Box>
 
       {cardInfo && (
         <Box 
