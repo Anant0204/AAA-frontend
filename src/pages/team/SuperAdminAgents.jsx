@@ -457,7 +457,16 @@ export const SuperAdminAgents = () => {
     );
 
     // Total Consultations
-    const totalConsultations = agentConsultations.length;
+    const getAgentStats = (agent) => {
+    const agentLeads = allLeads.filter((ld) => ld.assignedToId === agent.id || ld.assignedConsultantId === agent.id);
+    const agentClients = allClients.filter((cl) => cl.assignedToId === agent.id || cl.assignedConsultantId === agent.id);
+    return {
+      leadsCount: agentLeads.length,
+      clientsCount: agentClients.length
+    };
+  };
+
+  const totalConsultations = agentConsultations.length;
 
     // Today's Consultations
     const today = new Date();
