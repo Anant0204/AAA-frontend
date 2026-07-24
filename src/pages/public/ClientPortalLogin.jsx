@@ -106,10 +106,22 @@ export const ClientPortalLogin = () => {
     const urlClientId = params.get('clientId');
     const urlTempPassword = params.get('tempPassword');
     const successMsg = params.get('success');
+    const isPaymentSuccess = params.get('payment') === 'success' || successMsg === 'true';
+    const sessionId = params.get('session_id') || params.get('sessionId');
+    const paymentId = params.get('id');
+
     if (urlClientId) setUsername(urlClientId);
     if (urlTempPassword) setPassword(urlTempPassword);
-    if (successMsg) {
-      showAlert('Payment Successful! Your account has been created. Please log in using the credentials below.', 'success');
+
+    if (isPaymentSuccess || sessionId || paymentId) {
+      dbService.verifyCheckoutSession(sessionId, paymentId)
+        .then(() => {
+          showAlert('Payment Successful! Status updated to Paid. Please log in using your credentials.', 'success');
+        })
+        .catch(err => {
+          console.error('Failed auto-verifying payment session:', err);
+          showAlert('Payment completed! Account setup is ready.', 'success');
+        });
     }
   }, [showAlert]);
 

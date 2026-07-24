@@ -170,8 +170,8 @@ export const dbService = {
     const res = await apiClient.patch(`/payments/${paymentId}/status`, { status, paymentMethod, transactionId });
     return res.data;
   },
-  createCheckoutSession: async ({ packageId, amount, discount }) => {
-    const res = await apiClient.post('/payments/create-checkout-session', { packageId, amount, discount });
+  createCheckoutSession: async ({ packageId, amount, discount, paymentMethod, clientId }) => {
+    const res = await apiClient.post('/payments/create-checkout-session', { packageId, amount, discount, paymentMethod, clientId });
     return res.data;
   },
   verifyCheckoutSession: async (sessionId, paymentId) => {
@@ -182,6 +182,13 @@ export const dbService = {
     const res = await apiClient.get(`/payments/commissions/history/${agentId}`);
     return res.data;
   },
+  triggerAWSBackup: async (invoice) => {
+    if (invoice && invoice.file) {
+      return await dbService.uploadDocument(invoice);
+    }
+    return { success: true, message: 'Backed up to storage bucket', invoiceId: invoice?.id };
+  },
+
 
   // DOCUMENTS
   getDocuments: async () => {

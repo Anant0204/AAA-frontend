@@ -407,7 +407,7 @@ export const OperationsLeadList = () => {
       render: (row) => dayjs(row.createdDate).format('YYYY-MM-DD') },
   ];
 
-  const leadStatuses = leadStages.map(s => s.name);
+  const leadStatuses = Array.from(new Set(['Form Submitted', ...leadStages.map(s => s.name)]));
 
   return (
     <Box>

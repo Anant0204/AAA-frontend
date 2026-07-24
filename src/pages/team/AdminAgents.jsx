@@ -413,7 +413,13 @@ export const AdminAgents = () => {
 
     // Agent Commission (dynamic rate from agent.commissionRate or fallback to 10)
     const rate = agent.commissionRate !== undefined ? agent.commissionRate : 10;
-    const commissionAmount = Math.round(totalRevenueClosed * (rate / 100));
+    const paidInvoices = allPayments.filter((p) => clientIds.includes(p.clientId) && p.status === 'Paid');
+    const commissionAmount = Math.round(
+      paidInvoices.reduce((sum, p) => {
+        const commRate = (p.commissionRate !== null && p.commissionRate !== undefined) ? p.commissionRate : rate;
+        return sum + ((p.amount || 0) * (commRate / 100));
+      }, 0)
+    );
 
     return {
       totalConsultations,

@@ -823,7 +823,8 @@ export const ClientPortalDocs = () => {
         packageId,
         amount,
         discount,
-        paymentMethod: billingPaymentMethod
+        paymentMethod: billingPaymentMethod,
+        clientId: client?.id || id
       });
       if (res.success && res.url) {
         window.location.href = res.url;

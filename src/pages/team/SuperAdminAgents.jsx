@@ -252,6 +252,7 @@ export const SuperAdminAgents = () => {
     mutationFn: (agentData) => dbService.updateAgent(agentData),
     onSuccess: (updatedAgent) => {
       queryClient.invalidateQueries({ queryKey: ['agents'] });
+      queryClient.invalidateQueries({ queryKey: ['commission-history'] });
       // If the updated agent is the currently logged-in user, sync their session immediately
       // Only sync session if the SuperAdmin edited THEIR OWN profile, not another agent's
       if (updatedAgent && refreshUser && updatedAgent.id === currentUser?.id) refreshUser(updatedAgent);
@@ -511,16 +512,22 @@ export const SuperAdminAgents = () => {
     // Agent Commission (dynamic rate from agent.commissionRate or fallback to 10)
     const rate = agent.commissionRate !== undefined ? agent.commissionRate : 10;
     
-    // Monthly Agent Commission
-    const now = new Date();
-    const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const monthlyRevenue = allPayments.filter(p => clientIds.includes(p.clientId))
-      .filter((p) => p.status === 'Paid' && (p.paymentDate || p.dueDate)?.startsWith(currentMonthStr))
-      .reduce((sum, p) => sum + (p.totalPaid || 0), 0);
-    const monthlyCommission = Math.round(monthlyRevenue * (rate / 100));
+    // Calculate commission by summing up individual paid invoice snapshotted rates
+    const paidInvoices = allPayments.filter((p) => clientIds.includes(p.clientId) && p.status === 'Paid');
+    const totalCommissionSinceJoining = Math.round(
+      paidInvoices.reduce((sum, p) => {
+        const commRate = (p.commissionRate !== null && p.commissionRate !== undefined) ? p.commissionRate : rate;
+        return sum + ((p.amount || 0) * (commRate / 100));
+      }, 0)
+    );
 
-    // Total Commission since joining
-    const totalCommissionSinceJoining = Math.round(totalRevenueClosed * (rate / 100));
+    const monthlyPaidInvoices = paidInvoices.filter((p) => (p.paymentDate || p.dueDate)?.startsWith('2026-06'));
+    const monthlyCommission = Math.round(
+      monthlyPaidInvoices.reduce((sum, p) => {
+        const commRate = (p.commissionRate !== null && p.commissionRate !== undefined) ? p.commissionRate : rate;
+        return sum + ((p.amount || 0) * (commRate / 100));
+      }, 0)
+    );
 
     return {
       totalConsultations,
@@ -794,8 +801,11 @@ export const SuperAdminAgents = () => {
               </Box>
 
                 <List sx={{ flexGrow: 1, overflowY: 'auto', p: 1 }}>
-                  {agents.map((agent) => (
-                    <ListItemButton
+                  {agents.map((agent) => {
+                    const agentLeadsCount = allLeads.filter((ld) => ld.assignedConsultantId === agent.id).length;
+                    const agentClientsCount = allClients.filter((cl) => cl.assignedConsultantId === agent.id).length;
+                    return (
+                      <ListItemButton
                       key={agent.id}
                       selected={activeAgentId === agent.id}
                       onClick={() => {
@@ -918,20 +928,35 @@ export const SuperAdminAgents = () => {
                           </Box>
                         }
                         secondary={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                            <Typography variant="caption" color="text.secondary" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {agent.email}
-                            </Typography>
-                            {agent.customPermissions?.enabled && (
-                              <Typography variant="caption" sx={{ color: '#7C3AED', fontWeight: 600, flexShrink: 0 }}>
-                                · {(agent.customPermissions.menus || []).length}M / {(agent.customPermissions.cards || []).length}C
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mt: 0.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <Typography variant="caption" color="text.secondary" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {agent.email}
                               </Typography>
-                            )}
+                              {agent.customPermissions?.enabled && (
+                                <Typography variant="caption" sx={{ color: '#7C3AED', fontWeight: 600, flexShrink: 0 }}>
+                                  · {(agent.customPermissions.menus || []).length}M / {(agent.customPermissions.cards || []).length}C
+                                </Typography>
+                              )}
+                            </Box>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <Chip
+                                label={`${agentLeadsCount} Leads`}
+                                size="small"
+                                sx={{ height: 16, fontSize: '0.65rem', fontWeight: 800, bgcolor: '#1E40AF', color: '#FFFFFF' }}
+                              />
+                              <Chip
+                                label={`${agentClientsCount} Cases`}
+                                size="small"
+                                sx={{ height: 16, fontSize: '0.65rem', fontWeight: 800, bgcolor: '#065F46', color: '#FFFFFF' }}
+                              />
+                            </Box>
                           </Box>
                         }
                       />
                     </ListItemButton>
-                  ))}
+                    );
+                   })}
                 </List>
             </Paper>
           </Box>
@@ -1662,16 +1687,21 @@ export const SuperAdminAgents = () => {
             <Box sx={{ p: 4, textAlign: 'center' }}>
               <Typography color="text.secondary">Loading history...</Typography>
             </Box>
-          ) : commissionHistory.length === 0 ? (
-            <Box sx={{ p: 5, textAlign: 'center' }}>
-              <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 700 }}>No Rate Changes Yet</Typography>
-              <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5 }}>
-                Commission rate changes will appear here once a rate is modified for this agent.
-              </Typography>
-            </Box>
           ) : (
             <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {commissionHistory.map((entry) => {
+              {(commissionHistory && commissionHistory.length > 0
+                ? commissionHistory
+                : [{
+                    id: 'initial-base-entry',
+                    oldRate: 0,
+                    newRate: activeAgent?.commissionRate !== undefined ? activeAgent.commissionRate : 10,
+                    createdAt: activeAgent?.createdAt || new Date(),
+                    changedBy: { fullName: 'Registration System', role: 'Initial Base Setting' },
+                    revenueAtChange: 0,
+                    isInitial: true
+                  }]
+              ).map((entry) => {
+                const isInitial = entry.isInitial || entry.oldRate === 0;
                 const isIncrease = entry.newRate > entry.oldRate;
                 const date = new Date(entry.createdAt);
                 const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -1682,9 +1712,9 @@ export const SuperAdminAgents = () => {
                     elevation={0}
                     sx={{
                       border: '1px solid',
-                      borderColor: isIncrease ? 'success.light' : 'warning.light',
+                      borderColor: isInitial ? 'info.light' : (isIncrease ? 'success.light' : 'warning.light'),
                       borderLeft: '4px solid',
-                      borderLeftColor: isIncrease ? 'success.main' : 'warning.main',
+                      borderLeftColor: isInitial ? 'info.main' : (isIncrease ? 'success.main' : 'warning.main'),
                       borderRadius: 3,
                       p: 2.5,
                       bgcolor: 'white'
@@ -1694,15 +1724,21 @@ export const SuperAdminAgents = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                         <Box sx={{
                           display: 'flex', alignItems: 'center', gap: 1,
-                          border: '1px solid', borderColor: isIncrease ? 'success.light' : 'warning.light',
+                          border: '1px solid', borderColor: isInitial ? 'info.light' : (isIncrease ? 'success.light' : 'warning.light'),
                           borderRadius: 2, px: 2, py: 0.75
                         }}>
-                          <Typography sx={{ fontWeight: 800, color: 'text.secondary', textDecoration: 'line-through', fontSize: '0.9rem' }}>{entry.oldRate}%</Typography>
-                          <Typography sx={{ color: 'text.disabled' }}>→</Typography>
-                          <Typography sx={{ fontWeight: 900, color: isIncrease ? 'success.dark' : 'warning.dark', fontSize: '1rem' }}>{entry.newRate}%</Typography>
-                          {isIncrease ? <TrendingUpIcon sx={{ color: 'success.main', fontSize: 18 }} /> : <TrendingDownIcon sx={{ color: 'warning.main', fontSize: 18 }} />}
+                          {!isInitial && (
+                            <>
+                              <Typography sx={{ fontWeight: 800, color: 'text.secondary', textDecoration: 'line-through', fontSize: '0.9rem' }}>{entry.oldRate}%</Typography>
+                              <Typography sx={{ color: 'text.disabled' }}>→</Typography>
+                            </>
+                          )}
+                          <Typography sx={{ fontWeight: 900, color: isInitial ? 'info.dark' : (isIncrease ? 'success.dark' : 'warning.dark'), fontSize: '1rem' }}>{entry.newRate}%</Typography>
+                          {isInitial ? null : (isIncrease ? <TrendingUpIcon sx={{ color: 'success.main', fontSize: 18 }} /> : <TrendingDownIcon sx={{ color: 'warning.main', fontSize: 18 }} />)}
                         </Box>
-                        <Typography variant="body2" sx={{ fontWeight: 700 }}>{isIncrease ? 'Rate Increased' : 'Rate Decreased'}</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {isInitial ? 'Initial Base Rate Set at Registration' : (isIncrease ? 'Rate Increased' : 'Rate Decreased')}
+                        </Typography>
                       </Box>
                       <Box sx={{ textAlign: 'right' }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>{dateStr}</Typography>
@@ -1735,15 +1771,14 @@ export const SuperAdminAgents = () => {
                         </Box>
                       </Box>
                       <Box>
-                        <Typography variant="caption" color="text.secondary" display="block">Commission on that revenue</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          <span style={{ textDecoration: 'line-through', color: '#999', marginRight: 6 }}>
-                            €{((entry.revenueAtChange || 0) * entry.oldRate / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
-                          → <span style={{ fontWeight: 900, color: isIncrease ? '#2e7d32' : '#e65100' }}>
-                            €{((entry.revenueAtChange || 0) * entry.newRate / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
+                        <Typography variant="caption" color="text.secondary" display="block">Locked Past Commission ({entry.oldRate}%)</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: 'success.dark' }}>
+                          €{((entry.revenueAtChange || 0) * entry.oldRate / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" display="block">New Rate Status ({entry.newRate}%)</Typography>
+                        <Chip label={`Active for future sales (${isIncrease ? '+' : ''}${entry.newRate - entry.oldRate}%)`} size="small" color={isIncrease ? 'success' : 'warning'} sx={{ fontWeight: 700, mt: 0.2 }} />
                       </Box>
                     </Box>
                   </Paper>

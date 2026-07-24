@@ -64,7 +64,14 @@ export const AgentDashboard = () => {
     .reduce((sum, p) => sum + (p.totalPaid || 0), 0);
 
   const commissionRate = currentUser?.commissionRate !== undefined ? currentUser.commissionRate : 10;
-  const commissionEarned = Math.round(totalRevenuePaid * (commissionRate / 100));
+  const commissionEarned = Math.round(
+    myPayments
+      .filter((p) => p.status === 'Paid')
+      .reduce((sum, p) => {
+        const pRate = (p.commissionRate !== null && p.commissionRate !== undefined) ? p.commissionRate : commissionRate;
+        return sum + ((p.totalPaid || p.amount || 0) * (pRate / 100));
+      }, 0)
+  );
 
   const activeCases = myClients.filter(
     (cl) => cl.visaStatus !== 'Approved' && cl.status !== 'Completed'

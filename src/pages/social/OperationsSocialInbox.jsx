@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dbService } from '../../services/dbService';
+import { renderWhatsAppText } from '../../utils/whatsappFormatter';
 import { io } from 'socket.io-client';
 import Box from '@mui/material/Box';
 
@@ -323,6 +324,133 @@ export const OperationsSocialInbox = () => {
 
     setReplyText('');
     setSelectedTemplate('');
+    setPendingMedia(null);
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setPendingMedia({
+        file,
+        dataUrl: ev.target.result,
+        type: file.type,
+        name: file.name,
+        size: (file.size / 1024).toFixed(1) + ' KB'
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  // Smart content renderer — handles PDF, Image, base64 blobs, credentials, plain text
+  const renderMessageContent = (msg, isAgent) => {
+    const text = msg.text || '';
+    const mediaUrl = msg.mediaUrl || null;
+    const mediaType = msg.mediaType || '';
+    const mediaName = msg.mediaName || 'Attachment';
+
+    // Helper to detect base64 blob (raw unreadable strings > 200 chars with no spaces)
+    const isRawBase64 = (str) => str && str.length > 200 && !/\s/.test(str.substring(0, 100)) && !/^https?:\/\//.test(str);
+
+    // Parse inline tagged attachments from text: [PDF: url], [Image: url], [Attachment: url]
+    const pdfMatch = text.match(/\[PDF:\s*(https?:\/\/[^\]]+)\]/);
+    const imageMatch = text.match(/\[Image:\s*(https?:\/\/[^\]]+)\]/);
+    const attachMatch = text.match(/\[Attachment:\s*(https?:\/\/[^\]]+)\]/);
+    const cleanText = text
+      .replace(/\[PDF:\s*https?:\/\/[^\]]+\]/g, '')
+      .replace(/\[Image:\s*https?:\/\/[^\]]+\]/g, '')
+      .replace(/\[Attachment:\s*https?:\/\/[^\]]+\]/g, '')
+      .trim();
+
+    // Detect credential messages (portal links)
+    const hasPortalLink = text.includes('https://') && (text.includes('Username') || text.includes('Password') || text.includes('portal'));
+
+    const bubbleBg = isAgent ? 'secondary.main' : 'background.paper';
+    const textColor = isAgent ? 'secondary.contrastText' : 'text.primary';
+
+    return (
+      <>
+        {/* Pending media preview (base64) for images */}
+        {mediaUrl && (mediaType?.startsWith('image/') || mediaUrl.startsWith('data:image/')) && (
+          <Box sx={{ mb: 1, borderRadius: 2, overflow: 'hidden', maxWidth: 240, border: '1px solid rgba(0,0,0,0.1)' }}>
+            <img src={mediaUrl} alt={mediaName} style={{ width: '100%', display: 'block', borderRadius: 8 }} />
+          </Box>
+        )}
+
+        {/* PDF attachment from mediaUrl */}
+        {mediaUrl && (mediaType === 'application/pdf' || mediaUrl.endsWith('.pdf') || mediaUrl.startsWith('data:application/pdf')) && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.5, bgcolor: isAgent ? 'rgba(255,255,255,0.15)' : '#FFF5F5', borderRadius: 2, border: '1px solid', borderColor: isAgent ? 'rgba(255,255,255,0.3)' : '#FECACA', mb: 1 }}>
+            <PictureAsPdfIcon sx={{ color: '#EF4444', fontSize: 28, flexShrink: 0 }} />
+            <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+              <Typography variant='caption' sx={{ fontWeight: 700, color: isAgent ? 'rgba(255,255,255,0.9)' : '#B91C1C', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mediaName}</Typography>
+              <Typography variant='caption' sx={{ color: isAgent ? 'rgba(255,255,255,0.6)' : 'text.secondary' }}>PDF Document</Typography>
+            </Box>
+            <IconButton size='small' component='a' href={mediaUrl} target='_blank' download sx={{ color: isAgent ? 'white' : '#EF4444', flexShrink: 0 }}><DownloadIcon fontSize='small' /></IconButton>
+          </Box>
+        )}
+
+        {/* Inline [PDF: url] tag in text */}
+        {pdfMatch && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.5, bgcolor: isAgent ? 'rgba(255,255,255,0.15)' : '#FFF5F5', borderRadius: 2, border: '1px solid', borderColor: isAgent ? 'rgba(255,255,255,0.3)' : '#FECACA', mb: 1 }}>
+            <PictureAsPdfIcon sx={{ color: '#EF4444', fontSize: 28, flexShrink: 0 }} />
+            <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+              <Typography variant='caption' sx={{ fontWeight: 700, color: isAgent ? 'rgba(255,255,255,0.9)' : '#B91C1C', display: 'block' }}>PDF Document</Typography>
+              <Typography variant='caption' sx={{ color: isAgent ? 'rgba(255,255,255,0.6)' : 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', whiteSpace: 'nowrap' }}>{pdfMatch[1]}</Typography>
+            </Box>
+            <IconButton size='small' component='a' href={pdfMatch[1]} target='_blank' download sx={{ color: isAgent ? 'white' : '#EF4444', flexShrink: 0 }}><DownloadIcon fontSize='small' /></IconButton>
+          </Box>
+        )}
+
+        {/* Inline [Image: url] tag in text */}
+        {imageMatch && (
+          <Box sx={{ mb: 1, borderRadius: 2, overflow: 'hidden', maxWidth: 240 }}>
+            <img src={imageMatch[1]} alt='Attached' style={{ width: '100%', display: 'block', borderRadius: 8 }} />
+          </Box>
+        )}
+
+        {/* Inline [Attachment: url] generic file */}
+        {attachMatch && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.5, bgcolor: isAgent ? 'rgba(255,255,255,0.15)' : '#F1F5F9', borderRadius: 2, border: '1px solid', borderColor: isAgent ? 'rgba(255,255,255,0.3)' : 'divider', mb: 1 }}>
+            <InsertDriveFileIcon sx={{ color: isAgent ? 'white' : '#64748B', fontSize: 28, flexShrink: 0 }} />
+            <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+              <Typography variant='caption' sx={{ fontWeight: 700, color: isAgent ? 'rgba(255,255,255,0.9)' : 'text.primary', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>File Attachment</Typography>
+            </Box>
+            <IconButton size='small' component='a' href={attachMatch[1]} target='_blank' download sx={{ color: isAgent ? 'white' : '#64748B', flexShrink: 0 }}><DownloadIcon fontSize='small' /></IconButton>
+          </Box>
+        )}
+
+        {/* Portal credential message — format as clean info box */}
+        {hasPortalLink && !pdfMatch && !imageMatch && !isRawBase64(cleanText) && (
+          <Box sx={{ bgcolor: isAgent ? 'rgba(255,255,255,0.1)' : '#F0FDF4', borderRadius: 2, p: 1.5, border: '1px solid', borderColor: isAgent ? 'rgba(255,255,255,0.2)' : '#BBF7D0', mb: cleanText ? 1 : 0 }}>
+            {text.split('\n').filter(l => l.trim()).map((line, i) => {
+              if (line.startsWith('https://')) return (
+                <Typography key={i} variant='caption' sx={{ display: 'block', fontWeight: 700 }}>
+                  🔗 <a href={line.trim()} target='_blank' rel='noreferrer' style={{ color: isAgent ? '#A5F3FC' : '#0369A1', wordBreak: 'break-all' }}>{line.trim()}</a>
+                </Typography>
+              );
+              return <Typography key={i} variant='caption' sx={{ display: 'block', color: isAgent ? 'rgba(255,255,255,0.9)' : 'text.primary' }}>{line}</Typography>;
+            })}
+          </Box>
+        )}
+
+        {/* Skip raw base64 unreadable blobs entirely */}
+        {!hasPortalLink && isRawBase64(text) && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.5, bgcolor: isAgent ? 'rgba(255,255,255,0.1)' : '#F8FAFC', borderRadius: 2, border: '1px dashed', borderColor: isAgent ? 'rgba(255,255,255,0.3)' : 'divider' }}>
+            <InsertDriveFileIcon sx={{ color: isAgent ? 'rgba(255,255,255,0.6)' : '#94A3B8', fontSize: 22 }} />
+            <Typography variant='caption' sx={{ color: isAgent ? 'rgba(255,255,255,0.7)' : 'text.secondary', fontStyle: 'italic' }}>Media file received (preview unavailable)</Typography>
+          </Box>
+        )}
+
+        {/* Regular plain text — formatted with WhatsApp rich text parser */}
+        {!hasPortalLink && !isRawBase64(text) && cleanText && (
+          <Typography variant='body2' component='div' sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+            {renderWhatsAppText(cleanText, isAgent)}
+          </Typography>
+        )}
+      </>
+    );
   };
 
   const handleTemplateChange = (e) => {
@@ -716,11 +844,17 @@ export const OperationsSocialInbox = () => {
                         <TextField
                           fullWidth
                           size="small"
-                          placeholder={`Type a reply via ${activeConv.platform}...`}
+                          multiline
+                          minRows={1}
+                          maxRows={4}
+                          placeholder={`Type a reply via ${activeConv.platform}... (Shift+Enter for new line)`}
                           value={replyText}
                           onChange={(e) => setReplyText(e.target.value)}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') handleSend();
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              handleSend();
+                            }
                           }}
                           inputProps={{ style: { fontSize: '0.875rem' } }}
                         />
