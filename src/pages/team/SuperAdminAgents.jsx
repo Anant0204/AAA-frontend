@@ -505,6 +505,12 @@ export const SuperAdminAgents = () => {
     // Agent Leads (from card scans / references)
     const agentLeadsCount = agentLeads.length;
 
+    // Agent Pending Follow-Ups
+    const todayStr = dayjs().format('YYYY-MM-DD');
+    const pendingFollowUpsCount =
+      agentClients.filter((cl) => cl.nextFollowUpDate && cl.nextFollowUpDate.split('T')[0] <= todayStr).length +
+      agentLeads.filter((ld) => ld.nextFollowUpDate && ld.nextFollowUpDate.split('T')[0] <= todayStr).length;
+
     // Conversion Rate (%) = (Closed Cases ÷ Total Consultations) × 100
     const conversionRate =
       totalConsultations > 0 ? Math.round((closedCases / totalConsultations) * 100) : 0;
@@ -541,6 +547,7 @@ export const SuperAdminAgents = () => {
       agentNoShow,
       agentCancelled,
       agentLeadsCount,
+      pendingFollowUpsCount,
       conversionRate,
       monthlyCommission,
       totalCommissionSinceJoining };
@@ -804,6 +811,7 @@ export const SuperAdminAgents = () => {
                   {agents.map((agent) => {
                     const agentLeadsCount = allLeads.filter((ld) => ld.assignedConsultantId === agent.id).length;
                     const agentClientsCount = allClients.filter((cl) => cl.assignedConsultantId === agent.id).length;
+                    const agentStats = getAgentStats(agent);
                     return (
                       <ListItemButton
                       key={agent.id}
@@ -939,7 +947,7 @@ export const SuperAdminAgents = () => {
                                 </Typography>
                               )}
                             </Box>
-                            <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                               <Chip
                                 label={`${agentLeadsCount} Leads`}
                                 size="small"
@@ -950,6 +958,14 @@ export const SuperAdminAgents = () => {
                                 size="small"
                                 sx={{ height: 16, fontSize: '0.65rem', fontWeight: 800, bgcolor: '#065F46', color: '#FFFFFF' }}
                               />
+                              {agentStats.pendingFollowUpsCount > 0 && (
+                                <Chip
+                                  label={`${agentStats.pendingFollowUpsCount} Pending Follow-up${agentStats.pendingFollowUpsCount > 1 ? 's' : ''}`}
+                                  size="small"
+                                  color="warning"
+                                  sx={{ height: 16, fontSize: '0.65rem', fontWeight: 800 }}
+                                />
+                              )}
                             </Box>
                           </Box>
                         }

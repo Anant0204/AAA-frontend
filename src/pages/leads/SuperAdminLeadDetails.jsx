@@ -46,6 +46,46 @@ import SmartToyIcon from '@mui/icons-material/SmartToy';
 import AiSummaryModal from '../../components/AiSummaryModal';
 import { CommunicationHistoryTab } from '../../components/CommunicationHistoryTab';
 
+const FollowUpDatePickerInput = ({ value, onChange, style = {} }) => {
+  const [val, setVal] = useState(() => value ? dayjs(value).format('YYYY-MM-DD') : '');
+
+  React.useEffect(() => {
+    setVal(value ? dayjs(value).format('YYYY-MM-DD') : '');
+  }, [value]);
+
+  return (
+    <input
+      type="date"
+      value={val}
+      onClick={(e) => e.stopPropagation()}
+      onChange={(evt) => {
+        evt.stopPropagation();
+        const newVal = evt.target.value;
+        setVal(newVal);
+        if (!newVal || /^\d{4}-\d{2}-\d{2}$/.test(newVal)) {
+          onChange(newVal);
+        }
+      }}
+      onBlur={() => {
+        if (val && /^\d{4}-\d{2}-\d{2}$/.test(val) && val !== (value ? dayjs(value).format('YYYY-MM-DD') : '')) {
+          onChange(val);
+        }
+      }}
+      style={{
+        padding: '6px 10px',
+        borderRadius: '6px',
+        border: '1px solid #CBD5E1',
+        fontSize: '0.8rem',
+        fontWeight: 600,
+        marginTop: '4px',
+        width: '100%',
+        boxSizing: 'border-box',
+        ...style
+      }}
+    />
+  );
+};
+
 export const SuperAdminLeadDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -185,6 +225,14 @@ export const SuperAdminLeadDetails = () => {
       queryClient.invalidateQueries({ queryKey: ['lead', id] });
       showAlert('Note added successfully', 'success');
       setNoteText('');
+    } });
+
+  const updateFollowUpMutation = useMutation({
+    mutationFn: (nextFollowUpDate) => dbService.updateLead({ id: lead.id, nextFollowUpDate }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lead', id] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      showAlert('Follow-up date updated successfully', 'success');
     } });
 
   const reassignConsultantMutation = useMutation({
@@ -595,6 +643,25 @@ export const SuperAdminLeadDetails = () => {
                       <Box>
                         <Typography variant="caption" color="text.secondary">Applicants Included</Typography>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>{lead.applicantsCount || 1} Person(s)</Typography>
+                      </Box>
+                      <Box sx={{ mt: 1, p: 1.5, bgcolor: '#F8FAFC', borderRadius: 2, border: '1px solid #E2E8F0' }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block', mb: 0.5 }}>
+                          📅 Next Scheduled Follow-Up Date
+                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                          <FollowUpDatePickerInput
+                            value={lead.nextFollowUpDate}
+                            onChange={(newDate) => {
+                              updateFollowUpMutation.mutate(newDate);
+                            }}
+                            style={{ width: '180px', padding: '4px 8px', border: '1px solid #CBD5E1', borderRadius: '6px', bgcolor: '#FFFFFF' }}
+                          />
+                          {lead.nextFollowUpDate && (
+                            <Typography variant="caption" sx={{ fontWeight: 700, color: (lead.nextFollowUpDate.split('T')[0] <= dayjs().format('YYYY-MM-DD')) ? '#B45309' : '#059669', bgcolor: (lead.nextFollowUpDate.split('T')[0] <= dayjs().format('YYYY-MM-DD')) ? '#FEF3C7' : '#D1FAE5', px: 1, py: 0.5, borderRadius: 1 }}>
+                              {(lead.nextFollowUpDate.split('T')[0] <= dayjs().format('YYYY-MM-DD')) ? '⚠️ Follow-up Due Today' : '✅ Saved & Fixed'}
+                            </Typography>
+                          )}
+                        </Box>
                       </Box>
                     </Box>
                   </Box>
