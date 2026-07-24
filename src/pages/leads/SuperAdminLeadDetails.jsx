@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { CaseActivityTimeline } from '../../components/CaseActivityTimeline';
 import Box from '@mui/material/Box';
 
 import Paper from '@mui/material/Paper';
@@ -743,7 +744,10 @@ export const SuperAdminLeadDetails = () => {
                       />
                       <Button variant="contained" onClick={handleAddNote} endIcon={<SendIcon />} sx={{ px: 3 }}>
                         Comment
-                      </Button>
+                    </Box>
+
+                    <Box sx={{ mt: 4 }}>
+                      <CaseActivityTimeline leadId={lead.id} clientId={lead.clientId} />
                     </Box>
                   </Box>
                 </Box>

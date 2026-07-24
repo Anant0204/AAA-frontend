@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { jsPDF } from 'jspdf';
+import { CaseActivityTimeline } from '../../components/CaseActivityTimeline';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -1551,7 +1552,9 @@ export const ClientPortalDocs = () => {
                         );
                       })}
                     </Box>
-                  </Paper>
+                {/* Case Activity Timeline Log */}
+                <Box className="col-span-12" sx={{ mt: 3 }}>
+                  <CaseActivityTimeline clientId={client.id || id} />
                 </Box>
               </Box>
             )}
