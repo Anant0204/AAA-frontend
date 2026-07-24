@@ -449,7 +449,7 @@ const navigate = useNavigate();
                             </Box>
                           </Box>
                         }
-                        secondary={`Host: ${c ? c.name : 'Unassigned'} (${mt.durationMinutes} min)`}
+                        secondary={`Host: ${c ? c.name : (mt.agentName || mt.assignedConsultantName || 'Unassigned')} (${mt.durationMinutes} min)`}
                       />
                     </ListItemButton>
                   );
