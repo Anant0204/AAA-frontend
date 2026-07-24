@@ -290,7 +290,12 @@ export const AdminClientList = () => {
   };
 
   const columns = [
-    { id: 'id', label: 'Client ID', minWidth: 90 },
+    {
+      id: 'clientCode',
+      label: 'Client ID',
+      minWidth: 100,
+      render: (row) => row.clientCode || row.id
+    },
     {
       id: 'name',
       label: 'Name',

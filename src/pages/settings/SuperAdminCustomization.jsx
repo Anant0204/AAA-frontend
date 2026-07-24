@@ -128,7 +128,7 @@ const ALL_LEAD_COLUMNS = [
 ];
 
 const ALL_CLIENT_COLUMNS = [
-  { id: 'id', label: 'Client ID' },
+  { id: 'clientCode', label: 'Client ID' },
   { id: 'name', label: 'Name' },
   { id: 'nationality', label: 'Nationality' },
   { id: 'service', label: 'Target Visa' },

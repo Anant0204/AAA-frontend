@@ -69,7 +69,7 @@ export const StaffProfile = () => {
   const assignedConsultations = consultations.filter((cons) => cons.assignedConsultantId === c.id);
 
   const clientColumns = [
-    { id: 'id', label: 'Client ID', minWidth: 95 },
+    { id: 'clientCode', label: 'Client ID', minWidth: 100, render: (row) => row.clientCode || row.id },
     { id: 'name', label: 'Client Name', render: (row) => `${row.firstName} ${row.lastName}` },
     { id: 'nationality', label: 'Nationality' },
     {

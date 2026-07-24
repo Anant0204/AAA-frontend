@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Box from '@mui/material/Box';
@@ -55,6 +56,45 @@ const clientSchema = yup.object().shape({
   status: yup.string().required('Billing status is required'),
   profileSummary: yup.string(),
 });
+
+const FollowUpDatePickerInput = ({ value, onChange, isDue, style = {} }) => {
+  const [val, setVal] = useState(() => value ? dayjs(value).format('YYYY-MM-DD') : '');
+
+  React.useEffect(() => {
+    setVal(value ? dayjs(value).format('YYYY-MM-DD') : '');
+  }, [value]);
+
+  return (
+    <input
+      type="date"
+      value={val}
+      onClick={(e) => e.stopPropagation()}
+      onChange={(evt) => {
+        evt.stopPropagation();
+        const newVal = evt.target.value;
+        setVal(newVal);
+        if (!newVal || /^\d{4}-\d{2}-\d{2}$/.test(newVal)) {
+          onChange(newVal);
+        }
+      }}
+      onBlur={() => {
+        if (val && /^\d{4}-\d{2}-\d{2}$/.test(val) && val !== (value ? dayjs(value).format('YYYY-MM-DD') : '')) {
+          onChange(val);
+        }
+      }}
+      style={{
+        border: 'none',
+        background: 'transparent',
+        fontSize: '0.75rem',
+        fontWeight: 700,
+        color: isDue ? '#B45309' : '#1E293B',
+        outline: 'none',
+        cursor: 'pointer',
+        ...style
+      }}
+    />
+  );
+};
 
 export const SuperAdminClientList = () => {
   const navigate = useNavigate();
@@ -220,7 +260,25 @@ export const SuperAdminClientList = () => {
       setAddModalOpen(false);
       reset();
     },
+    onError: (err) => {
+      showAlert(err.message || 'Failed to onboard client', 'error');
+    },
   });
+
+  const updateClientMutation = useMutation({
+    mutationFn: ({ id, ...data }) => dbService.updateClient(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      showAlert('Client follow-up date updated', 'success');
+    },
+    onError: (err) => {
+      showAlert(err.message || 'Failed to update follow-up date', 'error');
+    }
+  });
+
+  const [pendingFollowUpOnly, setPendingFollowUpOnly] = useState(false);
+  const todayStr = dayjs().format('YYYY-MM-DD');
+  const pendingFollowUpsCount = clients.filter(c => c.nextFollowUpDate && (c.nextFollowUpDate.split('T')[0] <= todayStr)).length;
 
   // React Hook Form
   const {
@@ -300,7 +358,12 @@ export const SuperAdminClientList = () => {
   };
 
   const columns = [
-    { id: 'id', label: 'Client ID', minWidth: 90 },
+    {
+      id: 'clientCode',
+      label: 'Client ID',
+      minWidth: 100,
+      render: (row) => row.clientCode || row.id
+    },
     {
       id: 'name',
       label: 'Name',
