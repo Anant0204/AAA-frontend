@@ -81,6 +81,8 @@ export const SuperAdminRefundCommissionHub = () => {
   const [refundBankName, setRefundBankName] = useState('');
   const [refundBankIban, setRefundBankIban] = useState('');
   const [refundBankSwift, setRefundBankSwift] = useState('');
+  const [refundFile, setRefundFile] = useState(null);
+  const [uploadingProof, setUploadingProof] = useState(false);
   
   const [selectedAgentId, setSelectedAgentId] = useState('');
   const [commissionType, setCommissionType] = useState('10%');
@@ -113,6 +115,7 @@ export const SuperAdminRefundCommissionHub = () => {
       setRefundBankName('');
       setRefundBankIban('');
       setRefundBankSwift('');
+      setRefundFile(null);
     }
   });
 
@@ -141,11 +144,31 @@ export const SuperAdminRefundCommissionHub = () => {
   });
 
   // Helpers
-  const handleCreateRefund = () => {
+  const handleCreateRefund = async () => {
     if (!selectedClientId || !refundReason) {
       showAlert('Please select a client and provide a reason', 'warning');
       return;
     }
+
+    let proofUrl = null;
+    if (refundFile) {
+      try {
+        setUploadingProof(true);
+        const uploadedDoc = await dbService.uploadDocument({
+          file: refundFile,
+          clientId: selectedClientId,
+          category: 'Visa Rejection Letter',
+          fileName: refundFile.name
+        });
+        proofUrl = uploadedDoc?.fileUrl || null;
+      } catch (err) {
+        console.error('Failed to upload proof document:', err);
+        showAlert('Warning: Proof document upload failed. Submitting refund request without attachment.', 'warning');
+      } finally {
+        setUploadingProof(false);
+      }
+    }
+
     createRefundMutation.mutate({
       clientId: selectedClientId,
       category: refundCategory,
@@ -153,7 +176,8 @@ export const SuperAdminRefundCommissionHub = () => {
       amount: refundCategory === 'Visa Rejection' ? undefined : Number(refundAmount),
       bankAccountName: refundBankName || undefined,
       bankIban: refundBankIban || undefined,
-      bankSwift: refundBankSwift || undefined
+      bankSwift: refundBankSwift || undefined,
+      proofUrl: proofUrl || undefined
     });
   };
 
@@ -565,6 +589,32 @@ export const SuperAdminRefundCommissionHub = () => {
             onChange={(e) => setRefundReason(e.target.value)}
           />
 
+          <Box sx={{ p: 2, border: '1px dashed', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.neutral' }}>
+            <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', mb: 1 }}>
+              Attach Visa Rejection Letter / Bank Proof (Optional PDF or Image)
+            </Typography>
+            <Button
+              variant="outlined"
+              component="label"
+              size="small"
+              disabled={uploadingProof}
+              sx={{ fontWeight: 700 }}
+            >
+              {uploadingProof ? 'Uploading Proof...' : refundFile ? `✓ ${refundFile.name}` : 'Choose Proof File (PDF/Image)'}
+              <input
+                type="file"
+                hidden
+                accept=".pdf,.png,.jpg,.jpeg"
+                onChange={(e) => setRefundFile(e.target.files[0] || null)}
+              />
+            </Button>
+            {refundFile && (
+              <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 0.5, fontWeight: 700 }}>
+                File selected: {refundFile.name} ({(refundFile.size / 1024).toFixed(1)} KB)
+              </Typography>
+            )}
+          </Box>
+
           <Button variant="contained" color="primary" onClick={handleCreateRefund}>
             Submit Request
           </Button>
@@ -647,6 +697,26 @@ export const SuperAdminRefundCommissionHub = () => {
                 {activeAuditRefund.reason || 'No statement provided.'}
               </Typography>
             </Box>
+
+            {activeAuditRefund.proofUrl && (
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, mb: 0.5, display: 'block' }}>
+                  Attached Proof Document:
+                </Typography>
+                <Button
+                  variant="contained"
+                  color="info"
+                  size="small"
+                  href={activeAuditRefund.proofUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  startIcon={<VisibilityIcon />}
+                  sx={{ fontWeight: 700 }}
+                >
+                  View Proof Document 📄
+                </Button>
+              </Box>
+            )}
 
             {/* Proof Attachment PDF */}
             <Box>
