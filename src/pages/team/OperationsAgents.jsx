@@ -1110,7 +1110,10 @@ export const OperationsAgents = () => {
             label="Commission Rate (%)"
             type="number"
             value={commissionRate}
-            onChange={(e) => setCommissionRate(Math.max(0, Math.min(100, Number(e.target.value))))}
+            onChange={(e) => setCommissionRate(e.target.value === '' ? '' : Math.max(0, Math.min(100, Number(e.target.value))))}
+            onFocus={(e) => { if (Number(e.target.value) === 0) setCommissionRate(''); }}
+            onBlur={(e) => { if (e.target.value === '' || e.target.value === undefined) setCommissionRate(0); }}
+            inputProps={{ min: 0, max: 100 }}
             fullWidth
             required
             helperText="Specify the commission percentage of total closed revenue (e.g. 10)."
@@ -1172,7 +1175,10 @@ export const OperationsAgents = () => {
             label="Commission Rate (%) *"
             type="number"
             value={commissionRate}
-            onChange={(e) => setCommissionRate(Math.max(0, Math.min(100, Number(e.target.value))))}
+            onChange={(e) => setCommissionRate(e.target.value === '' ? '' : Math.max(0, Math.min(100, Number(e.target.value))))}
+            onFocus={(e) => { if (Number(e.target.value) === 0) setCommissionRate(''); }}
+            onBlur={(e) => { if (e.target.value === '' || e.target.value === undefined) setCommissionRate(0); }}
+            inputProps={{ min: 0, max: 100 }}
             fullWidth
             required
           />

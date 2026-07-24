@@ -253,7 +253,8 @@ export const SuperAdminAgents = () => {
     onSuccess: (updatedAgent) => {
       queryClient.invalidateQueries({ queryKey: ['agents'] });
       // If the updated agent is the currently logged-in user, sync their session immediately
-      if (updatedAgent && refreshUser) refreshUser(updatedAgent);
+      // Only sync session if the SuperAdmin edited THEIR OWN profile, not another agent's
+      if (updatedAgent && refreshUser && updatedAgent.id === currentUser?.id) refreshUser(updatedAgent);
       showAlert('Agent profile updated successfully!', 'success');
       setOpenEditModal(false);
       resetForm();
@@ -1445,7 +1446,10 @@ export const SuperAdminAgents = () => {
             label="Commission Rate (%)"
             type="number"
             value={commissionRate}
-            onChange={(e) => setCommissionRate(Math.max(0, Math.min(100, Number(e.target.value))))}
+            onChange={(e) => setCommissionRate(e.target.value === '' ? '' : Math.max(0, Math.min(100, Number(e.target.value))))}
+            onFocus={(e) => { if (Number(e.target.value) === 0) setCommissionRate(''); }}
+            onBlur={(e) => { if (e.target.value === '' || e.target.value === undefined) setCommissionRate(0); }}
+            inputProps={{ min: 0, max: 100 }}
             fullWidth
             required
             helperText="Specify the commission percentage of total closed revenue (e.g. 10)."
@@ -1507,7 +1511,10 @@ export const SuperAdminAgents = () => {
             label="Commission Rate (%) *"
             type="number"
             value={commissionRate}
-            onChange={(e) => setCommissionRate(Math.max(0, Math.min(100, Number(e.target.value))))}
+            onChange={(e) => setCommissionRate(e.target.value === '' ? '' : Math.max(0, Math.min(100, Number(e.target.value))))}
+            onFocus={(e) => { if (Number(e.target.value) === 0) setCommissionRate(''); }}
+            onBlur={(e) => { if (e.target.value === '' || e.target.value === undefined) setCommissionRate(0); }}
+            inputProps={{ min: 0, max: 100 }}
             fullWidth
             required
           />
