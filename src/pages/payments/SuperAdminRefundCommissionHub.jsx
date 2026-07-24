@@ -27,6 +27,18 @@ import Divider from '@mui/material/Divider';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import IconButton from '@mui/material/IconButton';
+import Avatar from '@mui/material/Avatar';
+import Tooltip from '@mui/material/Tooltip';
+import HistoryIcon from '@mui/icons-material/History';
+import CloseIcon from '@mui/icons-material/Close';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import PersonIcon from '@mui/icons-material/Person';
 
 // Components
 import PageHeader from '../../components/PageHeader';
@@ -57,6 +69,9 @@ export const SuperAdminRefundCommissionHub = () => {
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [pendingPayoutAction, setPendingPayoutAction] = useState(null);
   const [rateModalOpen, setRateModalOpen] = useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [historyAgentId, setHistoryAgentId] = useState(null);
+  const [historyAgentName, setHistoryAgentName] = useState('');
   
   // Form states
   const [selectedClientId, setSelectedClientId] = useState('');
@@ -89,6 +104,11 @@ export const SuperAdminRefundCommissionHub = () => {
     queryKey: ['agents'],
     queryFn: dbService.getAgents });
 
+  const { data: commissionHistory = [], isLoading: loadingHistory } = useQuery({
+    queryKey: ['commission-history', historyAgentId],
+    queryFn: () => dbService.getCommissionHistory(historyAgentId),
+    enabled: !!historyAgentId
+  });
   // Mutations
   const createRefundMutation = useMutation({
     mutationFn: dbService.createRefundRequest,
@@ -152,6 +172,12 @@ export const SuperAdminRefundCommissionHub = () => {
     setCommissionType(existingType);
     setCommissionValue(String(existingValue));
     setRateModalOpen(true);
+  };
+
+  const handleOpenHistoryModal = (agent) => {
+    setHistoryAgentId(agent.id);
+    setHistoryAgentName(agent.name || agent.fullName || 'Agent');
+    setHistoryModalOpen(true);
   };
 
   const handleUpdateCommissionRate = () => {
@@ -237,7 +263,12 @@ export const SuperAdminRefundCommissionHub = () => {
                         <TableCell sx={{ fontWeight: 600 }}>€{agent.totalEarned.toLocaleString()}</TableCell>
                         <TableCell sx={{ color: 'success.main', fontWeight: 600 }}>€{agent.totalPaid.toLocaleString()}</TableCell>
                         <TableCell sx={{ color: 'warning.main', fontWeight: 700 }}>€{(agent.totalEarned - agent.totalPaid).toLocaleString()}</TableCell>
-                        <TableCell align="right">
+                        <TableCell align="right" sx={{ display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'flex-end' }}>
+                          <Tooltip title="View Rate Change History">
+                            <IconButton size="small" onClick={() => handleOpenHistoryModal(agent)} sx={{ color: 'primary.main' }}>
+                              <HistoryIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                           {!isViewOnly && (
                             <Button size="small" variant="contained" color="secondary" onClick={() => handleOpenRateModal(agent)}>
                               Modify Rate
@@ -926,6 +957,191 @@ export const SuperAdminRefundCommissionHub = () => {
           </Box>
         )}
       </AppModal>
+
+      {/* DIALOG: Commission Rate History */}
+      <Dialog
+        open={historyModalOpen}
+        onClose={() => setHistoryModalOpen(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 4, overflow: 'hidden' } }}
+      >
+        <DialogTitle sx={{
+          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          py: 2.5,
+          px: 3
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Box sx={{
+              background: 'rgba(255,255,255,0.15)',
+              borderRadius: '50%',
+              p: 1,
+              display: 'flex',
+              alignItems: 'center'
+            }}>
+              <HistoryIcon sx={{ color: 'white', fontSize: 22 }} />
+            </Box>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: 'white', lineHeight: 1.2 }}>
+                Commission Rate History
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                {historyAgentName}
+              </Typography>
+            </Box>
+          </Box>
+          <IconButton onClick={() => setHistoryModalOpen(false)} sx={{ color: 'white' }}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent sx={{ p: 0, bgcolor: '#f8fafc' }}>
+          {loadingHistory ? (
+            <Box sx={{ p: 4, textAlign: 'center' }}>
+              <Typography color="text.secondary">Loading history...</Typography>
+            </Box>
+          ) : commissionHistory.length === 0 ? (
+            <Box sx={{ p: 5, textAlign: 'center' }}>
+              <HistoryIcon sx={{ fontSize: 56, color: 'text.disabled', mb: 2 }} />
+              <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 700 }}>
+                No Rate Changes Yet
+              </Typography>
+              <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5 }}>
+                Commission rate changes will appear here once you modify this agent's rate.
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {commissionHistory.map((entry, idx) => {
+                const isIncrease = entry.newRate > entry.oldRate;
+                const date = new Date(entry.createdAt);
+                const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                const timeStr = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                return (
+                  <Paper
+                    key={entry.id}
+                    elevation={0}
+                    sx={{
+                      border: '1px solid',
+                      borderColor: isIncrease ? 'success.light' : 'warning.light',
+                      borderLeft: '4px solid',
+                      borderLeftColor: isIncrease ? 'success.main' : 'warning.main',
+                      borderRadius: 3,
+                      p: 2.5,
+                      bgcolor: 'white'
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 1 }}>
+                      {/* Rate change badge */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Box sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                          bgcolor: isIncrease ? 'success.50' : 'warning.50',
+                          border: '1px solid',
+                          borderColor: isIncrease ? 'success.light' : 'warning.light',
+                          borderRadius: 2,
+                          px: 2,
+                          py: 0.75
+                        }}>
+                          <Typography variant="body1" sx={{ fontWeight: 800, color: 'text.secondary', textDecoration: 'line-through', fontSize: '0.9rem' }}>
+                            {entry.oldRate}%
+                          </Typography>
+                          <Typography sx={{ color: 'text.disabled', fontSize: '1rem' }}>→</Typography>
+                          <Typography variant="body1" sx={{
+                            fontWeight: 900,
+                            color: isIncrease ? 'success.dark' : 'warning.dark',
+                            fontSize: '1rem'
+                          }}>
+                            {entry.newRate}%
+                          </Typography>
+                          {isIncrease
+                            ? <TrendingUpIcon sx={{ color: 'success.main', fontSize: 18 }} />
+                            : <TrendingDownIcon sx={{ color: 'warning.main', fontSize: 18 }} />
+                          }
+                        </Box>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                          {isIncrease ? 'Rate Increased' : 'Rate Decreased'}
+                        </Typography>
+                      </Box>
+
+                      {/* Date & time */}
+                      <Box sx={{ textAlign: 'right' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>{dateStr}</Typography>
+                        <Typography variant="caption" color="text.secondary">{timeStr}</Typography>
+                      </Box>
+                    </Box>
+
+                    <Divider sx={{ my: 1.5 }} />
+
+                    <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                      {/* Changed by */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Avatar sx={{ width: 28, height: 28, bgcolor: 'primary.main', fontSize: 13, fontWeight: 700 }}>
+                          {(entry.changedBy?.fullName || 'A')[0].toUpperCase()}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" display="block">Changed by</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                            {entry.changedBy?.fullName || 'Unknown'}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {entry.changedBy?.role || ''}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      {/* Revenue at change */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{
+                          width: 28, height: 28, borderRadius: '50%',
+                          bgcolor: 'secondary.main',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}>
+                          <Typography sx={{ fontSize: 14, color: 'white', fontWeight: 700 }}>€</Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" display="block">Revenue at time of change</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 800, color: 'secondary.main' }}>
+                            €{(entry.revenueAtChange || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      {/* Commission impact */}
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" display="block">Commission on that revenue</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          <span style={{ textDecoration: 'line-through', color: '#999', marginRight: 6 }}>
+                            €{((entry.revenueAtChange || 0) * entry.oldRate / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                          → <span style={{ fontWeight: 900, color: isIncrease ? '#2e7d32' : '#e65100' }}>
+                            €{((entry.revenueAtChange || 0) * entry.newRate / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Paper>
+                );
+              })}
+            </Box>
+          )}
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, py: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
+            {commissionHistory.length} rate change{commissionHistory.length !== 1 ? 's' : ''} recorded
+          </Typography>
+          <Button variant="contained" onClick={() => setHistoryModalOpen(false)} sx={{ fontWeight: 700, px: 3 }}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

@@ -178,6 +178,10 @@ export const dbService = {
     const res = await apiClient.post('/payments/verify-checkout-session', { sessionId, paymentId });
     return res.data;
   },
+  getCommissionHistory: async (agentId) => {
+    const res = await apiClient.get(`/payments/commissions/history/${agentId}`);
+    return res.data;
+  },
 
   // DOCUMENTS
   getDocuments: async () => {

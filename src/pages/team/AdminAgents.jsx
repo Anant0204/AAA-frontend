@@ -10,6 +10,7 @@ import Divider from '@mui/material/Divider';
 import Chip from '@mui/material/Chip';
 
 import Dialog from '@mui/material/Dialog';
+import Autocomplete from '@mui/material/Autocomplete';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
@@ -43,6 +44,18 @@ import PageHeader from '../../components/PageHeader';
 import { dbService } from '../../services/dbService';
 import { useAuth } from '../../hooks/useAuth';
 import { useAlert } from '../../contexts/AlertContext';
+
+const SPOKEN_LANGUAGES_OPTIONS = [
+  'English', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Arabic', 'Chinese', 'Russian', 'Turkish', 
+  'Dutch', 'Swedish', 'Polish', 'Romanian', 'Hindi', 'Urdu', 'Bengali', 'Albanian', 'Georgian', 'Ukrainian',
+  'Catalan', 'Basque', 'Galician'
+];
+
+const NATIONALITIES_OPTIONS = [
+  'Spanish', 'British', 'American', 'Canadian', 'French', 'German', 'Italian', 'Dutch', 'Mexican', 'Colombian', 
+  'Argentinian', 'Ukrainian', 'Russian', 'Indian', 'Moroccan', 'Albanian', 'Georgian', 'Chinese', 'Turkish', 
+  'South African', 'Australian', 'Venezuelan', 'Ecuadorian', 'Peruvian', 'Bolivian', 'Honduran'
+];
 
 const AVAILABLE_MENUS = [
   'Dashboard',
@@ -121,8 +134,8 @@ export const AdminAgents = () => {
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState('consultant');
   const [avatarBase64, setAvatarBase64] = useState('');
-  const [languages, setLanguages] = useState('');
-  const [nationalities, setNationalities] = useState('');
+  const [languages, setLanguages] = useState([]);
+  const [nationalities, setNationalities] = useState([]);
   const [bio, setBio] = useState('');
   const [newPassword, setNewPassword] = useState('');
 
@@ -222,8 +235,8 @@ export const AdminAgents = () => {
     setPhone('');
     setRole('consultant');
     setAvatarBase64('');
-    setLanguages('');
-    setNationalities('');
+    setLanguages([]);
+    setNationalities([]);
     setBio('');
     setCommissionRate(10);
     setCustomPermissionsEnabled(false);
@@ -243,8 +256,8 @@ export const AdminAgents = () => {
     setPhone(agent.phone || '');
     setRole(agent.role || 'consultant');
     setAvatarBase64(agent.avatar || '');
-    setLanguages(agent.languages ? agent.languages.join(', ') : '');
-    setNationalities(agent.nationalities ? agent.nationalities.join(', ') : '');
+    setLanguages(agent.languages || []);
+    setNationalities(agent.nationalities || []);
     setBio(agent.bio || '');
     setCommissionRate(agent.commissionRate !== undefined ? agent.commissionRate : 10);
     setCustomPermissionsEnabled(agent.customPermissions?.enabled || false);
@@ -273,13 +286,10 @@ export const AdminAgents = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim() || !password.trim() || !phone.trim() || !languages.trim()) {
+    if (!name.trim() || !email.trim() || !password.trim() || !phone.trim() || languages.length === 0) {
       showAlert('Please fill in all required fields.', 'warning');
       return;
     }
-
-    const langsArray = languages.split(',').map((l) => l.trim()).filter(Boolean);
-    const nationalitiesArray = nationalities.split(',').map((n) => n.trim()).filter(Boolean);
 
     createAgentMutation.mutate({
       name,
@@ -288,8 +298,8 @@ export const AdminAgents = () => {
       phone,
       role,
       avatar: avatarBase64,
-      languages: langsArray,
-      nationalities: nationalitiesArray,
+      languages,
+      nationalities,
       bio,
       commissionRate,
       customPermissions: {
@@ -302,13 +312,10 @@ export const AdminAgents = () => {
 
   const handleEditSubmit = (e) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim() || !phone.trim() || !languages.trim()) {
+    if (!name.trim() || !email.trim() || !phone.trim() || languages.length === 0) {
       showAlert('Please fill in all required fields.', 'warning');
       return;
     }
-
-    const langsArray = languages.split(',').map((l) => l.trim()).filter(Boolean);
-    const nationalitiesArray = nationalities.split(',').map((n) => n.trim()).filter(Boolean);
 
     updateAgentMutation.mutate({
       id: selectedAgent.id,
@@ -317,8 +324,8 @@ export const AdminAgents = () => {
       phone,
       role,
       avatar: avatarBase64,
-      languages: langsArray,
-      nationalities: nationalitiesArray,
+      languages,
+      nationalities,
       bio,
       commissionRate,
       customPermissions: {
@@ -803,8 +810,22 @@ export const AdminAgents = () => {
               <MenuItem key={r.id} value={r.id}>{r.label.split('(')[0].trim()}</MenuItem>
             ))}
           </TextField>
-          <TextField label="Spoken Languages (comma-separated) *" placeholder="English, Spanish" value={languages} onChange={(e) => setLanguages(e.target.value)} fullWidth required />
-          <TextField label="Nationalities (comma-separated)" placeholder="British" value={nationalities} onChange={(e) => setNationalities(e.target.value)} fullWidth />
+          <Autocomplete
+            multiple
+            options={SPOKEN_LANGUAGES_OPTIONS}
+            value={languages}
+            onChange={(event, newValue) => setLanguages(newValue)}
+            renderInput={(params) => <TextField {...params} label="Spoken Languages *" placeholder="Select languages" required />}
+            fullWidth
+          />
+          <Autocomplete
+            multiple
+            options={NATIONALITIES_OPTIONS}
+            value={nationalities}
+            onChange={(event, newValue) => setNationalities(newValue)}
+            renderInput={(params) => <TextField {...params} label="Nationalities" placeholder="Select nationalities" />}
+            fullWidth
+          />
           <TextField
             label="Commission Rate (%)"
             type="number"
@@ -851,8 +872,22 @@ export const AdminAgents = () => {
               <MenuItem key={r.id} value={r.id}>{r.label.split('(')[0].trim()}</MenuItem>
             ))}
           </TextField>
-          <TextField label="Spoken Languages (comma-separated) *" placeholder="English, Spanish" value={languages} onChange={(e) => setLanguages(e.target.value)} fullWidth required />
-          <TextField label="Nationalities (comma-separated)" placeholder="British" value={nationalities} onChange={(e) => setNationalities(e.target.value)} fullWidth />
+          <Autocomplete
+            multiple
+            options={SPOKEN_LANGUAGES_OPTIONS}
+            value={languages}
+            onChange={(event, newValue) => setLanguages(newValue)}
+            renderInput={(params) => <TextField {...params} label="Spoken Languages *" placeholder="Select languages" required />}
+            fullWidth
+          />
+          <Autocomplete
+            multiple
+            options={NATIONALITIES_OPTIONS}
+            value={nationalities}
+            onChange={(event, newValue) => setNationalities(newValue)}
+            renderInput={(params) => <TextField {...params} label="Nationalities" placeholder="Select nationalities" />}
+            fullWidth
+          />
           <TextField
             label="Commission Rate (%) *"
             type="number"
