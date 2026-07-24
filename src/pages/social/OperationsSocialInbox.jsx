@@ -52,12 +52,6 @@ import CommentIcon from '@mui/icons-material/Comment';
 import PersonOffIcon from '@mui/icons-material/PersonOff';
 import MarkChatUnreadIcon from '@mui/icons-material/MarkChatUnread';
 import ChatIcon from '@mui/icons-material/Chat';
-import AttachFileIcon from '@mui/icons-material/AttachFile';
-import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import ImageIcon from '@mui/icons-material/Image';
-import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
-import CloseIcon from '@mui/icons-material/Close';
-import DownloadIcon from '@mui/icons-material/Download';
 
 import PageHeader from '../../components/PageHeader';
 
@@ -156,9 +150,7 @@ export const OperationsSocialInbox = () => {
   const [searchText, setSearchText] = useState('');
   const [replyText, setReplyText] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
-  const [pendingMedia, setPendingMedia] = useState(null); // { file, dataUrl, type, name, size }
   const messageEndRef = useRef(null);
-  const fileInputRef = useRef(null);
 
   // Connect to socket to handle real-time inbound/outbound WhatsApp updates
   useEffect(() => {
@@ -316,24 +308,17 @@ export const OperationsSocialInbox = () => {
   };
 
   const handleSend = () => {
-    if (!replyText.trim() && !pendingMedia && !activeConv) return;
-    if (!activeConv) return;
+    if (!replyText.trim() || !activeConv) return;
 
     const newMsg = {
       sender: 'agent',
       text: replyText,
-      mediaUrl: pendingMedia?.dataUrl || null,
-      mediaType: pendingMedia?.type || null,
-      mediaName: pendingMedia?.name || null,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
     sendSocialMessageMutation.mutate({ 
       conversationId: activeConvId, 
       phone: activeConv.phone, 
-      text: replyText,
-      mediaUrl: pendingMedia?.dataUrl || undefined,
-      mediaType: pendingMedia?.type || undefined,
       message: newMsg 
     });
 
@@ -797,7 +782,9 @@ export const OperationsSocialInbox = () => {
                                   [Public Comment]
                                 </Typography>
                               )}
-                              {renderMessageContent(msg, isAgent)}
+                              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                                {msg.text}
+                              </Typography>
                             </Paper>
                             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, mx: 1, display: 'flex', gap: 0.8, alignItems: 'center' }}>
                               <span>{msg.timestamp}</span>
@@ -816,23 +803,7 @@ export const OperationsSocialInbox = () => {
 
                   {/* Compose Reply Area */}
                   <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
-                    {/* Pending Media Preview */}
-                    {pendingMedia && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, p: 1, bgcolor: '#F1F5F9', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-                        {pendingMedia.type?.startsWith('image/') ? (
-                          <ImageIcon sx={{ color: '#3B82F6', fontSize: 20 }} />
-                        ) : (
-                          <PictureAsPdfIcon sx={{ color: '#EF4444', fontSize: 20 }} />
-                        )}
-                        <Typography variant='caption' sx={{ flexGrow: 1, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          📎 {pendingMedia.name} ({pendingMedia.size})
-                        </Typography>
-                        <IconButton size='small' onClick={() => setPendingMedia(null)} sx={{ color: '#64748B' }}><CloseIcon fontSize='small' /></IconButton>
-                      </Box>
-                    )}
-
                     <Box sx={{ display: 'flex', gap: isMobile ? 1 : 1.5, alignItems: 'center', width: '100%' }}>
-                      {/* Quick Templates */}
                       <FormControl sx={{ width: 40, flexShrink: 0 }} size="small">
                         <Select
                           value={selectedTemplate}
@@ -852,9 +823,15 @@ export const OperationsSocialInbox = () => {
                               paddingRight: '0 !important',
                               paddingLeft: '0 !important'
                             },
-                            '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                            '& .MuiSelect-icon': { display: 'none' },
-                            '&:hover': { bgcolor: 'secondary.dark' }
+                            '& .MuiOutlinedInput-notchedOutline': {
+                              border: 'none'
+                            },
+                            '& .MuiSelect-icon': {
+                              display: 'none'
+                            },
+                            '&:hover': {
+                              bgcolor: 'secondary.dark'
+                            }
                           }}
                         >
                           <MenuItem value="" sx={{ fontSize: '0.75rem' }}><em>None</em></MenuItem>
@@ -863,29 +840,6 @@ export const OperationsSocialInbox = () => {
                           ))}
                         </Select>
                       </FormControl>
-
-                      {/* Attach File Button */}
-                      <input
-                        ref={fileInputRef}
-                        type='file'
-                        accept='.pdf,.jpg,.jpeg,.png,.webp,.gif,.docx'
-                        style={{ display: 'none' }}
-                        onChange={handleFileSelect}
-                      />
-                      <Tooltip title='Attach File (PDF, Image, Document)'>
-                        <IconButton
-                          onClick={() => fileInputRef.current?.click()}
-                          sx={{
-                            bgcolor: pendingMedia ? 'primary.main' : 'action.hover',
-                            color: pendingMedia ? 'white' : 'text.secondary',
-                            width: 40, height: 40, flexShrink: 0,
-                            '&:hover': { bgcolor: 'primary.light', color: 'white' }
-                          }}
-                        >
-                          <AttachFileIcon fontSize='small' />
-                        </IconButton>
-                      </Tooltip>
-
                       <Box sx={{ display: 'flex', gap: 1, flexGrow: 1, minWidth: 0 }}>
                         <TextField
                           fullWidth
@@ -908,12 +862,17 @@ export const OperationsSocialInbox = () => {
                           variant="contained"
                           color="secondary"
                           onClick={handleSend}
-                          disabled={!replyText.trim() && !pendingMedia}
                           sx={{
-                            minWidth: 40, width: 40, height: 40,
-                            borderRadius: '50%', p: 0, fontWeight: 'bold',
-                            flexShrink: 0, display: 'flex',
-                            alignItems: 'center', justifyContent: 'center'
+                            minWidth: 40,
+                            width: 40,
+                            height: 40,
+                            borderRadius: '50%',
+                            p: 0,
+                            fontWeight: 'bold',
+                            flexShrink: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
                           }}
                         >
                           <SendIcon fontSize="small" />
