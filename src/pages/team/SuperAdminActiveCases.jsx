@@ -35,7 +35,44 @@ import PageHeader from '../../components/PageHeader';
 import { dbService } from '../../services/dbService';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
-import { SERVICES } from '../../constants/mockData';
+const FollowUpDatePickerInput = ({ value, onChange, isDue, style = {} }) => {
+  const [val, setVal] = useState(() => value ? dayjs(value).format('YYYY-MM-DD') : '');
+
+  React.useEffect(() => {
+    setVal(value ? dayjs(value).format('YYYY-MM-DD') : '');
+  }, [value]);
+
+  return (
+    <input
+      type="date"
+      value={val}
+      onClick={(e) => e.stopPropagation()}
+      onChange={(evt) => {
+        evt.stopPropagation();
+        const newVal = evt.target.value;
+        setVal(newVal);
+        if (!newVal || /^\d{4}-\d{2}-\d{2}$/.test(newVal)) {
+          onChange(newVal);
+        }
+      }}
+      onBlur={() => {
+        if (val && /^\d{4}-\d{2}-\d{2}$/.test(val) && val !== (value ? dayjs(value).format('YYYY-MM-DD') : '')) {
+          onChange(val);
+        }
+      }}
+      style={{
+        border: 'none',
+        background: 'transparent',
+        fontSize: '0.75rem',
+        fontWeight: 700,
+        color: isDue ? '#B45309' : '#1E293B',
+        outline: 'none',
+        cursor: 'pointer',
+        ...style
+      }}
+    />
+  );
+};
 
 export const SuperAdminActiveCases = () => {
   const queryClient = useQueryClient();
@@ -45,6 +82,7 @@ export const SuperAdminActiveCases = () => {
   const [searchText, setSearchText] = useState('');
   const [visaFilter, setVisaFilter] = useState('all');
   const [serviceFilter, setServiceFilter] = useState('all');
+  const [pendingFilter, setPendingFilter] = useState(false);
   const [commentInputs, setCommentInputs] = useState({});
 
   // Fetch collections
@@ -71,9 +109,8 @@ export const SuperAdminActiveCases = () => {
     mutationFn: dbService.updateClient,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      showAlert('Client updated successfully', 'success');
     } });
-
-
 
   const clientsList = Array.isArray(clients) ? clients : [];
   const agentsList = Array.isArray(agents) ? agents : [];
@@ -82,6 +119,11 @@ export const SuperAdminActiveCases = () => {
   const paidClients = clientsList.filter(
     (c) => c && (c.status === 'Active' || c.status === 'Processing' || c.visaStatus !== 'Not Started')
   );
+
+  const todayStr = dayjs().format('YYYY-MM-DD');
+  const pendingFollowUpCount = paidClients.filter(
+    c => c && c.nextFollowUpDate && (c.nextFollowUpDate.split('T')[0] <= todayStr)
+  ).length;
 
   // Apply search, filter, and privacy criteria
   const filteredPaidClients = paidClients.filter((c) => {
@@ -107,8 +149,9 @@ export const SuperAdminActiveCases = () => {
 
     const matchesVisa = visaFilter === 'all' || c.visaStatus === visaFilter;
     const matchesService = serviceFilter === 'all' || c.serviceId === serviceFilter;
+    const matchesPending = !pendingFilter || (c.nextFollowUpDate && c.nextFollowUpDate.split('T')[0] <= todayStr);
 
-    return matchesSearch && matchesVisa && matchesService;
+    return matchesSearch && matchesVisa && matchesService && matchesPending;
   });
 
   // Operations & Admin handlers
@@ -257,6 +300,15 @@ export const SuperAdminActiveCases = () => {
                     ))}
                   </Select>
                 </FormControl>
+
+                <Chip
+                  icon={<EventIcon sx={{ fontSize: '0.95rem !important' }} />}
+                  label={`Pending Follow-ups (${pendingFollowUpCount})`}
+                  color={pendingFilter ? 'warning' : 'default'}
+                  onClick={() => setPendingFilter(!pendingFilter)}
+                  variant={pendingFilter ? 'filled' : 'outlined'}
+                  sx={{ fontWeight: 700, cursor: 'pointer', height: 38, px: 1 }}
+                />
               </Box>
 
               {filteredPaidClients.length === 0 ? (
@@ -279,14 +331,17 @@ export const SuperAdminActiveCases = () => {
                   // Consultant/Agent
                   const matchedConsultant = agentsList.find((a) => a.id === client.assignedConsultantId);
 
+                  const followUpStr = client.nextFollowUpDate ? dayjs(client.nextFollowUpDate).format('YYYY-MM-DD') : '';
+                  const isFollowUpDue = client.nextFollowUpDate && (client.nextFollowUpDate.split('T')[0] <= todayStr);
+
                   return (
                     <Accordion
                       key={client.id}
                       sx={{
                         mb: 2.5,
                         border: '1px solid',
-                        borderColor: 'divider',
-                        boxShadow: 'none',
+                        borderColor: isFollowUpDue ? '#F59E0B' : 'divider',
+                        boxShadow: isFollowUpDue ? '0 0 8px rgba(245,158,11,0.2)' : 'none',
                         borderRadius: '8px !important',
                         overflow: 'hidden',
                         '&:before': { display: 'none' } }}
@@ -302,7 +357,21 @@ export const SuperAdminActiveCases = () => {
                               Client ID: <strong>{client.clientCode || client.id}</strong> &nbsp;|&nbsp; {client.email} &nbsp;|&nbsp; {client.phone}
                             </Typography>
                           </Box>
-                          <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
+                          <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }} onClick={(e) => e.stopPropagation()}>
+                            {/* Inline Next Follow-Up Date Picker */}
+                            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, bgcolor: isFollowUpDue ? '#FEF3C7' : '#F1F5F9', p: '2px 8px', borderRadius: 1.5, border: '1px solid', borderColor: isFollowUpDue ? '#F59E0B' : '#CBD5E1' }}>
+                              <Typography variant="caption" sx={{ fontWeight: 700, color: isFollowUpDue ? '#B45309' : 'text.secondary', fontSize: '0.72rem' }}>
+                                📅 {isFollowUpDue ? 'Due Follow-Up:' : 'Follow-Up:'}
+                              </Typography>
+                              <FollowUpDatePickerInput
+                                value={client.nextFollowUpDate}
+                                isDue={isFollowUpDue}
+                                onChange={(newDate) => {
+                                  updateClientMutation.mutate({ id: client.id, nextFollowUpDate: newDate });
+                                }}
+                              />
+                            </Box>
+
                             {matchedHandler && (
                               <Chip
                                 icon={<PersonIcon sx={{ fontSize: '0.85rem !important' }} />}

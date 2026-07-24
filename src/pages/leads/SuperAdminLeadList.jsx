@@ -54,6 +54,45 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
 import { SERVICES } from '../../constants/mockData';
 
+const FollowUpDatePickerInput = ({ value, onChange, isDue, style = {} }) => {
+  const [val, setVal] = useState(() => value ? dayjs(value).format('YYYY-MM-DD') : '');
+
+  React.useEffect(() => {
+    setVal(value ? dayjs(value).format('YYYY-MM-DD') : '');
+  }, [value]);
+
+  return (
+    <input
+      type="date"
+      value={val}
+      onClick={(e) => e.stopPropagation()}
+      onChange={(evt) => {
+        evt.stopPropagation();
+        const newVal = evt.target.value;
+        setVal(newVal);
+        if (!newVal || /^\d{4}-\d{2}-\d{2}$/.test(newVal)) {
+          onChange(newVal);
+        }
+      }}
+      onBlur={() => {
+        if (val && /^\d{4}-\d{2}-\d{2}$/.test(val) && val !== (value ? dayjs(value).format('YYYY-MM-DD') : '')) {
+          onChange(val);
+        }
+      }}
+      style={{
+        border: 'none',
+        background: 'transparent',
+        fontSize: '0.75rem',
+        fontWeight: 700,
+        color: isDue ? '#B45309' : '#1E293B',
+        outline: 'none',
+        cursor: 'pointer',
+        ...style
+      }}
+    />
+  );
+};
+
 const leadSchema = yup.object().shape({
   firstName: yup.string().required('First Name is required'),
   lastName: yup.string().required('Last Name is required'),
@@ -248,6 +287,13 @@ export const SuperAdminLeadList = () => {
       showAlert('Lead status adjusted successfully!', 'success');
     } });
 
+  const updateLeadMutation = useMutation({
+    mutationFn: (leadData) => dbService.updateLead(leadData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      showAlert('Lead updated successfully!', 'success');
+    } });
+
   const handleStatusChange = (leadId, status) => {
     updateLeadStatusMutation.mutate({ leadId, status });
   };
@@ -435,6 +481,26 @@ export const SuperAdminLeadList = () => {
           </Box>
         );
       } },
+    {
+      id: 'nextFollowUpDate',
+      label: 'Next Follow-Up',
+      sortable: true,
+      render: (row) => {
+        const todayStr = dayjs().format('YYYY-MM-DD');
+        const isFollowUpDue = row.nextFollowUpDate && (row.nextFollowUpDate.split('T')[0] <= todayStr);
+        return (
+          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, bgcolor: isFollowUpDue ? '#FEF3C7' : '#F1F5F9', p: '2px 6px', borderRadius: 1.5, border: '1px solid', borderColor: isFollowUpDue ? '#F59E0B' : '#CBD5E1' }}>
+            <FollowUpDatePickerInput
+              value={row.nextFollowUpDate}
+              isDue={isFollowUpDue}
+              onChange={(newDate) => {
+                updateLeadMutation.mutate({ id: row.id, nextFollowUpDate: newDate });
+              }}
+            />
+          </Box>
+        );
+      }
+    },
     { id: 'source', label: 'Source', sortable: true },
     {
       id: 'createdDate',
