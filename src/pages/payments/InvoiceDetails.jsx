@@ -19,6 +19,7 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 
 // Icons
+import { jsPDF } from 'jspdf';
 import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
 import PrintIcon from '@mui/icons-material/Print';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -142,331 +143,87 @@ export const InvoiceDetails = () => {
   };
 
   const handleDownload = () => {
-    const htmlContent = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Invoice ${invoice.id} - AAA Business Consultancy</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      margin: 0;
-      padding: 40px;
-      color: #1e293b;
-      background-color: #f8fafc;
-    }
-    .invoice-card {
-      max-width: 850px;
-      margin: 0 auto;
-      background: #ffffff;
-      padding: 40px;
-      border-radius: 12px;
-      border: 1px solid #e2e8f0;
-      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 30px;
-      border-bottom: 2px solid #f1f5f9;
-      padding-bottom: 30px;
-    }
-    .company-logo-section {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .logo-badge {
-      width: 40px;
-      height: 40px;
-      border-radius: 6px;
-      background: linear-gradient(135deg, #2563EB 0%, #14B8A6 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: 800;
-      font-size: 1.4rem;
-    }
-    .company-name {
-      font-size: 24px;
-      font-weight: 800;
-      color: #0f172a;
-      margin: 0;
-    }
-    .company-details {
-      font-size: 12px;
-      color: #64748b;
-      margin-top: 6px;
-      line-height: 1.5;
-    }
-    .invoice-meta {
-      text-align: right;
-    }
-    .invoice-title {
-      font-size: 32px;
-      font-weight: 800;
-      color: #0f172a;
-      margin: 0 0 10px 0;
-    }
-    .meta-item {
-      font-size: 14px;
-      color: #64748b;
-      margin: 4px 0;
-    }
-    .status-badge {
-      display: inline-block;
-      margin-top: 10px;
-      padding: 6px 14px;
-      border-radius: 9999px;
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .status-paid {
-      background-color: #dcfce7;
-      color: #15803d;
-    }
-    .status-pending {
-      background-color: #fef9c3;
-      color: #a16207;
-    }
-    .status-failed {
-      background-color: #fee2e2;
-      color: #b91c1c;
-    }
-    .billing-section {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 30px;
-    }
-    .billing-col {
-      width: 48%;
-    }
-    .section-title {
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      color: #94a3b8;
-      margin-bottom: 10px;
-      letter-spacing: 0.05em;
-    }
-    .client-name {
-      font-size: 16px;
-      font-weight: 700;
-      color: #0f172a;
-      margin: 0 0 8px 0;
-    }
-    .billing-details {
-      font-size: 14px;
-      color: #475569;
-      margin: 4px 0;
-    }
-    .items-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 30px;
-    }
-    .items-table th {
-      background-color: #f8fafc;
-      color: #64748b;
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      padding: 12px 16px;
-      text-align: left;
-      border-bottom: 1px solid #e2e8f0;
-    }
-    .items-table td {
-      padding: 16px;
-      font-size: 14px;
-      border-bottom: 1px solid #f1f5f9;
-      color: #334155;
-    }
-    .item-desc {
-      font-weight: 600;
-      color: #0f172a;
-      margin-bottom: 4px;
-    }
-    .item-subtext {
-      font-size: 12px;
-      color: #64748b;
-    }
-    .summary-section {
-      display: flex;
-      justify-content: space-between;
-      gap: 40px;
-    }
-    .policy-box {
-      width: 50%;
-      padding: 20px;
-      border-radius: 8px;
-      border: 1px solid #fef08a;
-      background-color: #fefce8;
-      color: #713f12;
-      font-size: 13px;
-      line-height: 1.6;
-    }
-    .policy-title {
-      font-weight: 700;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .totals-box {
-      width: 45%;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .total-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 14px;
-      color: #475569;
-    }
-    .total-row.success {
-      color: #16a34a;
-    }
-    .total-row.grand {
-      font-size: 20px;
-      font-weight: 800;
-      color: #2563eb;
-      border-top: 1px solid #e2e8f0;
-      padding-top: 12px;
-      margin-top: 6px;
-    }
-  </style>
-</head>
-<body>
-  <div class="invoice-card">
-    <div class="header">
-      <div>
-        <div class="company-logo-section">
-          <div class="logo-badge">A³</div>
-          <h1 class="company-name">AAA BUSINESS CONSULTANCY</h1>
-        </div>
-        <div class="company-details">
-          Business Village, Block B, 4th Floor, Office F09<br>
-          Port Saeed, Deira, Dubai, UAE<br>
-          TRN: 105469065400001
-        </div>
-      </div>
-      <div class="invoice-meta">
-        <h2 class="invoice-title">INVOICE</h2>
-        <div class="meta-item"><strong>Invoice #:</strong> ${invoice.id}</div>
-        <div class="meta-item"><strong>Date:</strong> ${invoice.billingDate}</div>
-        <div class="meta-item"><strong>Due Date:</strong> ${invoice.dueDate}</div>
-        <div>
-          <span class="status-badge status-${invoice.status.toLowerCase()}">${invoice.status}</span>
-        </div>
-      </div>
-    </div>
+    try {
+      const doc = new jsPDF();
+      
+      // Header
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(22);
+      doc.setTextColor(15, 23, 42);
+      doc.text("AAA BUSINESS CONSULTANCY", 14, 20);
 
-    <div class="billing-section">
-      <div class="billing-col">
-        <div class="section-title">Bill To</div>
-        <div class="client-name">${invoice.clientName}</div>
-        ${client ? `
-          <div class="billing-details"><strong>Nationality:</strong> ${client.nationality}</div>
-          <div class="billing-details"><strong>Email:</strong> ${client.email}</div>
-          <div class="billing-details"><strong>Phone:</strong> ${client.phone}</div>
-        ` : ''}
-      </div>
-      <div class="billing-col" style="text-align: right;">
-        <div class="section-title">Payment Details</div>
-        <div class="billing-details"><strong>Method:</strong> ${invoice.paymentMethod || '-'}</div>
-        <div class="billing-details"><strong>Transaction ID:</strong> ${invoice.transactionId || '-'}</div>
-      </div>
-    </div>
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100, 116, 139);
+      doc.text("Spain Relocation Legal & Consulting Services", 14, 26);
+      doc.text("Email: info@aaabusinessconsultancy.com | Website: www.aaabusinessconsultancy.com", 14, 31);
 
-    <table class="items-table">
-      <thead>
-        <tr>
-          <th>Description</th>
-          <th style="text-align: right; width: 60px;">Qty</th>
-          <th style="text-align: right; width: 120px;">Unit Price</th>
-          <th style="text-align: right; width: 120px;">Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>
-            <div class="item-desc">${serviceObj?.name || invoice.serviceId} Setup</div>
-            <div class="item-subtext">Initial eligibility verification and document checklists briefing.</div>
-          </td>
-          <td style="text-align: right;">1</td>
-          <td style="text-align: right;">€${(serviceObj?.basePrice || 1500).toLocaleString()}</td>
-          <td style="text-align: right;">€${(serviceObj?.basePrice || 1500).toLocaleString()}</td>
-        </tr>
-        ${packageObj && invoice.packageId === 'premium' ? `
-          <tr>
-            <td>
-              <div class="item-desc">Relocation & Administrative Package Add-on</div>
-              <div class="item-subtext">NIE, TIE local registrations, social security, SIP health cards, and bank account setup support.</div>
-            </td>
-            <td style="text-align: right;">1</td>
-            <td style="text-align: right;">€700</td>
-            <td style="text-align: right;">€700</td>
-          </tr>
-        ` : ''}
-      </tbody>
-    </table>
+      doc.setDrawColor(203, 213, 225);
+      doc.setLineWidth(0.5);
+      doc.line(14, 35, 196, 35);
 
-    <div class="summary-section">
-      <div class="policy-box">
-        <div class="policy-title">⚠️ Refund Policy Notice</div>
-        <strong>50% of the service fee is NON-REFUNDABLE</strong> once the case has been initiated and documents reviewed. The remaining 50% is only refundable within 7 days of payment if no processing has started. By completing payment, the client acknowledges these terms.
-      </div>
-      <div class="totals-box">
-        <div class="total-row">
-          <span>Base Service Fee</span>
-          <span>€${serviceBasePrice.toLocaleString()}</span>
-        </div>
-        ${relocationAddOn > 0 ? `
-          <div class="total-row">
-            <span>Relocation Package Add-on</span>
-            <span>+€${relocationAddOn}</span>
-          </div>
-        ` : ''}
-        ${mainApplicantDiscount > 0 ? `
-          <div class="total-row success">
-            <span>Main Applicant Discount</span>
-            <span>-€${mainApplicantDiscount}</span>
-          </div>
-        ` : ''}
-        ${dependentsDiscount > 0 ? `
-          <div class="total-row success">
-            <span>Dependents Discount (€250 × ${Math.round(dependentsDiscount / 250)})</span>
-            <span>-€${dependentsDiscount}</span>
-          </div>
-        ` : ''}
-        <div class="total-row">
-          <span>UAE VAT (5%)</span>
-          <span>€${vatAmount.toFixed(2)}</span>
-        </div>
-        <div class="total-row grand">
-          <span>Grand Total</span>
-          <span>€${grandTotal.toFixed(2)}</span>
-        </div>
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
+      // Title & Reference
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(30, 41, 59);
+      doc.text(`OFFICIAL INVOICE #${invoice.id}`, 14, 46);
 
-    const blob = new Blob([htmlContent], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `Invoice-${invoice.id}.html`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(71, 85, 105);
+      doc.text(`Date Issued: ${new Date(invoice.billingDate).toLocaleDateString()}`, 130, 46);
+      doc.text(`Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`, 130, 52);
+      doc.text(`Status: ${invoice.status}`, 130, 58);
+
+      // Client info box
+      doc.setFillColor(248, 250, 252);
+      doc.rect(14, 65, 182, 30, "F");
+      doc.setFont("helvetica", "bold");
+      doc.text("Billed To:", 18, 73);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Client: ${invoice.client ? `${invoice.client.firstName} ${invoice.client.lastName}` : (invoice.clientName || 'Valued Client')}`, 18, 80);
+      doc.text(`Email: ${invoice.client?.email || 'N/A'} | Phone: ${invoice.client?.phone || 'N/A'}`, 18, 87);
+
+      // Summary Table Headers
+      doc.setFillColor(30, 41, 59);
+      doc.rect(14, 102, 182, 8, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.text("Description", 18, 107.5);
+      doc.text("Amount (€)", 165, 107.5);
+
+      // Table Row
+      doc.setTextColor(30, 41, 59);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Spain Visa Relocation Legal Package (${invoice.client?.serviceType || 'Standard'})`, 18, 120);
+      doc.text(`€${(serviceBasePrice || invoice.amount || 0).toLocaleString()}`, 165, 120);
+
+      if (invoice.discount > 0) {
+        doc.setTextColor(225, 29, 72);
+        doc.text("Applied Promotional Discount", 18, 128);
+        doc.text(`-€${invoice.discount.toLocaleString()}`, 165, 128);
+      }
+
+      // Totals
+      doc.setLineWidth(0.5);
+      doc.setDrawColor(203, 213, 225);
+      doc.line(14, 135, 196, 135);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.setTextColor(15, 23, 42);
+      doc.text("Grand Total Due:", 115, 145);
+      doc.text(`€${grandTotal.toFixed(2)}`, 165, 145);
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(148, 163, 184);
+      doc.text("Thank you for choosing AAA Business Consultancy for your Spain Relocation journey.", 14, 175);
+
+      doc.save(`Invoice-${invoice.id}.pdf`);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+    }
   };
 
   return (
