@@ -172,6 +172,36 @@ const navigate = useNavigate();
         : true)
   );
 
+  // 6 Key Calendar Dashboard Counters (Memoized for high performance)
+  const calendarMetrics = React.useMemo(() => {
+    const todayStr = dayjs().format('YYYY-MM-DD');
+    let todayCount = 0;
+    let upcomingCount = 0;
+    let completedCount = 0;
+    let cancelledCount = 0;
+    let noShowCount = 0;
+    let rescheduledCount = 0;
+
+    const filtered = activeAgentId 
+      ? consultations.filter(c => c.consultantId === activeAgentId || c.assignedConsultantId === activeAgentId || (isConsultant && !c.consultantId))
+      : consultations;
+
+    filtered.forEach((c) => {
+      const isToday = c.meetingDate === todayStr || c.date === todayStr;
+      const isFuture = (c.meetingDate || c.date) > todayStr;
+      const st = (c.status || '').toLowerCase();
+
+      if (isToday) todayCount++;
+      if (isFuture && !['cancelled', 'canceled', 'no show', 'no-show', 'no_show', 'completed'].includes(st)) upcomingCount++;
+      if (st === 'completed') completedCount++;
+      if (st === 'cancelled' || st === 'canceled') cancelledCount++;
+      if (st === 'no show' || st === 'no-show' || st === 'no_show') noShowCount++;
+      if (st === 'rescheduled' || c.isRescheduled) rescheduledCount++;
+    });
+
+    return { todayCount, upcomingCount, completedCount, cancelledCount, noShowCount, rescheduledCount };
+  }, [consultations, activeAgentId, isConsultant]);
+
   return (
     <Box>
       <Button
@@ -197,6 +227,58 @@ const navigate = useNavigate();
           )
         }
       />
+
+      {/* 6 Key Calendar Dashboard Counters */}
+      <Box className="grid grid-cols-12 gap-2 sm:gap-3 mb-4">
+        <Box className="col-span-6 sm:col-span-4 md:col-span-2">
+          <StatCard
+            title="Today's Appointments"
+            value={calendarMetrics.todayCount}
+            icon={<CalendarMonthIcon />}
+            color="#2563EB"
+          />
+        </Box>
+        <Box className="col-span-6 sm:col-span-4 md:col-span-2">
+          <StatCard
+            title="Upcoming Appointments"
+            value={calendarMetrics.upcomingCount}
+            icon={<AssignmentIcon />}
+            color="#7C3AED"
+          />
+        </Box>
+        <Box className="col-span-6 sm:col-span-4 md:col-span-2">
+          <StatCard
+            title="Completed Appointments"
+            value={calendarMetrics.completedCount}
+            icon={<CheckCircleOutlinedIcon />}
+            color="#10B981"
+          />
+        </Box>
+        <Box className="col-span-6 sm:col-span-4 md:col-span-2">
+          <StatCard
+            title="Cancelled Appointments"
+            value={calendarMetrics.cancelledCount}
+            icon={<WarningAmberIcon />}
+            color="#F59E0B"
+          />
+        </Box>
+        <Box className="col-span-6 sm:col-span-4 md:col-span-2">
+          <StatCard
+            title="No-Show Appointments"
+            value={calendarMetrics.noShowCount}
+            icon={<WarningAmberIcon />}
+            color="#EF4444"
+          />
+        </Box>
+        <Box className="col-span-6 sm:col-span-4 md:col-span-2">
+          <StatCard
+            title="Rescheduled Appointments"
+            value={calendarMetrics.rescheduledCount}
+            icon={<TrendingUpIcon />}
+            color="#0D9488"
+          />
+        </Box>
+      </Box>
 
       {cardInfo && (
         <Box 

@@ -14,6 +14,7 @@ export const StatCard = ({
   color = '#2563EB',
   onClick,
   trendLabel,
+  sx = {},
 }) => {
   const isUp = trendDirection === 'up';
 
@@ -39,7 +40,8 @@ export const StatCard = ({
           width: '4px',
           height: '100%',
           backgroundColor: color,
-        }
+        },
+        ...sx,
       }}
     >
       <Box className="flex flex-col gap-0.5 sm:gap-1 min-w-0 flex-1 pr-1">
