@@ -252,6 +252,7 @@ export const SuperAdminAgents = () => {
     mutationFn: (agentData) => dbService.updateAgent(agentData),
     onSuccess: (updatedAgent) => {
       queryClient.invalidateQueries({ queryKey: ['agents'] });
+      queryClient.invalidateQueries({ queryKey: ['commission-history'] });
       // If the updated agent is the currently logged-in user, sync their session immediately
       // Only sync session if the SuperAdmin edited THEIR OWN profile, not another agent's
       if (updatedAgent && refreshUser && updatedAgent.id === currentUser?.id) refreshUser(updatedAgent);
@@ -511,16 +512,22 @@ export const SuperAdminAgents = () => {
     // Agent Commission (dynamic rate from agent.commissionRate or fallback to 10)
     const rate = agent.commissionRate !== undefined ? agent.commissionRate : 10;
     
-    // Monthly Agent Commission
-    const now = new Date();
-    const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const monthlyRevenue = allPayments.filter(p => clientIds.includes(p.clientId))
-      .filter((p) => p.status === 'Paid' && (p.paymentDate || p.dueDate)?.startsWith(currentMonthStr))
-      .reduce((sum, p) => sum + (p.totalPaid || 0), 0);
-    const monthlyCommission = Math.round(monthlyRevenue * (rate / 100));
+    // Calculate commission by summing up individual paid invoice snapshotted rates
+    const paidInvoices = allPayments.filter((p) => clientIds.includes(p.clientId) && p.status === 'Paid');
+    const totalCommissionSinceJoining = Math.round(
+      paidInvoices.reduce((sum, p) => {
+        const commRate = (p.commissionRate !== null && p.commissionRate !== undefined) ? p.commissionRate : rate;
+        return sum + ((p.amount || 0) * (commRate / 100));
+      }, 0)
+    );
 
-    // Total Commission since joining
-    const totalCommissionSinceJoining = Math.round(totalRevenueClosed * (rate / 100));
+    const monthlyPaidInvoices = paidInvoices.filter((p) => (p.paymentDate || p.dueDate)?.startsWith('2026-06'));
+    const monthlyCommission = Math.round(
+      monthlyPaidInvoices.reduce((sum, p) => {
+        const commRate = (p.commissionRate !== null && p.commissionRate !== undefined) ? p.commissionRate : rate;
+        return sum + ((p.amount || 0) * (commRate / 100));
+      }, 0)
+    );
 
     return {
       totalConsultations,
@@ -1735,15 +1742,14 @@ export const SuperAdminAgents = () => {
                         </Box>
                       </Box>
                       <Box>
-                        <Typography variant="caption" color="text.secondary" display="block">Commission on that revenue</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          <span style={{ textDecoration: 'line-through', color: '#999', marginRight: 6 }}>
-                            €{((entry.revenueAtChange || 0) * entry.oldRate / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
-                          → <span style={{ fontWeight: 900, color: isIncrease ? '#2e7d32' : '#e65100' }}>
-                            €{((entry.revenueAtChange || 0) * entry.newRate / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
+                        <Typography variant="caption" color="text.secondary" display="block">Locked Past Commission ({entry.oldRate}%)</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: 'success.dark' }}>
+                          €{((entry.revenueAtChange || 0) * entry.oldRate / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" display="block">New Rate Status ({entry.newRate}%)</Typography>
+                        <Chip label={`Active for future sales (${isIncrease ? '+' : ''}${entry.newRate - entry.oldRate}%)`} size="small" color={isIncrease ? 'success' : 'warning'} sx={{ fontWeight: 700, mt: 0.2 }} />
                       </Box>
                     </Box>
                   </Paper>

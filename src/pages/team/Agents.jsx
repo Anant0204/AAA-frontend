@@ -173,6 +173,7 @@ export const Agents = () => {
     mutationFn: (agentData) => dbService.updateAgent(agentData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agents'] });
+      queryClient.invalidateQueries({ queryKey: ['commission-history'] });
       showAlert('Agent profile updated successfully!', 'success');
       setOpenEditModal(false);
       resetForm();
@@ -409,15 +410,22 @@ export const Agents = () => {
     // Agent Commission (dynamic rate from agent.commissionRate or fallback to 10)
     const rate = agent.commissionRate !== undefined ? agent.commissionRate : 10;
     
-    // Monthly Agent Commission (simulated for current mock month 2026-06)
-    const currentMonthStr = '2026-06';
-    const monthlyRevenue = allPayments.filter(p => clientIds.includes(p.clientId))
-      .filter((p) => p.status === 'Paid' && (p.paymentDate || p.dueDate)?.startsWith(currentMonthStr))
-      .reduce((sum, p) => sum + (p.totalPaid || 0), 0);
-    const monthlyCommission = Math.round(monthlyRevenue * (rate / 100));
+    // Calculate commission by summing up individual paid invoice snapshotted rates
+    const paidInvoices = allPayments.filter((p) => clientIds.includes(p.clientId) && p.status === 'Paid');
+    const totalCommissionSinceJoining = Math.round(
+      paidInvoices.reduce((sum, p) => {
+        const commRate = (p.commissionRate !== null && p.commissionRate !== undefined) ? p.commissionRate : rate;
+        return sum + ((p.amount || 0) * (commRate / 100));
+      }, 0)
+    );
 
-    // Total Commission since joining
-    const totalCommissionSinceJoining = Math.round(totalRevenueClosed * (rate / 100));
+    const monthlyPaidInvoices = paidInvoices.filter((p) => (p.paymentDate || p.dueDate)?.startsWith('2026-06'));
+    const monthlyCommission = Math.round(
+      monthlyPaidInvoices.reduce((sum, p) => {
+        const commRate = (p.commissionRate !== null && p.commissionRate !== undefined) ? p.commissionRate : rate;
+        return sum + ((p.amount || 0) * (commRate / 100));
+      }, 0)
+    );
 
     return {
       totalConsultations,
@@ -1253,11 +1261,12 @@ export const Agents = () => {
                         </Box>
                       </Box>
                       <Box>
-                        <Typography variant="caption" color="text.secondary" display="block">Commission impact</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          <span style={{ textDecoration: 'line-through', color: '#999', marginRight: 6 }}>€{((entry.revenueAtChange || 0) * entry.oldRate / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                          → <span style={{ fontWeight: 900, color: isIncrease ? '#2e7d32' : '#e65100' }}>€{((entry.revenueAtChange || 0) * entry.newRate / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        </Typography>
+                        <Typography variant="caption" color="text.secondary" display="block">Locked Past Commission ({entry.oldRate}%)</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: 'success.dark' }}>€{((entry.revenueAtChange || 0) * entry.oldRate / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" display="block">New Rate Status ({entry.newRate}%)</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: isIncrease ? 'success.main' : 'warning.main' }}>Active for future sales</Typography>
                       </Box>
                     </Box>
                   </Paper>
