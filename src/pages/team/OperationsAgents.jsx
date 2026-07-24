@@ -1330,27 +1330,40 @@ export const OperationsAgents = () => {
         <DialogContent sx={{ p: 0, bgcolor: '#f8fafc' }}>
           {loadingCommHistory ? (
             <Box sx={{ p: 4, textAlign: 'center' }}><Typography color="text.secondary">Loading history...</Typography></Box>
-          ) : commissionHistory.length === 0 ? (
-            <Box sx={{ p: 5, textAlign: 'center' }}>
-              <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 700 }}>No Rate Changes Yet</Typography>
-              <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5 }}>Rate changes will appear here once a rate is modified for this agent.</Typography>
-            </Box>
           ) : (
             <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {commissionHistory.map((entry) => {
+              {(commissionHistory && commissionHistory.length > 0
+                ? commissionHistory
+                : [{
+                    id: 'initial-base-entry',
+                    oldRate: 0,
+                    newRate: activeAgent?.commissionRate !== undefined ? activeAgent.commissionRate : 10,
+                    createdAt: activeAgent?.createdAt || new Date(),
+                    changedBy: { fullName: 'Registration System', role: 'Initial Base Setting' },
+                    revenueAtChange: 0,
+                    isInitial: true
+                  }]
+              ).map((entry) => {
+                const isInitial = entry.isInitial || entry.oldRate === 0;
                 const isIncrease = entry.newRate > entry.oldRate;
                 const date = new Date(entry.createdAt);
                 return (
-                  <Paper key={entry.id} elevation={0} sx={{ border: '1px solid', borderColor: isIncrease ? 'success.light' : 'warning.light', borderLeft: '4px solid', borderLeftColor: isIncrease ? 'success.main' : 'warning.main', borderRadius: 3, p: 2.5, bgcolor: 'white' }}>
+                  <Paper key={entry.id} elevation={0} sx={{ border: '1px solid', borderColor: isInitial ? 'info.light' : (isIncrease ? 'success.light' : 'warning.light'), borderLeft: '4px solid', borderLeftColor: isInitial ? 'info.main' : (isIncrease ? 'success.main' : 'warning.main'), borderRadius: 3, p: 2.5, bgcolor: 'white' }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 1 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, border: '1px solid', borderColor: isIncrease ? 'success.light' : 'warning.light', borderRadius: 2, px: 2, py: 0.75 }}>
-                          <Typography sx={{ fontWeight: 800, color: 'text.secondary', textDecoration: 'line-through', fontSize: '0.9rem' }}>{entry.oldRate}%</Typography>
-                          <Typography sx={{ color: 'text.disabled' }}>→</Typography>
-                          <Typography sx={{ fontWeight: 900, color: isIncrease ? 'success.dark' : 'warning.dark', fontSize: '1rem' }}>{entry.newRate}%</Typography>
-                          {isIncrease ? <TrendingUpIcon sx={{ color: 'success.main', fontSize: 18 }} /> : <TrendingDownIcon sx={{ color: 'warning.main', fontSize: 18 }} />}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, border: '1px solid', borderColor: isInitial ? 'info.light' : (isIncrease ? 'success.light' : 'warning.light'), borderRadius: 2, px: 2, py: 0.75 }}>
+                          {!isInitial && (
+                            <>
+                              <Typography sx={{ fontWeight: 800, color: 'text.secondary', textDecoration: 'line-through', fontSize: '0.9rem' }}>{entry.oldRate}%</Typography>
+                              <Typography sx={{ color: 'text.disabled' }}>→</Typography>
+                            </>
+                          )}
+                          <Typography sx={{ fontWeight: 900, color: isInitial ? 'info.dark' : (isIncrease ? 'success.dark' : 'warning.dark'), fontSize: '1rem' }}>{entry.newRate}%</Typography>
+                          {isInitial ? null : (isIncrease ? <TrendingUpIcon sx={{ color: 'success.main', fontSize: 18 }} /> : <TrendingDownIcon sx={{ color: 'warning.main', fontSize: 18 }} />)}
                         </Box>
-                        <Typography variant="body2" sx={{ fontWeight: 700 }}>{isIncrease ? 'Rate Increased' : 'Rate Decreased'}</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {isInitial ? 'Initial Base Rate Set at Registration' : (isIncrease ? 'Rate Increased' : 'Rate Decreased')}
+                        </Typography>
                       </Box>
                       <Box sx={{ textAlign: 'right' }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>{date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</Typography>
