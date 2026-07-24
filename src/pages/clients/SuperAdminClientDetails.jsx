@@ -159,6 +159,8 @@ export const SuperAdminClientDetails = () => {
   const [profileRefundAmount, setProfileRefundAmount] = useState('');
   const [profileRefundBankName, setProfileRefundBankName] = useState('');
   const [profileRefundBankIban, setProfileRefundBankIban] = useState('');
+  const [profileRefundFile, setProfileRefundFile] = useState(null);
+  const [uploadingProfileProof, setUploadingProfileProof] = useState(false);
 
   // Mutations
   const createProfileRefundMutation = useMutation({
@@ -172,21 +174,43 @@ export const SuperAdminClientDetails = () => {
       setProfileRefundAmount('');
       setProfileRefundBankName('');
       setProfileRefundBankIban('');
+      setProfileRefundFile(null);
     }
   });
 
-  const handleCreateProfileRefund = () => {
+  const handleCreateProfileRefund = async () => {
     if (!profileRefundReason) {
       showAlert('Please provide a reason for the refund request', 'warning');
       return;
     }
+
+    let proofUrl = null;
+    if (profileRefundFile) {
+      try {
+        setUploadingProfileProof(true);
+        const uploadedDoc = await dbService.uploadDocument({
+          file: profileRefundFile,
+          clientId: client.id,
+          category: 'Visa Rejection Letter',
+          fileName: profileRefundFile.name
+        });
+        proofUrl = uploadedDoc?.fileUrl || null;
+      } catch (err) {
+        console.error('Proof upload failed:', err);
+        showAlert('Warning: Proof upload failed. Creating refund request without proof.', 'warning');
+      } finally {
+        setUploadingProfileProof(false);
+      }
+    }
+
     createProfileRefundMutation.mutate({
       clientId: client.id,
       category: profileRefundCategory,
       reason: profileRefundReason,
       amount: profileRefundCategory === 'Visa Rejection' ? undefined : Number(profileRefundAmount),
       bankAccountName: profileRefundBankName || undefined,
-      bankIban: profileRefundBankIban || undefined
+      bankIban: profileRefundBankIban || undefined,
+      proofUrl: proofUrl || undefined
     });
   };
 
@@ -1100,6 +1124,32 @@ export const SuperAdminClientDetails = () => {
             value={profileRefundReason}
             onChange={(e) => setProfileRefundReason(e.target.value)}
           />
+
+          <Box sx={{ p: 2, border: '1px dashed', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.neutral' }}>
+            <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', mb: 1 }}>
+              Attach Visa Rejection Letter / Bank Proof (Optional PDF/Image)
+            </Typography>
+            <Button
+              variant="outlined"
+              component="label"
+              size="small"
+              disabled={uploadingProfileProof}
+              sx={{ fontWeight: 700 }}
+            >
+              {uploadingProfileProof ? 'Uploading Proof...' : profileRefundFile ? `✓ ${profileRefundFile.name}` : 'Choose Proof File'}
+              <input
+                type="file"
+                hidden
+                accept=".pdf,.png,.jpg,.jpeg"
+                onChange={(e) => setProfileRefundFile(e.target.files[0] || null)}
+              />
+            </Button>
+            {profileRefundFile && (
+              <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 0.5, fontWeight: 700 }}>
+                File selected: {profileRefundFile.name} ({(profileRefundFile.size / 1024).toFixed(1)} KB)
+              </Typography>
+            )}
+          </Box>
 
           <Button variant="contained" color="primary" onClick={handleCreateProfileRefund}>
             Submit Refund Request
