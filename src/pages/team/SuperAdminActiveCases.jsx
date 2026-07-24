@@ -36,6 +36,7 @@ import PageHeader from '../../components/PageHeader';
 import { dbService } from '../../services/dbService';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
+import { SERVICES } from '../../constants/mockData';
 const FollowUpDatePickerInput = ({ value, onChange, isDue, style = {} }) => {
   const [val, setVal] = useState(() => value ? dayjs(value).format('YYYY-MM-DD') : '');
 
