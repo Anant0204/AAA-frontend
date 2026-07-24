@@ -31,6 +31,7 @@ import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import ChatIcon from '@mui/icons-material/Chat';
 import QuickreplyIcon from '@mui/icons-material/Quickreply';
+import HistoryIcon from '@mui/icons-material/History';
 
 // Components & Services
 import { dbService } from '../../services/dbService';
@@ -570,6 +571,7 @@ export const SuperAdminLeadDetails = () => {
               <Tab label="Overview" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
               <Tab label="Meetings / Consultations" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
               <Tab icon={<WhatsAppIcon fontSize="small" />} iconPosition="start" label="Comms & Chat" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
+              <Tab icon={<HistoryIcon fontSize="small" />} iconPosition="start" label="Activity Log & Timeline" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
             </Tabs>
 
             <Box sx={{ p: 2.5, flex: 1 }}>
@@ -1064,6 +1066,13 @@ export const SuperAdminLeadDetails = () => {
                   </Box>
                 );
               })()}
+
+              {/* TAB 3: Activity Log & Timeline */}
+              {activeTab === 3 && (
+                <Box>
+                  <CaseActivityTimeline leadId={lead.id} clientId={lead.clientId} />
+                </Box>
+              )}
             </Box>
           </AppCard>
         </Box>
