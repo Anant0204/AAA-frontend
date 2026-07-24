@@ -276,6 +276,28 @@ export const LeadSelfFillForm = () => {
 
   const [serviceCategory, setServiceCategory] = useState("visa"); // visa, case_assessment, property, translation
 
+  const flowSettings = customizationSettings?.flowAutomationSettings || {};
+  const bookingAllowedStart = flowSettings.bookingAllowedStart || '09:00';
+  const bookingAllowedEnd = flowSettings.bookingAllowedEnd || '18:00';
+
+  const generateTimeSlots = (startStr, endStr) => {
+    const slots = [];
+    let [startH, startM] = (startStr || '09:00').split(':').map(Number);
+    let [endH, endM] = (endStr || '18:00').split(':').map(Number);
+    let current = startH * 60 + (startM || 0);
+    const end = endH * 60 + (endM || 0);
+
+    while (current <= end) {
+      const h = Math.floor(current / 60).toString().padStart(2, '0');
+      const m = (current % 60).toString().padStart(2, '0');
+      slots.push(`${h}:${m}`);
+      current += 30; // 30 min slots
+    }
+    return slots;
+  };
+
+  const availableTimeSlots = generateTimeSlots(bookingAllowedStart, bookingAllowedEnd);
+
   // Form fields
   const [form, setForm] = useState({
     firstName: "",
@@ -565,6 +587,7 @@ export const LeadSelfFillForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return; // Prevent double submission
 
     if (rescheduleConsultationId) {
       if (!form.meetingPreferredDate || !form.meetingPreferredTime) {
@@ -630,9 +653,6 @@ export const LeadSelfFillForm = () => {
         preferableAreaInSpain: form.preferableAreaInSpain,
         budget: form.budget
       };
-    } else if (serviceCategory === "case_assessment") {
-      payload.serviceType = "Professional Case Assessment Service";
-      payload.serviceId = form.serviceId;
     } else {
       payload.serviceType = form.serviceId;
     }
@@ -676,26 +696,8 @@ export const LeadSelfFillForm = () => {
   };
 
   const handleChange = (field, value) => {
-    setForm((prev) => {
-      const updated = { ...prev, [field]: value };
-      if (field === "applicantsCount") {
-        const count = getDepsCount(value);
-        const currentDeps = prev.dependentsDetails || [];
-        const newDeps = [];
-        for (let i = 0; i < count; i++) {
-          newDeps.push({
-            firstName: currentDeps[i]?.firstName || "",
-            lastName: currentDeps[i]?.lastName || "",
-            relation: currentDeps[i]?.relation || "Spouse",
-            passportNumber: currentDeps[i]?.passportNumber || "",
-            nationality: currentDeps[i]?.nationality || "",
-            age: currentDeps[i]?.age || ""
-          });
-        }
-        updated.dependentsDetails = newDeps;
-      }
-      return updated;
-    });
+    setError(""); // Clear previous errors on user edit
+    setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleDependentChange = (index, field, value) => {
@@ -889,11 +891,13 @@ export const LeadSelfFillForm = () => {
                   <label style={labelStyle}>Select Service Category *</label>
                   <select
                     value={serviceCategory}
-                    onChange={(e) => setServiceCategory(e.target.value)}
+                    onChange={(e) => {
+                      setError("");
+                      setServiceCategory(e.target.value);
+                    }}
                     style={{ ...inputStyle, color: "#fff", border: "1px solid rgba(102, 126, 234, 0.4)" }}
                   >
                     <option value="visa" style={{ background: "#24243e" }}>✈️ Spain Visa & Residency Services</option>
-                    <option value="case_assessment" style={{ background: "#24243e" }}>🔍 Professional Case Assessment Service</option>
                     <option value="property" style={{ background: "#24243e" }}>🏠 Property Investment Guidance Service</option>
                     <option value="translation" style={{ background: "#24243e" }}>📄 Spanish Sworn Translation Services</option>
                   </select>
@@ -1094,8 +1098,8 @@ export const LeadSelfFillForm = () => {
                   </div>
                 </div>
 
-                {/* Section: Visa Program (only for visa or case assessment category) */}
-                {(serviceCategory === 'visa' || serviceCategory === 'case_assessment') && (
+                {/* Section: Visa Program (only for visa category) */}
+                {serviceCategory === 'visa' && (
                   <>
                     <div style={sectionHeaderStyle}>✈️ Relocation Details</div>
 
@@ -1140,95 +1144,6 @@ export const LeadSelfFillForm = () => {
                         </select>
                       </div>
                     </div>
-
-                    {form.dependentsDetails && form.dependentsDetails.length > 0 && (
-                      <div
-                        style={{
-                          background: "rgba(255, 255, 255, 0.04)",
-                          border: "1px solid rgba(255, 255, 255, 0.08)",
-                          borderRadius: "14px",
-                          padding: "20px",
-                          marginBottom: "24px",
-                        }}
-                      >
-                        <div style={{ ...sectionHeaderStyle, borderBottom: "none", marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
-                          👨‍👩‍👧‍👦 Dependent Details
-                        </div>
-                        {form.dependentsDetails.map((dep, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              marginBottom: idx === form.dependentsDetails.length - 1 ? 0 : "20px",
-                              borderBottom: idx === form.dependentsDetails.length - 1 ? "none" : "1px dashed rgba(255, 255, 255, 0.1)",
-                              paddingBottom: idx === form.dependentsDetails.length - 1 ? 0 : "20px",
-                            }}
-                          >
-                            <div style={{ color: "#a0aec0", fontSize: "13px", fontWeight: 600, marginBottom: "10px" }}>
-                              Dependent #{idx + 1}
-                            </div>
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
-                              <div>
-                                <label style={labelStyle}>First Name *</label>
-                                <input
-                                  required
-                                  value={dep.firstName}
-                                  onChange={(e) => handleDependentChange(idx, "firstName", e.target.value)}
-                                  placeholder="First Name"
-                                  style={inputStyle}
-                                />
-                              </div>
-                              <div>
-                                <label style={labelStyle}>Last Name *</label>
-                                <input
-                                  required
-                                  value={dep.lastName}
-                                  onChange={(e) => handleDependentChange(idx, "lastName", e.target.value)}
-                                  placeholder="Last Name"
-                                  style={inputStyle}
-                                />
-                              </div>
-                            </div>
-                            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 0.8fr", gap: "10px" }}>
-                              <div>
-                                <label style={labelStyle}>Relation *</label>
-                                <select
-                                  value={dep.relation}
-                                  onChange={(e) => handleDependentChange(idx, "relation", e.target.value)}
-                                  style={{ ...inputStyle, color: "#fff" }}
-                                >
-                                  <option value="Spouse" style={{ background: "#24243e" }}>Spouse</option>
-                                  <option value="Child" style={{ background: "#24243e" }}>Child</option>
-                                  <option value="Parent" style={{ background: "#24243e" }}>Parent</option>
-                                  <option value="Other" style={{ background: "#24243e" }}>Other</option>
-                                </select>
-                              </div>
-                              <div>
-                                <label style={labelStyle}>Passport Number</label>
-                                <input
-                                  value={dep.passportNumber}
-                                  onChange={(e) => handleDependentChange(idx, "passportNumber", e.target.value)}
-                                  placeholder="Optional"
-                                  style={inputStyle}
-                                />
-                              </div>
-                              <div>
-                                <label style={labelStyle}>Age *</label>
-                                <input
-                                  type="number"
-                                  required
-                                  min="0"
-                                  max="120"
-                                  value={dep.age || ""}
-                                  onChange={(e) => handleDependentChange(idx, "age", e.target.value)}
-                                  placeholder="Age"
-                                  style={inputStyle}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </>
                 )}
 
@@ -1320,18 +1235,24 @@ export const LeadSelfFillForm = () => {
 
                     <div style={{ marginBottom: "14px" }}>
                       <label style={labelStyle}>Preferred Time Slot *</label>
-                      <input
-                        type="time"
+                      <select
                         required={serviceCategory !== "translation"}
                         value={form.meetingPreferredTime}
                         onChange={(e) =>
                           handleChange("meetingPreferredTime", e.target.value)
                         }
                         style={{ ...inputStyle, color: "#fff" }}
-                      />
+                      >
+                        <option value="" disabled style={{ background: "#24243e" }}>Select Preferred Time Slot ({bookingAllowedStart} - {bookingAllowedEnd} UTC)</option>
+                        {availableTimeSlots.map((slot) => (
+                          <option key={slot} value={slot} style={{ background: "#24243e" }}>
+                            ⏰ {slot} (UTC)
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
-                    {(serviceCategory === "visa" || serviceCategory === "case_assessment") && (
+                    {serviceCategory === "visa" && (
                       <div style={{
                         background: "rgba(239, 68, 68, 0.1)",
                         border: "1px solid rgba(239, 68, 68, 0.2)",
