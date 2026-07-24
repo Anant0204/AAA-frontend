@@ -30,6 +30,7 @@ import ErrorIcon from '@mui/icons-material/Error';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import CircularProgress from '@mui/material/CircularProgress';
 import Avatar from '@mui/material/Avatar';
+import EventIcon from '@mui/icons-material/Event';
 
 // Services & Components
 import PageHeader from '../../components/PageHeader';
