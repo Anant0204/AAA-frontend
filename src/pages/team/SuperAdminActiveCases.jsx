@@ -312,12 +312,14 @@ export const SuperAdminActiveCases = () => {
                               />
                             )}
                             {matchedConsultant && (
-                              <Chip
-                                icon={<PersonIcon sx={{ fontSize: '0.85rem !important' }} />}
-                                label={`${matchedConsultant.name} (Agent)`}
-                                size="small"
-                                sx={{ fontWeight: 700, bgcolor: '#DBEAFE', color: '#1D4ED8' }}
-                              />
+                              <Tooltip title={`Assigned Date: ${dayjs(client.assignedAt || client.onboardingDate || client.createdAt).format('DD MMM YYYY, hh:mm A')}`}>
+                                <Chip
+                                  icon={<PersonIcon sx={{ fontSize: '0.85rem !important' }} />}
+                                  label={`${matchedConsultant.name} (Agent - ${dayjs(client.assignedAt || client.onboardingDate || client.createdAt).format('DD MMM YYYY')})`}
+                                  size="small"
+                                  sx={{ fontWeight: 700, bgcolor: '#DBEAFE', color: '#1D4ED8' }}
+                                />
+                              </Tooltip>
                             )}
                             <Chip label={serviceName} size="small" color="secondary" sx={{ fontWeight: 700 }} />
                             <Chip

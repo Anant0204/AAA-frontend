@@ -530,6 +530,11 @@ export const SuperAdminLeadDetails = () => {
                       {consultantObj ? consultantObj.name : 'Unassigned'}
                     </Typography>
                   )}
+                  {lead.assignedConsultantId && (
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5, fontStyle: 'italic', fontSize: '0.725rem' }}>
+                      📅 Assigned Date: {dayjs(lead.assignedAt || lead.createdAt).format('DD MMM YYYY, hh:mm A')}
+                    </Typography>
+                  )}
                 </Box>
                 <Box>
                   <Typography variant="caption" color="text.secondary" display="block">
