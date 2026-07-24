@@ -286,17 +286,21 @@ export const dbService = {
   },
   updateAgent: async (agent) => {
     const payload = {
-      fullName: agent.name,
+      fullName: agent.name || agent.fullName,
       email: agent.email,
-      hotlineNumber: agent.phone,
+      hotlineNumber: agent.phone || agent.hotlineNumber,
       role: agent.role,
-      spokenLanguages: agent.languages,
+      spokenLanguages: agent.languages || agent.spokenLanguages,
       nationalities: agent.nationalities,
       commissionRate: agent.commissionRate,
-      immigrationBio: agent.bio,
+      immigrationBio: agent.bio || agent.immigrationBio,
       customPermissions: agent.customPermissions
     };
     const res = await apiClient.put(`/users/${agent.id}`, payload);
+    return res.data;
+  },
+  updateSuperAdminProfile: async (data) => {
+    const res = await apiClient.put('/users/profile/super-admin', data);
     return res.data;
   },
   resetAgentPassword: async (id, newPassword) => {

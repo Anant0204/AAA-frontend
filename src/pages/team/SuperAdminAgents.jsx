@@ -533,27 +533,40 @@ export const SuperAdminAgents = () => {
       icon: 'person'
     });
     
-    // 2. Consultations
+    // 2. Assigned Leads
+    const agentLeads = allLeads.filter(ld => ld.assignedConsultantId === agent.id);
+    agentLeads.forEach(ld => {
+      list.push({
+        id: `ld_assign_${ld.id}`,
+        date: ld.assignedAt ? ld.assignedAt.split('T')[0] : (ld.createdDate ? ld.createdDate.split('T')[0] : formatDate(new Date())),
+        title: `Lead Task Assigned: ${ld.firstName || ''} ${ld.lastName || ''}`,
+        description: `Service: ${ld.serviceId || 'Visa'} | Assigned Date: ${ld.assignedAt ? formatDate(new Date(ld.assignedAt)) : formatDate(new Date(ld.createdDate || Date.now()))} | Status: ${ld.status}`,
+        type: 'consultation',
+        icon: 'meeting'
+      });
+    });
+
+    // 3. Consultations
     const agentConsultations = allConsultations.filter(c => c.assignedConsultantId === agent.id);
     agentConsultations.forEach(c => {
       list.push({
         id: `c_${c.id}`,
-        date: c.meetingDate || formatDate(new Date()),
-        title: `Consultation Booked: ${c.firstName} ${c.lastName}`,
-        description: `Slot: ${c.slot} | Preferred Language: ${c.preferredLanguage} | Status: ${c.status}`,
+        date: c.assignedAt ? c.assignedAt.split('T')[0] : (c.meetingDate || formatDate(new Date())),
+        title: `Consultation Session Assigned: ${c.clientName || 'Client'}`,
+        description: `Slot: ${c.meetingDate || ''} ${c.meetingTime || ''} | Assigned Date: ${c.assignedAt ? formatDate(new Date(c.assignedAt)) : 'N/A'} | Status: ${c.status}`,
         type: 'consultation',
         icon: 'meeting'
       });
     });
     
-    // 3. Client Cases
+    // 4. Client Cases
     const agentClients = allClients.filter(cl => cl.assignedConsultantId === agent.id);
     agentClients.forEach(cl => {
       list.push({
         id: `cl_open_${cl.id}`,
-        date: cl.onboardingDate || formatDate(new Date()),
-        title: `Client Onboarded: ${cl.firstName} ${cl.lastName}`,
-        description: `Visa Case started for Spain ${cl.serviceId?.toUpperCase() || 'Immigration'}. Current Status: ${cl.status}`,
+        date: cl.assignedAt ? cl.assignedAt.split('T')[0] : (cl.onboardingDate ? cl.onboardingDate.split('T')[0] : formatDate(new Date())),
+        title: `Case File Assigned: ${cl.firstName} ${cl.lastName}`,
+        description: `Client ID: ${cl.clientCode || cl.id} | Assigned Date: ${cl.assignedAt ? formatDate(new Date(cl.assignedAt)) : formatDate(new Date(cl.onboardingDate || Date.now()))} | Status: ${cl.status}`,
         type: 'case',
         icon: 'case'
       });

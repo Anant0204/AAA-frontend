@@ -64,6 +64,7 @@ import LocalPoliceIcon from '@mui/icons-material/LocalPolice';
 import { dbService } from '../../services/dbService';
 import PageHeader from '../../components/PageHeader';
 import { useAlert } from '../../contexts/AlertContext';
+import useAuth from '../../hooks/useAuth';
 
 const AVAILABLE_MENUS = [
   'Dashboard',
@@ -152,46 +153,47 @@ const DEFAULT_ACTIONS = {
   finance: { canGeneratePaymentLink: true, canUpdatePaymentStatus: true },
   refunds: { canProcessStripeRefund: true, canProcessBankPayout: true, requireDoubleConfirmation: true },
   commissions: { canEditCommissionRates: true, canGeneratePayoutReports: true },
-  marketing: { canUpdateMarketingSpend: true },
-  agents: { canCreateAgent: true, canEditAgent: true, canDeleteAgent: true }
+  leads: { canCreate: true, canEdit: true, canDelete: true, canAssign: true, canExport: true, canChangeStatus: true },
+  clients: { canCreate: true, canEdit: true, canDelete: true, canChangeStatus: true, canUploadDocs: true, canVerifyDocs: true },
+  consultations: { canBook: true, canReschedule: true, canCancel: true, canReassign: true, canAddNotes: true }
 };
 
 const DEFAULT_COLUMNS = {
-  leads: ['id', 'name', 'phone', 'email', 'nationality', 'service', 'status', 'assignedConsultant', 'source', 'createdDate'],
-  clients: ['id', 'name', 'nationality', 'service', 'package', 'status', 'visaStatus', 'assignedConsultant']
+  leads: ['name', 'serviceId', 'status', 'createdDate', 'phone', 'assignedConsultantName', 'actions'],
+  clients: ['clientCode', 'name', 'serviceId', 'status', 'onboardingDate', 'assignedConsultantName', 'actions'],
+  consultations: ['clientName', 'serviceType', 'meetingDate', 'meetingTime', 'status', 'host', 'actions']
 };
 
 const DEFAULT_CUSTOMIZATION = {
-  allowAdminCustomOverrides: false,
   admin: {
-    menus: ['Dashboard', 'Agents', 'Active Cases', 'Doc Verification', 'Finance', 'Closed Cases', 'Clients', 'Leads', 'Social Inbox', 'Marketing', 'Calendar', 'All Agents Performance', 'Integrations'],
-    cards: ['Total Clients', 'Today\'s Clients', 'Total Consultations', 'Today\'s Consultations', 'Upcoming Meetings', 'Pending Payments', 'Total Revenue', 'Active Cases', 'Completed Cases', 'Lost Consultations', 'Revenue Today', 'Outstanding Revenue', 'Refunded (50% Rejections)'],
+    menus: ['Dashboard', 'Agents', 'Active Cases', 'Doc Verification', 'Finance', 'Refunds & Commissions', 'Closed Cases', 'Clients', 'Leads', 'Social Inbox', 'Marketing', 'Calendar', 'Customization'],
+    cards: ['Total Consultations', 'Today\'s Consultations', 'Pending Payments', 'Revenue Closed'],
     viewOnlyMenus: [],
-    features: ['canEditTranslationRates', 'canViewDependents'],
+    features: ['canEditTranslationRates', 'canManagePaymentSettings'],
     actions: JSON.parse(JSON.stringify(DEFAULT_ACTIONS)),
     columns: JSON.parse(JSON.stringify(DEFAULT_COLUMNS))
   },
   operations: {
-    menus: ['Dashboard', 'Agents', 'Active Cases', 'Doc Verification', 'Closed Cases', 'Clients', 'Leads', 'Social Inbox', 'Marketing', 'Calendar', 'All Agents Performance'],
-    cards: ['Total Clients', 'Today\'s Clients', 'Total Consultations', 'Today\'s Consultations', 'Upcoming Meetings', 'Active Cases', 'Completed Cases'],
+    menus: ['Dashboard', 'Active Cases', 'Doc Verification', 'Closed Cases', 'Clients', 'Calendar'],
+    cards: ['Active Cases', 'Closed Cases'],
     viewOnlyMenus: [],
-    features: ['canViewDependents'],
+    features: [],
     actions: JSON.parse(JSON.stringify(DEFAULT_ACTIONS)),
     columns: JSON.parse(JSON.stringify(DEFAULT_COLUMNS))
   },
   finance: {
     menus: ['Dashboard', 'Finance', 'Refunds & Commissions'],
-    cards: ['Total Revenue', 'Pending Payments'],
+    cards: ['Pending Payments', 'Revenue Closed'],
     viewOnlyMenus: [],
     features: [],
     actions: JSON.parse(JSON.stringify(DEFAULT_ACTIONS)),
     columns: JSON.parse(JSON.stringify(DEFAULT_COLUMNS))
   },
   consultant: {
-    menus: ['Dashboard', 'Clients', 'Leads', 'Social Inbox', 'Calendar'],
-    cards: ['Upcoming Meetings', 'Active Cases'],
+    menus: ['Dashboard', 'Leads', 'Clients', 'Calendar'],
+    cards: ['Total Consultations', 'Today\'s Consultations'],
     viewOnlyMenus: [],
-    features: ['canViewDependents'],
+    features: [],
     actions: JSON.parse(JSON.stringify(DEFAULT_ACTIONS)),
     columns: JSON.parse(JSON.stringify(DEFAULT_COLUMNS))
   },
@@ -222,6 +224,26 @@ const DEFAULT_LEAD_STAGES = [
 export const SuperAdminCustomization = () => {
   const queryClient = useQueryClient();
   const { showAlert } = useAlert();
+  const { currentUser, refreshUser } = useAuth();
+
+  // Super Admin profile editing state
+  const [superAdminNameModalOpen, setSuperAdminNameModalOpen] = useState(false);
+  const [superAdminName, setSuperAdminName] = useState('');
+  const [superAdminEmail, setSuperAdminEmail] = useState('');
+  const [superAdminPhone, setSuperAdminPhone] = useState('');
+
+  const updateSuperAdminMutation = useMutation({
+    mutationFn: (data) => dbService.updateSuperAdminProfile(data),
+    onSuccess: (updatedUser) => {
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+      if (updatedUser && refreshUser) refreshUser(updatedUser);
+      showAlert('Super Admin Name updated successfully!', 'success');
+      setSuperAdminNameModalOpen(false);
+    },
+    onError: (err) => {
+      showAlert(err.response?.data?.message || 'Failed to update Super Admin name', 'error');
+    }
+  });
 
   // Fetch customization settings early so we can use dynamic roles
   const { data: customizationSettings, isLoading: isCustomizationLoading } = useQuery({
@@ -1114,6 +1136,58 @@ export const SuperAdminCustomization = () => {
         subtitle="Manage navigation layout permissions, dashboard stats cards, and custom customer lifecycle stages."
       />
 
+      {/* Super Admin Account & Name Editor Card (Top of Customization Page) */}
+      {(currentUser?.role === 'super_admin' || isSuperAdmin) && (
+        <Paper sx={{ p: 3, mb: 3, border: '2px solid', borderColor: 'primary.main', borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.06)', background: 'linear-gradient(135deg, #EFF6FF 0%, #F3F4F6 100%)' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#051A3B', display: 'flex', alignItems: 'center', gap: 1, fontFamily: 'Outfit, sans-serif' }}>
+                👑 Super Admin Profile & Account Name
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Change the display name of the Super Admin across the CRM portal.
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              color="primary"
+              size="medium"
+              startIcon={<EditIcon />}
+              onClick={() => {
+                setSuperAdminName(currentUser?.fullName || currentUser?.name || '');
+                setSuperAdminEmail(currentUser?.email || '');
+                setSuperAdminPhone(currentUser?.hotlineNumber || currentUser?.phone || '');
+                setSuperAdminNameModalOpen(true);
+              }}
+              sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, px: 3, py: 1 }}
+            >
+              Change Super Admin Name
+            </Button>
+          </Box>
+
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' }, gap: 2, mt: 2 }}>
+            <Box sx={{ p: 1.5, bgcolor: '#fff', borderRadius: 2, border: '1px solid #cbd5e1' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>FULL NAME</Typography>
+              <Typography variant="body1" sx={{ fontWeight: 800, color: 'primary.main', mt: 0.5 }}>
+                {currentUser?.fullName || currentUser?.name || 'Super Admin'}
+              </Typography>
+            </Box>
+            <Box sx={{ p: 1.5, bgcolor: '#fff', borderRadius: 2, border: '1px solid #cbd5e1' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>EMAIL ADDRESS</Typography>
+              <Typography variant="body1" sx={{ fontWeight: 700, mt: 0.5 }}>
+                {currentUser?.email || 'N/A'}
+              </Typography>
+            </Box>
+            <Box sx={{ p: 1.5, bgcolor: '#fff', borderRadius: 2, border: '1px solid #cbd5e1' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>ROLE LEVEL</Typography>
+              <Typography variant="body1" sx={{ fontWeight: 800, color: 'secondary.main', mt: 0.5 }}>
+                Super Admin (Owner)
+              </Typography>
+            </Box>
+          </Box>
+        </Paper>
+      )}
+
       <Box sx={{ width: '100%', mb: 3 }}>
         <Paper square sx={{ borderRadius: 3, borderBottom: 1, borderColor: 'divider', mb: 3 }}>
           <Tabs
@@ -1792,6 +1866,53 @@ export const SuperAdminCustomization = () => {
                 </Box>
               </Paper>
 
+              {/* Super Admin Account & Name Editor Card (Strictly Super Admin Only) */}
+              {currentUser?.role === 'super_admin' && (
+                <Paper sx={{ p: 3, border: '2px solid', borderColor: 'primary.main', borderRadius: 3, boxShadow: 'none', background: 'linear-gradient(135deg, rgba(239, 246, 255, 0.6) 0%, rgba(243, 244, 246, 0.6) 100%)' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#051A3B', display: 'flex', alignItems: 'center', gap: 1, fontFamily: 'Outfit, sans-serif' }}>
+                      👑 Super Admin Profile & Account Name
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      size="small"
+                      startIcon={<EditIcon />}
+                      onClick={() => {
+                        setSuperAdminName(currentUser?.fullName || currentUser?.name || '');
+                        setSuperAdminEmail(currentUser?.email || '');
+                        setSuperAdminPhone(currentUser?.hotlineNumber || currentUser?.phone || '');
+                        setSuperAdminNameModalOpen(true);
+                      }}
+                      sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700 }}
+                    >
+                      Change Super Admin Name
+                    </Button>
+                  </Box>
+
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' }, gap: 2 }}>
+                    <Box sx={{ p: 1.5, bgcolor: '#fff', borderRadius: 2, border: '1px solid #e2e8f0' }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>FULL NAME</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 800, color: 'primary.main', mt: 0.5 }}>
+                        {currentUser?.fullName || currentUser?.name || 'Super Admin'}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ p: 1.5, bgcolor: '#fff', borderRadius: 2, border: '1px solid #e2e8f0' }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>EMAIL ADDRESS</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 700, mt: 0.5 }}>
+                        {currentUser?.email || 'N/A'}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ p: 1.5, bgcolor: '#fff', borderRadius: 2, border: '1px solid #e2e8f0' }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>ROLE LEVEL</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 800, color: 'secondary.main', mt: 0.5 }}>
+                        Super Admin (Owner)
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Paper>
+              )}
+
               {/* Age Limits and dependency card */}
               <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, boxShadow: 'none' }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#051A3B', mb: 2, display: 'flex', alignItems: 'center', gap: 1, fontFamily: 'Outfit, sans-serif' }}>
@@ -2014,6 +2135,60 @@ export const SuperAdminCustomization = () => {
           </Button>
           <Button onClick={handleSaveNewRole} variant="contained" color="secondary" sx={{ fontWeight: 700 }} disabled={!newRoleName.trim()}>
             Create Role
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Super Admin Name Dialog Modal (Strictly Super Admin Only) */}
+      <Dialog open={superAdminNameModalOpen} onClose={() => setSuperAdminNameModalOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800, fontFamily: 'Outfit, sans-serif' }}>
+          ✏️ Edit Super Admin Name
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            <TextField
+              label="Super Admin Full Name *"
+              value={superAdminName}
+              onChange={(e) => setSuperAdminName(e.target.value)}
+              fullWidth
+              required
+              size="small"
+            />
+            <TextField
+              label="Super Admin Email"
+              value={superAdminEmail}
+              onChange={(e) => setSuperAdminEmail(e.target.value)}
+              fullWidth
+              size="small"
+            />
+            <TextField
+              label="Hotline / Phone Number"
+              value={superAdminPhone}
+              onChange={(e) => setSuperAdminPhone(e.target.value)}
+              fullWidth
+              size="small"
+            />
+          </Box>
+        </DialogContent>
+        <Divider />
+        <DialogActions sx={{ p: 2.5, gap: 1 }}>
+          <Button onClick={() => setSuperAdminNameModalOpen(false)} variant="outlined" color="inherit" sx={{ fontWeight: 700 }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            disabled={updateSuperAdminMutation.isPending || !superAdminName.trim()}
+            onClick={() => {
+              updateSuperAdminMutation.mutate({
+                fullName: superAdminName.trim(),
+                email: superAdminEmail.trim(),
+                hotlineNumber: superAdminPhone.trim()
+              });
+            }}
+            sx={{ fontWeight: 700 }}
+          >
+            {updateSuperAdminMutation.isPending ? 'Saving...' : 'Save Name'}
           </Button>
         </DialogActions>
       </Dialog>

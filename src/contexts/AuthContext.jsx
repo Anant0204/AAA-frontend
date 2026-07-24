@@ -90,14 +90,16 @@ export const AuthProvider = ({ children }) => {
   // Refresh current user from a full updated agent object
   // Called when an admin updates an agent's permissions while they are logged in
   const refreshUser = (updatedAgent) => {
-    if (!currentUser || currentUser.id !== updatedAgent.id) return;
+    if (!currentUser) return;
+    const newName = updatedAgent.fullName || updatedAgent.name || currentUser.fullName || currentUser.name;
     const updatedUser = {
       ...currentUser,
-      name: updatedAgent.name,
-      email: updatedAgent.email,
+      fullName: newName,
+      name: newName,
+      email: updatedAgent.email || currentUser.email,
       role: updatedAgent.role || currentUser.role,
       avatar: updatedAgent.avatar || currentUser.avatar,
-      customPermissions: updatedAgent.customPermissions,
+      customPermissions: updatedAgent.customPermissions !== undefined ? updatedAgent.customPermissions : currentUser.customPermissions,
     };
     localStorage.setItem('crm-auth-user', JSON.stringify(updatedUser));
     setCurrentUser(updatedUser);

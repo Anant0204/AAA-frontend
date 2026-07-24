@@ -421,7 +421,19 @@ export const SuperAdminLeadList = () => {
       label: 'Agent',
       render: (row) => {
         const agent = agents.find((c) => c.id === row.assignedConsultantId);
-        return agent ? agent.name : <Typography variant="caption" color="text.secondary">Unassigned</Typography>;
+        const assignedDateStr = row.assignedAt ? dayjs(row.assignedAt).format('YYYY-MM-DD hh:mm A') : (row.createdDate ? dayjs(row.createdDate).format('YYYY-MM-DD') : null);
+        return (
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {agent ? agent.name : (row.assignedConsultantName || <Typography variant="caption" color="text.secondary">Unassigned</Typography>)}
+            </Typography>
+            {row.assignedConsultantId && assignedDateStr && (
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.7rem' }}>
+                📅 Assigned: {assignedDateStr}
+              </Typography>
+            )}
+          </Box>
+        );
       } },
     { id: 'source', label: 'Source', sortable: true },
     {
