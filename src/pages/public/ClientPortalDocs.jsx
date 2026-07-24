@@ -1550,8 +1550,10 @@ export const ClientPortalDocs = () => {
                             </AccordionDetails>
                           </Accordion>
                         );
-                      })}
                     </Box>
+                  </Paper>
+                </Box>
+
                 {/* Case Activity Timeline Log */}
                 <Box className="col-span-12" sx={{ mt: 3 }}>
                   <CaseActivityTimeline clientId={client.id || id} />

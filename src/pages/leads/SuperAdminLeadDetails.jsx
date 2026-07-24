@@ -744,6 +744,7 @@ export const SuperAdminLeadDetails = () => {
                       />
                       <Button variant="contained" onClick={handleAddNote} endIcon={<SendIcon />} sx={{ px: 3 }}>
                         Comment
+                      </Button>
                     </Box>
 
                     <Box sx={{ mt: 4 }}>
