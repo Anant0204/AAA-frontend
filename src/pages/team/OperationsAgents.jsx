@@ -10,6 +10,7 @@ import Divider from '@mui/material/Divider';
 import Chip from '@mui/material/Chip';
 
 import Dialog from '@mui/material/Dialog';
+import Autocomplete from '@mui/material/Autocomplete';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
@@ -37,12 +38,28 @@ import InputLabel from '@mui/material/InputLabel';
 import Switch from '@mui/material/Switch';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import CloseIcon from '@mui/icons-material/Close';
 
 // Services & Components
 import PageHeader from '../../components/PageHeader';
 import { dbService } from '../../services/dbService';
 import { useAuth } from '../../hooks/useAuth';
 import { useAlert } from '../../contexts/AlertContext';
+import { SERVICES } from '../../constants/mockData';
+
+const SPOKEN_LANGUAGES_OPTIONS = [
+  'English', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Arabic', 'Chinese', 'Russian', 'Turkish', 
+  'Dutch', 'Swedish', 'Polish', 'Romanian', 'Hindi', 'Urdu', 'Bengali', 'Albanian', 'Georgian', 'Ukrainian',
+  'Catalan', 'Basque', 'Galician'
+];
+
+const NATIONALITIES_OPTIONS = [
+  'Spanish', 'British', 'American', 'Canadian', 'French', 'German', 'Italian', 'Dutch', 'Mexican', 'Colombian', 
+  'Argentinian', 'Ukrainian', 'Russian', 'Indian', 'Moroccan', 'Albanian', 'Georgian', 'Chinese', 'Turkish', 
+  'South African', 'Australian', 'Venezuelan', 'Ecuadorian', 'Peruvian', 'Bolivian', 'Honduran'
+];
 
 const AVAILABLE_MENUS = [
   'Dashboard',
@@ -121,6 +138,10 @@ export const OperationsAgents = () => {
   const [modalData, setModalData] = useState([]);
   const [modalType, setModalType] = useState('');
 
+  // Commission History Dialog State
+  const [commHistoryOpen, setCommHistoryOpen] = useState(false);
+  const [commHistoryAgentId, setCommHistoryAgentId] = useState(null);
+
   // Form Fields
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [name, setName] = useState('');
@@ -129,8 +150,8 @@ export const OperationsAgents = () => {
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState('consultant');
   const [avatarBase64, setAvatarBase64] = useState('');
-  const [languages, setLanguages] = useState('');
-  const [nationalities, setNationalities] = useState('');
+  const [languages, setLanguages] = useState([]);
+  const [nationalities, setNationalities] = useState([]);
   const [bio, setBio] = useState('');
   const [newPassword, setNewPassword] = useState('');
 
@@ -150,6 +171,11 @@ export const OperationsAgents = () => {
   const { data: allClients = [] } = useQuery({ queryKey: ['clients'], queryFn: dbService.getClients });
   const { data: allConsultations = [] } = useQuery({ queryKey: ['consultations'], queryFn: dbService.getConsultations });
   const { data: allPayments = [] } = useQuery({ queryKey: ['payments'], queryFn: dbService.getPayments });
+  const { data: commissionHistory = [], isLoading: loadingCommHistory } = useQuery({
+    queryKey: ['commission-history', commHistoryAgentId],
+    queryFn: () => dbService.getCommissionHistory(commHistoryAgentId),
+    enabled: !!commHistoryAgentId
+  });
   const { data: customizationSettings } = useQuery({
     queryKey: ['customization-settings'],
     queryFn: dbService.getCustomizationSettings
@@ -234,8 +260,8 @@ export const OperationsAgents = () => {
     setPhone('');
     setRole('consultant');
     setAvatarBase64('');
-    setLanguages('');
-    setNationalities('');
+    setLanguages([]);
+    setNationalities([]);
     setBio('');
     setCommissionRate(10);
     setCustomPermissionsEnabled(false);
@@ -255,8 +281,8 @@ export const OperationsAgents = () => {
     setPhone(agent.phone || '');
     setRole(agent.role || 'consultant');
     setAvatarBase64(agent.avatar || '');
-    setLanguages(agent.languages ? agent.languages.join(', ') : '');
-    setNationalities(agent.nationalities ? agent.nationalities.join(', ') : '');
+    setLanguages(agent.languages || []);
+    setNationalities(agent.nationalities || []);
     setBio(agent.bio || '');
     setCommissionRate(agent.commissionRate !== undefined ? agent.commissionRate : 10);
     setCustomPermissionsEnabled(agent.customPermissions?.enabled || false);
@@ -285,13 +311,10 @@ export const OperationsAgents = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim() || !password.trim() || !phone.trim() || !languages.trim()) {
+    if (!name.trim() || !email.trim() || !password.trim() || !phone.trim() || languages.length === 0) {
       showAlert('Please fill in all required fields.', 'warning');
       return;
     }
-
-    const langsArray = languages.split(',').map((l) => l.trim()).filter(Boolean);
-    const nationalitiesArray = nationalities.split(',').map((n) => n.trim()).filter(Boolean);
 
     createAgentMutation.mutate({
       name,
@@ -300,8 +323,8 @@ export const OperationsAgents = () => {
       phone,
       role,
       avatar: avatarBase64,
-      languages: langsArray,
-      nationalities: nationalitiesArray,
+      languages,
+      nationalities,
       bio,
       commissionRate,
       customPermissions: {
@@ -314,13 +337,10 @@ export const OperationsAgents = () => {
 
   const handleEditSubmit = (e) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim() || !phone.trim() || !languages.trim()) {
+    if (!name.trim() || !email.trim() || !phone.trim() || languages.length === 0) {
       showAlert('Please fill in all required fields.', 'warning');
       return;
     }
-
-    const langsArray = languages.split(',').map((l) => l.trim()).filter(Boolean);
-    const nationalitiesArray = nationalities.split(',').map((n) => n.trim()).filter(Boolean);
 
     updateAgentMutation.mutate({
       id: selectedAgent.id,
@@ -329,8 +349,8 @@ export const OperationsAgents = () => {
       phone,
       role,
       avatar: avatarBase64,
-      languages: langsArray,
-      nationalities: nationalitiesArray,
+      languages,
+      nationalities,
       bio,
       commissionRate,
       customPermissions: {
@@ -590,9 +610,9 @@ export const OperationsAgents = () => {
         .filter((p) => p.status === 'Paid' && (p.paymentDate || p.dueDate)?.startsWith('2026-06'));
       type = 'payment';
     } else if (kpiName === 'Total Commission') {
-      title = `${activeAgent.name}'s Lifetime Paid Commission Invoices`;
-      data = allPayments.filter(p => clientIds.includes(p.clientId) && p.status === 'Paid');
-      type = 'payment';
+      setCommHistoryAgentId(activeAgent.id);
+      setCommHistoryOpen(true);
+      return;
     } else {
       return;
     }
@@ -1016,16 +1036,17 @@ export const OperationsAgents = () => {
                     </Paper>
                   </Box>
 
-                  {/* 14. Total Commission Since Joining */}
+                  {/* 14. Commission History */}
                   <Box className="col-span-6 sm:col-span-4 md:col-span-3">
-                    <Paper 
+                    <Paper
                       onClick={() => handleKPIBoxClick('Total Commission')}
                       sx={{ p: 2, border: '2px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 2.5, textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s ease-in-out', '&:hover': { borderColor: '#D97706', bgcolor: '#FFFBEB', transform: 'translateY(-2px)' }, '&:active': { transform: 'scale(0.98)' } }}
                     >
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block' }}>Total Commission Since Joining</Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block' }}>Commission History</Typography>
                       <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5, color: 'success.main' }}>€{kpis.totalCommissionSinceJoining.toLocaleString()}</Typography>
                     </Paper>
                   </Box>
+
                 </Box>
 
                 {/* Highlight Commission Box */}
@@ -1087,13 +1108,30 @@ export const OperationsAgents = () => {
               <MenuItem key={r.id} value={r.id}>{r.label.split('(')[0].trim()}</MenuItem>
             ))}
           </TextField>
-          <TextField label="Spoken Languages (comma-separated) *" placeholder="English, Spanish" value={languages} onChange={(e) => setLanguages(e.target.value)} fullWidth required />
-          <TextField label="Nationalities (comma-separated)" placeholder="British" value={nationalities} onChange={(e) => setNationalities(e.target.value)} fullWidth />
+          <Autocomplete
+            multiple
+            options={SPOKEN_LANGUAGES_OPTIONS}
+            value={languages}
+            onChange={(event, newValue) => setLanguages(newValue)}
+            renderInput={(params) => <TextField {...params} label="Spoken Languages *" placeholder="Select languages" required />}
+            fullWidth
+          />
+          <Autocomplete
+            multiple
+            options={NATIONALITIES_OPTIONS}
+            value={nationalities}
+            onChange={(event, newValue) => setNationalities(newValue)}
+            renderInput={(params) => <TextField {...params} label="Nationalities" placeholder="Select nationalities" />}
+            fullWidth
+          />
           <TextField
             label="Commission Rate (%)"
             type="number"
             value={commissionRate}
-            onChange={(e) => setCommissionRate(Math.max(0, Math.min(100, Number(e.target.value))))}
+            onChange={(e) => setCommissionRate(e.target.value === '' ? '' : Math.max(0, Math.min(100, Number(e.target.value))))}
+            onFocus={(e) => { if (Number(e.target.value) === 0) setCommissionRate(''); }}
+            onBlur={(e) => { if (e.target.value === '' || e.target.value === undefined) setCommissionRate(0); }}
+            inputProps={{ min: 0, max: 100 }}
             fullWidth
             required
             helperText="Specify the commission percentage of total closed revenue (e.g. 10)."
@@ -1135,13 +1173,30 @@ export const OperationsAgents = () => {
               <MenuItem key={r.id} value={r.id}>{r.label.split('(')[0].trim()}</MenuItem>
             ))}
           </TextField>
-          <TextField label="Spoken Languages (comma-separated) *" placeholder="English, Spanish" value={languages} onChange={(e) => setLanguages(e.target.value)} fullWidth required />
-          <TextField label="Nationalities (comma-separated)" placeholder="British" value={nationalities} onChange={(e) => setNationalities(e.target.value)} fullWidth />
+          <Autocomplete
+            multiple
+            options={SPOKEN_LANGUAGES_OPTIONS}
+            value={languages}
+            onChange={(event, newValue) => setLanguages(newValue)}
+            renderInput={(params) => <TextField {...params} label="Spoken Languages *" placeholder="Select languages" required />}
+            fullWidth
+          />
+          <Autocomplete
+            multiple
+            options={NATIONALITIES_OPTIONS}
+            value={nationalities}
+            onChange={(event, newValue) => setNationalities(newValue)}
+            renderInput={(params) => <TextField {...params} label="Nationalities" placeholder="Select nationalities" />}
+            fullWidth
+          />
           <TextField
             label="Commission Rate (%) *"
             type="number"
             value={commissionRate}
-            onChange={(e) => setCommissionRate(Math.max(0, Math.min(100, Number(e.target.value))))}
+            onChange={(e) => setCommissionRate(e.target.value === '' ? '' : Math.max(0, Math.min(100, Number(e.target.value))))}
+            onFocus={(e) => { if (Number(e.target.value) === 0) setCommissionRate(''); }}
+            onBlur={(e) => { if (e.target.value === '' || e.target.value === undefined) setCommissionRate(0); }}
+            inputProps={{ min: 0, max: 100 }}
             fullWidth
             required
           />
@@ -1202,7 +1257,7 @@ export const OperationsAgents = () => {
                         Meeting Date: {item.meetingDate} | Time: {item.slot}
                       </Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                        Client Name: {item.firstName} {item.lastName} | Language: {item.preferredLanguage}
+                        Client Name: {item.clientName || 'N/A'} | Language: {item.clientLanguage || 'N/A'}
                       </Typography>
                       <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 600 }}>
                         Status: <Chip label={item.status} size="small" color={item.status === 'Completed' ? 'success' : item.status === 'Scheduled' ? 'primary' : 'default'} />
@@ -1252,6 +1307,84 @@ export const OperationsAgents = () => {
           <Button onClick={() => setDetailsModalOpen(false)} variant="contained" color="secondary" sx={{ fontWeight: 700 }}>
             Close
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* DIALOG: Commission Rate History */}
+      <Dialog open={commHistoryOpen} onClose={() => setCommHistoryOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 4, overflow: 'hidden' } }}>
+        <DialogTitle sx={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2.5, px: 3 }}>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 800, color: 'white', lineHeight: 1.2 }}>Commission Rate History</Typography>
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>{activeAgent?.name} — Rate changes, revenue & commission earned</Typography>
+          </Box>
+          <IconButton onClick={() => setCommHistoryOpen(false)} sx={{ color: 'white' }}><CloseIcon /></IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0, bgcolor: '#f8fafc' }}>
+          {loadingCommHistory ? (
+            <Box sx={{ p: 4, textAlign: 'center' }}><Typography color="text.secondary">Loading history...</Typography></Box>
+          ) : commissionHistory.length === 0 ? (
+            <Box sx={{ p: 5, textAlign: 'center' }}>
+              <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 700 }}>No Rate Changes Yet</Typography>
+              <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5 }}>Rate changes will appear here once a rate is modified for this agent.</Typography>
+            </Box>
+          ) : (
+            <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {commissionHistory.map((entry) => {
+                const isIncrease = entry.newRate > entry.oldRate;
+                const date = new Date(entry.createdAt);
+                return (
+                  <Paper key={entry.id} elevation={0} sx={{ border: '1px solid', borderColor: isIncrease ? 'success.light' : 'warning.light', borderLeft: '4px solid', borderLeftColor: isIncrease ? 'success.main' : 'warning.main', borderRadius: 3, p: 2.5, bgcolor: 'white' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, border: '1px solid', borderColor: isIncrease ? 'success.light' : 'warning.light', borderRadius: 2, px: 2, py: 0.75 }}>
+                          <Typography sx={{ fontWeight: 800, color: 'text.secondary', textDecoration: 'line-through', fontSize: '0.9rem' }}>{entry.oldRate}%</Typography>
+                          <Typography sx={{ color: 'text.disabled' }}>→</Typography>
+                          <Typography sx={{ fontWeight: 900, color: isIncrease ? 'success.dark' : 'warning.dark', fontSize: '1rem' }}>{entry.newRate}%</Typography>
+                          {isIncrease ? <TrendingUpIcon sx={{ color: 'success.main', fontSize: 18 }} /> : <TrendingDownIcon sx={{ color: 'warning.main', fontSize: 18 }} />}
+                        </Box>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>{isIncrease ? 'Rate Increased' : 'Rate Decreased'}</Typography>
+                      </Box>
+                      <Box sx={{ textAlign: 'right' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>{date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</Typography>
+                        <Typography variant="caption" color="text.secondary">{date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</Typography>
+                      </Box>
+                    </Box>
+                    <Divider sx={{ my: 1.5 }} />
+                    <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Avatar sx={{ width: 28, height: 28, bgcolor: 'primary.main', fontSize: 13, fontWeight: 700 }}>{(entry.changedBy?.fullName || 'A')[0].toUpperCase()}</Avatar>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" display="block">Changed by</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 700 }}>{entry.changedBy?.fullName || 'Unknown'}</Typography>
+                          <Typography variant="caption" color="text.secondary">{entry.changedBy?.role || ''}</Typography>
+                        </Box>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: 'secondary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Typography sx={{ fontSize: 14, color: 'white', fontWeight: 700 }}>€</Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" display="block">Revenue at time of change</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 800, color: 'secondary.main' }}>€{(entry.revenueAtChange || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
+                        </Box>
+                      </Box>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" display="block">Commission impact</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          <span style={{ textDecoration: 'line-through', color: '#999', marginRight: 6 }}>€{((entry.revenueAtChange || 0) * entry.oldRate / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          → <span style={{ fontWeight: 900, color: isIncrease ? '#2e7d32' : '#e65100' }}>€{((entry.revenueAtChange || 0) * entry.newRate / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Paper>
+                );
+              })}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>{commissionHistory.length} rate change{commissionHistory.length !== 1 ? 's' : ''} recorded</Typography>
+          <Button variant="contained" onClick={() => setCommHistoryOpen(false)} sx={{ fontWeight: 700, px: 3 }}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>
