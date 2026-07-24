@@ -51,6 +51,12 @@ import CommentIcon from '@mui/icons-material/Comment';
 import PersonOffIcon from '@mui/icons-material/PersonOff';
 import MarkChatUnreadIcon from '@mui/icons-material/MarkChatUnread';
 import ChatIcon from '@mui/icons-material/Chat';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import ImageIcon from '@mui/icons-material/Image';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import CloseIcon from '@mui/icons-material/Close';
+import DownloadIcon from '@mui/icons-material/Download';
 
 import PageHeader from '../../components/PageHeader';
 
@@ -149,7 +155,9 @@ export const OperationsSocialInbox = () => {
   const [searchText, setSearchText] = useState('');
   const [replyText, setReplyText] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [pendingMedia, setPendingMedia] = useState(null); // { file, dataUrl, type, name, size }
   const messageEndRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // Connect to socket to handle real-time inbound/outbound WhatsApp updates
   useEffect(() => {
@@ -307,22 +315,156 @@ export const OperationsSocialInbox = () => {
   };
 
   const handleSend = () => {
-    if (!replyText.trim() || !activeConv) return;
+    if (!replyText.trim() && !pendingMedia && !activeConv) return;
+    if (!activeConv) return;
 
     const newMsg = {
       sender: 'agent',
       text: replyText,
+      mediaUrl: pendingMedia?.dataUrl || null,
+      mediaType: pendingMedia?.type || null,
+      mediaName: pendingMedia?.name || null,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
     sendSocialMessageMutation.mutate({ 
       conversationId: activeConvId, 
       phone: activeConv.phone, 
+      text: replyText,
+      mediaUrl: pendingMedia?.dataUrl || undefined,
+      mediaType: pendingMedia?.type || undefined,
       message: newMsg 
     });
 
     setReplyText('');
     setSelectedTemplate('');
+    setPendingMedia(null);
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setPendingMedia({
+        file,
+        dataUrl: ev.target.result,
+        type: file.type,
+        name: file.name,
+        size: (file.size / 1024).toFixed(1) + ' KB'
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  // Smart content renderer — handles PDF, Image, base64 blobs, credentials, plain text
+  const renderMessageContent = (msg, isAgent) => {
+    const text = msg.text || '';
+    const mediaUrl = msg.mediaUrl || null;
+    const mediaType = msg.mediaType || '';
+    const mediaName = msg.mediaName || 'Attachment';
+
+    // Helper to detect base64 blob (raw unreadable strings > 200 chars with no spaces)
+    const isRawBase64 = (str) => str && str.length > 200 && !/\s/.test(str.substring(0, 100)) && !/^https?:\/\//.test(str);
+
+    // Parse inline tagged attachments from text: [PDF: url], [Image: url], [Attachment: url]
+    const pdfMatch = text.match(/\[PDF:\s*(https?:\/\/[^\]]+)\]/);
+    const imageMatch = text.match(/\[Image:\s*(https?:\/\/[^\]]+)\]/);
+    const attachMatch = text.match(/\[Attachment:\s*(https?:\/\/[^\]]+)\]/);
+    const cleanText = text
+      .replace(/\[PDF:\s*https?:\/\/[^\]]+\]/g, '')
+      .replace(/\[Image:\s*https?:\/\/[^\]]+\]/g, '')
+      .replace(/\[Attachment:\s*https?:\/\/[^\]]+\]/g, '')
+      .trim();
+
+    // Detect credential messages (portal links)
+    const hasPortalLink = text.includes('https://') && (text.includes('Username') || text.includes('Password') || text.includes('portal'));
+
+    const bubbleBg = isAgent ? 'secondary.main' : 'background.paper';
+    const textColor = isAgent ? 'secondary.contrastText' : 'text.primary';
+
+    return (
+      <>
+        {/* Pending media preview (base64) for images */}
+        {mediaUrl && (mediaType?.startsWith('image/') || mediaUrl.startsWith('data:image/')) && (
+          <Box sx={{ mb: 1, borderRadius: 2, overflow: 'hidden', maxWidth: 240, border: '1px solid rgba(0,0,0,0.1)' }}>
+            <img src={mediaUrl} alt={mediaName} style={{ width: '100%', display: 'block', borderRadius: 8 }} />
+          </Box>
+        )}
+
+        {/* PDF attachment from mediaUrl */}
+        {mediaUrl && (mediaType === 'application/pdf' || mediaUrl.endsWith('.pdf') || mediaUrl.startsWith('data:application/pdf')) && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.5, bgcolor: isAgent ? 'rgba(255,255,255,0.15)' : '#FFF5F5', borderRadius: 2, border: '1px solid', borderColor: isAgent ? 'rgba(255,255,255,0.3)' : '#FECACA', mb: 1 }}>
+            <PictureAsPdfIcon sx={{ color: '#EF4444', fontSize: 28, flexShrink: 0 }} />
+            <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+              <Typography variant='caption' sx={{ fontWeight: 700, color: isAgent ? 'rgba(255,255,255,0.9)' : '#B91C1C', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mediaName}</Typography>
+              <Typography variant='caption' sx={{ color: isAgent ? 'rgba(255,255,255,0.6)' : 'text.secondary' }}>PDF Document</Typography>
+            </Box>
+            <IconButton size='small' component='a' href={mediaUrl} target='_blank' download sx={{ color: isAgent ? 'white' : '#EF4444', flexShrink: 0 }}><DownloadIcon fontSize='small' /></IconButton>
+          </Box>
+        )}
+
+        {/* Inline [PDF: url] tag in text */}
+        {pdfMatch && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.5, bgcolor: isAgent ? 'rgba(255,255,255,0.15)' : '#FFF5F5', borderRadius: 2, border: '1px solid', borderColor: isAgent ? 'rgba(255,255,255,0.3)' : '#FECACA', mb: 1 }}>
+            <PictureAsPdfIcon sx={{ color: '#EF4444', fontSize: 28, flexShrink: 0 }} />
+            <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+              <Typography variant='caption' sx={{ fontWeight: 700, color: isAgent ? 'rgba(255,255,255,0.9)' : '#B91C1C', display: 'block' }}>PDF Document</Typography>
+              <Typography variant='caption' sx={{ color: isAgent ? 'rgba(255,255,255,0.6)' : 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', whiteSpace: 'nowrap' }}>{pdfMatch[1]}</Typography>
+            </Box>
+            <IconButton size='small' component='a' href={pdfMatch[1]} target='_blank' download sx={{ color: isAgent ? 'white' : '#EF4444', flexShrink: 0 }}><DownloadIcon fontSize='small' /></IconButton>
+          </Box>
+        )}
+
+        {/* Inline [Image: url] tag in text */}
+        {imageMatch && (
+          <Box sx={{ mb: 1, borderRadius: 2, overflow: 'hidden', maxWidth: 240 }}>
+            <img src={imageMatch[1]} alt='Attached' style={{ width: '100%', display: 'block', borderRadius: 8 }} />
+          </Box>
+        )}
+
+        {/* Inline [Attachment: url] generic file */}
+        {attachMatch && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.5, bgcolor: isAgent ? 'rgba(255,255,255,0.15)' : '#F1F5F9', borderRadius: 2, border: '1px solid', borderColor: isAgent ? 'rgba(255,255,255,0.3)' : 'divider', mb: 1 }}>
+            <InsertDriveFileIcon sx={{ color: isAgent ? 'white' : '#64748B', fontSize: 28, flexShrink: 0 }} />
+            <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+              <Typography variant='caption' sx={{ fontWeight: 700, color: isAgent ? 'rgba(255,255,255,0.9)' : 'text.primary', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>File Attachment</Typography>
+            </Box>
+            <IconButton size='small' component='a' href={attachMatch[1]} target='_blank' download sx={{ color: isAgent ? 'white' : '#64748B', flexShrink: 0 }}><DownloadIcon fontSize='small' /></IconButton>
+          </Box>
+        )}
+
+        {/* Portal credential message — format as clean info box */}
+        {hasPortalLink && !pdfMatch && !imageMatch && !isRawBase64(cleanText) && (
+          <Box sx={{ bgcolor: isAgent ? 'rgba(255,255,255,0.1)' : '#F0FDF4', borderRadius: 2, p: 1.5, border: '1px solid', borderColor: isAgent ? 'rgba(255,255,255,0.2)' : '#BBF7D0', mb: cleanText ? 1 : 0 }}>
+            {text.split('\n').filter(l => l.trim()).map((line, i) => {
+              if (line.startsWith('https://')) return (
+                <Typography key={i} variant='caption' sx={{ display: 'block', fontWeight: 700 }}>
+                  🔗 <a href={line.trim()} target='_blank' rel='noreferrer' style={{ color: isAgent ? '#A5F3FC' : '#0369A1', wordBreak: 'break-all' }}>{line.trim()}</a>
+                </Typography>
+              );
+              return <Typography key={i} variant='caption' sx={{ display: 'block', color: isAgent ? 'rgba(255,255,255,0.9)' : 'text.primary' }}>{line}</Typography>;
+            })}
+          </Box>
+        )}
+
+        {/* Skip raw base64 unreadable blobs entirely */}
+        {!hasPortalLink && isRawBase64(text) && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.5, bgcolor: isAgent ? 'rgba(255,255,255,0.1)' : '#F8FAFC', borderRadius: 2, border: '1px dashed', borderColor: isAgent ? 'rgba(255,255,255,0.3)' : 'divider' }}>
+            <InsertDriveFileIcon sx={{ color: isAgent ? 'rgba(255,255,255,0.6)' : '#94A3B8', fontSize: 22 }} />
+            <Typography variant='caption' sx={{ color: isAgent ? 'rgba(255,255,255,0.7)' : 'text.secondary', fontStyle: 'italic' }}>Media file received (preview unavailable)</Typography>
+          </Box>
+        )}
+
+        {/* Regular plain text — only render if not credential, not raw base64 */}
+        {!hasPortalLink && !isRawBase64(text) && cleanText && (
+          <Typography variant='body2' sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+            {cleanText}
+          </Typography>
+        )}
+      </>
+    );
   };
 
   const handleTemplateChange = (e) => {
@@ -654,9 +796,7 @@ export const OperationsSocialInbox = () => {
                                   [Public Comment]
                                 </Typography>
                               )}
-                              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-                                {msg.text}
-                              </Typography>
+                              {renderMessageContent(msg, isAgent)}
                             </Paper>
                             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, mx: 1, display: 'flex', gap: 0.8, alignItems: 'center' }}>
                               <span>{msg.timestamp}</span>
@@ -675,7 +815,23 @@ export const OperationsSocialInbox = () => {
 
                   {/* Compose Reply Area */}
                   <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+                    {/* Pending Media Preview */}
+                    {pendingMedia && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, p: 1, bgcolor: '#F1F5F9', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                        {pendingMedia.type?.startsWith('image/') ? (
+                          <ImageIcon sx={{ color: '#3B82F6', fontSize: 20 }} />
+                        ) : (
+                          <PictureAsPdfIcon sx={{ color: '#EF4444', fontSize: 20 }} />
+                        )}
+                        <Typography variant='caption' sx={{ flexGrow: 1, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          📎 {pendingMedia.name} ({pendingMedia.size})
+                        </Typography>
+                        <IconButton size='small' onClick={() => setPendingMedia(null)} sx={{ color: '#64748B' }}><CloseIcon fontSize='small' /></IconButton>
+                      </Box>
+                    )}
+
                     <Box sx={{ display: 'flex', gap: isMobile ? 1 : 1.5, alignItems: 'center', width: '100%' }}>
+                      {/* Quick Templates */}
                       <FormControl sx={{ width: 40, flexShrink: 0 }} size="small">
                         <Select
                           value={selectedTemplate}
@@ -695,15 +851,9 @@ export const OperationsSocialInbox = () => {
                               paddingRight: '0 !important',
                               paddingLeft: '0 !important'
                             },
-                            '& .MuiOutlinedInput-notchedOutline': {
-                              border: 'none'
-                            },
-                            '& .MuiSelect-icon': {
-                              display: 'none'
-                            },
-                            '&:hover': {
-                              bgcolor: 'secondary.dark'
-                            }
+                            '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+                            '& .MuiSelect-icon': { display: 'none' },
+                            '&:hover': { bgcolor: 'secondary.dark' }
                           }}
                         >
                           <MenuItem value="" sx={{ fontSize: '0.75rem' }}><em>None</em></MenuItem>
@@ -712,6 +862,29 @@ export const OperationsSocialInbox = () => {
                           ))}
                         </Select>
                       </FormControl>
+
+                      {/* Attach File Button */}
+                      <input
+                        ref={fileInputRef}
+                        type='file'
+                        accept='.pdf,.jpg,.jpeg,.png,.webp,.gif,.docx'
+                        style={{ display: 'none' }}
+                        onChange={handleFileSelect}
+                      />
+                      <Tooltip title='Attach File (PDF, Image, Document)'>
+                        <IconButton
+                          onClick={() => fileInputRef.current?.click()}
+                          sx={{
+                            bgcolor: pendingMedia ? 'primary.main' : 'action.hover',
+                            color: pendingMedia ? 'white' : 'text.secondary',
+                            width: 40, height: 40, flexShrink: 0,
+                            '&:hover': { bgcolor: 'primary.light', color: 'white' }
+                          }}
+                        >
+                          <AttachFileIcon fontSize='small' />
+                        </IconButton>
+                      </Tooltip>
+
                       <Box sx={{ display: 'flex', gap: 1, flexGrow: 1, minWidth: 0 }}>
                         <TextField
                           fullWidth
@@ -719,26 +892,19 @@ export const OperationsSocialInbox = () => {
                           placeholder={`Type a reply via ${activeConv.platform}...`}
                           value={replyText}
                           onChange={(e) => setReplyText(e.target.value)}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') handleSend();
-                          }}
+                          onKeyPress={(e) => { if (e.key === 'Enter') handleSend(); }}
                           inputProps={{ style: { fontSize: '0.875rem' } }}
                         />
                         <Button
                           variant="contained"
                           color="secondary"
                           onClick={handleSend}
+                          disabled={!replyText.trim() && !pendingMedia}
                           sx={{
-                            minWidth: 40,
-                            width: 40,
-                            height: 40,
-                            borderRadius: '50%',
-                            p: 0,
-                            fontWeight: 'bold',
-                            flexShrink: 0,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
+                            minWidth: 40, width: 40, height: 40,
+                            borderRadius: '50%', p: 0, fontWeight: 'bold',
+                            flexShrink: 0, display: 'flex',
+                            alignItems: 'center', justifyContent: 'center'
                           }}
                         >
                           <SendIcon fontSize="small" />
