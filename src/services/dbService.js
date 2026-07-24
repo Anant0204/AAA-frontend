@@ -92,6 +92,10 @@ export const dbService = {
     const res = await apiClient.patch(`/clients/${clientId}/status`, { visaStatus, status });
     return res.data;
   },
+  updateClient: async (client) => {
+    const res = await apiClient.put(`/clients/${client.id}`, client);
+    return res.data;
+  },
   updateClientDependents: async (clientId, dependents) => {
     const res = await apiClient.patch(`/clients/${clientId}/dependents`, { dependents });
     return res.data;
