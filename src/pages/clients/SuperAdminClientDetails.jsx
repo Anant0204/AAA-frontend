@@ -125,7 +125,7 @@ export const SuperAdminClientDetails = () => {
     queryKey: ['payments'],
     queryFn: dbService.getPayments });
 
-  const { data: documents = [] } = useQuery({
+  const { data: documents = [], refetch: refetchDocs } = useQuery({
     queryKey: ['documents'],
     queryFn: dbService.getDocuments });
 
@@ -166,6 +166,7 @@ export const SuperAdminClientDetails = () => {
     mutationFn: dbService.uploadDocument,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
+      refetchDocs();
       showAlert('Document uploaded and queued for review', 'success');
     } });
 

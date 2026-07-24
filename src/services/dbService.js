@@ -174,14 +174,14 @@ export const dbService = {
     const res = await apiClient.post('/payments/create-checkout-session', { packageId, amount, discount });
     return res.data;
   },
-  verifyCheckoutSession: async (sessionId) => {
-    const res = await apiClient.post('/payments/verify-checkout-session', { sessionId });
+  verifyCheckoutSession: async (sessionId, paymentId) => {
+    const res = await apiClient.post('/payments/verify-checkout-session', { sessionId, paymentId });
     return res.data;
   },
 
   // DOCUMENTS
   getDocuments: async () => {
-    const res = await apiClient.get('/documents');
+    const res = await apiClient.get(`/documents?t=${Date.now()}`);
     return res.data;
   },
   uploadDocument: async (doc) => {

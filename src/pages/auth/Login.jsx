@@ -47,6 +47,27 @@ export const Login = () => {
   const { login } = useAuth();
   const { showAlert } = useAlert();
 
+  React.useEffect(() => {
+    const queryParams = new URLSearchParams(window.location.search || window.location.hash.split('?')[1]);
+    const paymentStatus = queryParams.get('payment');
+    const paymentId = queryParams.get('id');
+
+    if (paymentStatus === 'success' && paymentId) {
+      const verifyPayment = async () => {
+        try {
+          await dbService.verifyCheckoutSession(null, paymentId);
+          showAlert('Payment successfully processed & verified! Please log in to your portal.', 'success');
+          const cleanUrl = window.location.hash.split('?')[0];
+          navigate(cleanUrl, { replace: true });
+        } catch (err) {
+          console.error('Payment verification failed:', err);
+          showAlert('Verification failed, but your payment was processed. Please log in or contact support.', 'warning');
+        }
+      };
+      verifyPayment();
+    }
+  }, [navigate, showAlert]);
+
   const { data: customizationSettings } = useQuery({
     queryKey: ['customization-settings'],
     queryFn: dbService.getCustomizationSettings
