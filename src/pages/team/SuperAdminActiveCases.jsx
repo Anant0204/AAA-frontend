@@ -45,6 +45,7 @@ export const SuperAdminActiveCases = () => {
   const [searchText, setSearchText] = useState('');
   const [visaFilter, setVisaFilter] = useState('all');
   const [serviceFilter, setServiceFilter] = useState('all');
+  const [commentInputs, setCommentInputs] = useState({});
 
   // Fetch collections
   const { data: clients = [], isLoading: isClientsLoading } = useQuery({
@@ -298,7 +299,7 @@ export const SuperAdminActiveCases = () => {
                               {client.firstName} {client.lastName}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
-                              Client ID: <strong>{client.id}</strong> &nbsp;|&nbsp; {client.email} &nbsp;|&nbsp; {client.phone}
+                              Client ID: <strong>{client.clientCode || client.id}</strong> &nbsp;|&nbsp; {client.email} &nbsp;|&nbsp; {client.phone}
                             </Typography>
                           </Box>
                           <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -527,7 +528,14 @@ export const SuperAdminActiveCases = () => {
                               fullWidth 
                               placeholder="Write a comment... (e.g. Sent documents to legal)" 
                               size="small"
-                              id={`comment-input-${client.id}`}
+                              value={commentInputs[client.id] || ''}
+                              onChange={(e) => setCommentInputs(prev => ({ ...prev, [client.id]: e.target.value }))}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault();
+                                  e.currentTarget.nextSibling?.click();
+                                }
+                              }}
                               sx={{ 
                                 '& .MuiInputBase-input': { fontSize: '0.75rem', py: 0.8 } }}
                             />
@@ -535,22 +543,26 @@ export const SuperAdminActiveCases = () => {
                               variant="contained" 
                               color="secondary"
                               size="small"
-                              disabled={isViewOnly}
-                              sx={{ px: 3, fontWeight: 'bold', fontSize: '0.7rem' }}
+                              disabled={isViewOnly || !commentInputs[client.id]?.trim()}
+                              sx={{ px: 3, fontWeight: 'bold', fontSize: '0.7rem', whiteSpace: 'nowrap' }}
                               onClick={() => {
-                                const input = document.getElementById(`comment-input-${client.id}`);
-                                if (!input.value) return;
+                                const text = commentInputs[client.id]?.trim();
+                                if (!text) return;
                                 const newComment = {
-                                  text: input.value,
-                                  author: currentUser ? currentUser.name : 'Staff',
+                                  text,
+                                  author: currentUser ? (currentUser.name || currentUser.fullName) : 'Staff',
+                                  authorId: currentUser?.id || '',
                                   date: new Date().toLocaleDateString(),
                                   time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                                 };
                                 const updatedComments = [...(client.comments || []), newComment];
-                                updateClientMutation.mutate({ ...client, comments: updatedComments }, {
+                                updateClientMutation.mutate({ id: client.id, comments: updatedComments }, {
                                   onSuccess: () => {
-                                    input.value = '';
+                                    setCommentInputs(prev => ({ ...prev, [client.id]: '' }));
                                     showAlert('Comment added successfully!', 'success');
+                                  },
+                                  onError: () => {
+                                    showAlert('Failed to save comment. Please try again.', 'error');
                                   }
                                 });
                               }}
