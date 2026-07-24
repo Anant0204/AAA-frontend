@@ -1179,6 +1179,7 @@ export const DocumentVerificationDashboard = () => {
               } catch (err) {
                 console.error(err);
                 showAlert('Failed to upload document.', 'error');
+                setSwornUploadFile(null);
               } finally {
                 setIsUploadingSworn(false);
               }

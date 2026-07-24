@@ -9,6 +9,7 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import CircularProgress from '@mui/material/CircularProgress';
 import { useAlert } from '../contexts/AlertContext';
 
 const CATEGORIES = [
@@ -20,17 +21,7 @@ const CATEGORIES = [
   'Others',
 ];
 
-const autoDetectCategory = (filename) => {
-  const name = filename.toLowerCase();
-  if (name.includes('passport')) return 'Passport';
-  if (name.includes('bank') || name.includes('statement') || name.includes('balance') || name.includes('financial')) return 'Bank Statement';
-  if (name.includes('employment') || name.includes('job') || name.includes('letter') || name.includes('salary') || name.includes('work')) return 'Employment Letter';
-  if (name.includes('marriage') || name.includes('spouse') || name.includes('wedding')) return 'Marriage Certificate';
-  if (name.includes('education') || name.includes('degree') || name.includes('diploma') || name.includes('university') || name.includes('school') || name.includes('admission')) return 'Education Documents';
-  return 'Others';
-};
-
-export const FileUploader = ({ onUpload, clientId, clientName, categories }) => {
+export const FileUploader = ({ onUpload, clientId, clientName, categories, isLoading = false }) => {
   const selectCategories = Array.isArray(categories) && categories.length > 0 ? categories : CATEGORIES;
   const [file, setFile] = useState(null);
   const [category, setCategory] = useState(selectCategories[0] || 'Passport');
@@ -42,7 +33,17 @@ export const FileUploader = ({ onUpload, clientId, clientName, categories }) => 
     }
   }, [categories]);
 
+  // Effect to reset local file state when isLoading transitions from true -> false (upload finishes)
+  const prevIsLoading = React.useRef(isLoading);
+  React.useEffect(() => {
+    if (prevIsLoading.current && !isLoading) {
+      setFile(null);
+    }
+    prevIsLoading.current = isLoading;
+  }, [isLoading]);
+
   const onDrop = useCallback((acceptedFiles, rejectedFiles) => {
+    if (isLoading) return;
     if (rejectedFiles && rejectedFiles.length > 0) {
       const errorMsg = rejectedFiles[0].errors[0]?.message || 'Invalid file format or file size too large';
       showAlert(errorMsg, 'error');
@@ -58,7 +59,7 @@ export const FileUploader = ({ onUpload, clientId, clientName, categories }) => 
       setCategory(detected);
       showAlert(`File "${selectedFile.name}" selected. Category set to "${detected}". Click Upload to submit.`, 'info');
     }
-  }, [showAlert, selectCategories]);
+  }, [showAlert, selectCategories, isLoading]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -71,6 +72,7 @@ export const FileUploader = ({ onUpload, clientId, clientName, categories }) => 
       'image/png': ['.png'],
     },
     multiple: false,
+    disabled: isLoading,
   });
 
   const handleUploadSubmit = () => {
@@ -89,12 +91,11 @@ export const FileUploader = ({ onUpload, clientId, clientName, categories }) => 
     };
 
     onUpload(docData);
-    setFile(null);
   };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-      <FormControl fullWidth size="small">
+      <FormControl fullWidth size="small" disabled={isLoading}>
         <InputLabel id="upload-doc-category-label">Document Category</InputLabel>
         <Select
           labelId="upload-doc-category-label"
@@ -118,13 +119,16 @@ export const FileUploader = ({ onUpload, clientId, clientName, categories }) => 
           borderRadius: 3,
           p: 4,
           textAlign: 'center',
-          cursor: 'pointer',
+          cursor: isLoading ? 'default' : 'pointer',
           backgroundColor: isDragActive ? 'background.neutral' : 'background.paper',
+          opacity: isLoading ? 0.6 : 1,
           transition: 'all 0.2s ease',
-          '&:hover': {
-            borderColor: 'secondary.main',
-            backgroundColor: 'background.neutral',
-          },
+          ...(!isLoading && {
+            '&:hover': {
+              borderColor: 'secondary.main',
+              backgroundColor: 'background.neutral',
+            },
+          }),
         }}
       >
         <input {...getInputProps()} />
@@ -161,8 +165,14 @@ export const FileUploader = ({ onUpload, clientId, clientName, categories }) => 
               </Typography>
             </Box>
           </Box>
-          <Button variant="contained" size="small" onClick={handleUploadSubmit}>
-            Upload
+          <Button
+            variant="contained"
+            size="small"
+            onClick={handleUploadSubmit}
+            disabled={isLoading}
+            startIcon={isLoading ? <CircularProgress size={16} color="inherit" /> : null}
+          >
+            {isLoading ? 'Uploading...' : 'Upload'}
           </Button>
         </Box>
       )}
