@@ -382,13 +382,6 @@ export const ClientPortalDocs = () => {
 
   const isTranslationClient = client && (client.serviceId === 'sworn_translation' || client.serviceId === 'translation' || client.serviceId === 'sworn' || client.serviceType === 'Spanish Sworn Translation');
 
-  const hasAnyPaidPayment = Boolean(
-    allPayments && allPayments.some(p => 
-      (p.clientId === client?.id || p.clientId === clientId) && p.status === 'Paid'
-    )
-  );
-  const isClientPaid = Boolean(client?.documentUploadAllowed || hasAnyPaidPayment || translationPaid);
-
   useEffect(() => {
     if (isTranslationClient) {
       setTabValue(1);
@@ -440,6 +433,13 @@ export const ClientPortalDocs = () => {
     queryKey: ['payments'],
     queryFn: dbService.getPayments
   });
+
+  const hasAnyPaidPayment = Boolean(
+    allPayments && allPayments.some(p => 
+      (p.clientId === client?.id || p.clientId === clientId) && p.status === 'Paid'
+    )
+  );
+  const isClientPaid = Boolean(client?.documentUploadAllowed || hasAnyPaidPayment || translationPaid);
 
   const { data: allRefunds = [], refetch: refetchRefunds } = useQuery({
     queryKey: ['refundRequests'],
