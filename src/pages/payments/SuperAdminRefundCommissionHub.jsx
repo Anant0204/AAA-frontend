@@ -78,31 +78,20 @@ export const SuperAdminRefundCommissionHub = () => {
   const [refundCategory, setRefundCategory] = useState('Visa Rejection');
   const [refundReason, setRefundReason] = useState('');
   const [refundAmount, setRefundAmount] = useState('');
+  const [refundBankName, setRefundBankName] = useState('');
+  const [refundBankIban, setRefundBankIban] = useState('');
+  const [refundBankSwift, setRefundBankSwift] = useState('');
   
   const [selectedAgentId, setSelectedAgentId] = useState('');
   const [commissionType, setCommissionType] = useState('10%');
   const [commissionValue, setCommissionValue] = useState('10');
 
   // Queries
-  const { data: refunds = [], isLoading: loadingRefunds } = useQuery({
-    queryKey: ['refund-requests'],
-    queryFn: dbService.getRefundRequests });
-
-  const { data: commissionReport = [], isLoading: loadingCommissions } = useQuery({
-    queryKey: ['commission-report'],
-    queryFn: dbService.getCommissionsReport });
-
-  const { data: commissionRates = [], isLoading: loadingRates } = useQuery({
-    queryKey: ['commission-rates'],
-    queryFn: dbService.getCommissionRates });
-
-  const { data: clients = [] } = useQuery({
-    queryKey: ['clients'],
-    queryFn: dbService.getClients });
-
-  const { data: agents = [] } = useQuery({
-    queryKey: ['agents'],
-    queryFn: dbService.getAgents });
+  const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: dbService.getClients });
+  const { data: refunds = [], isLoading: loadingRefunds } = useQuery({ queryKey: ['refundRequests'], queryFn: dbService.getRefundRequests });
+  const { data: commissionReport = [], isLoading: loadingReport } = useQuery({ queryKey: ['commissionsReport'], queryFn: dbService.getCommissionsReport });
+  const { data: commissionRates = [], isLoading: loadingRates } = useQuery({ queryKey: ['commission-rates'], queryFn: dbService.getCommissionRates });
+  const { data: agents = [] } = useQuery({ queryKey: ['agents'], queryFn: dbService.getAgents });
 
   const { data: commissionHistory = [], isLoading: loadingHistory } = useQuery({
     queryKey: ['commission-history', historyAgentId],
@@ -114,12 +103,16 @@ export const SuperAdminRefundCommissionHub = () => {
     mutationFn: dbService.createRefundRequest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['refund-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['refundRequests'] });
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       showAlert('Refund request created successfully', 'success');
       setRefundModalOpen(false);
       setSelectedClientId('');
       setRefundReason('');
       setRefundAmount('');
+      setRefundBankName('');
+      setRefundBankIban('');
+      setRefundBankSwift('');
     }
   });
 
@@ -157,7 +150,10 @@ export const SuperAdminRefundCommissionHub = () => {
       clientId: selectedClientId,
       category: refundCategory,
       reason: refundReason,
-      amount: refundCategory === 'Visa Rejection' ? undefined : Number(refundAmount)
+      amount: refundCategory === 'Visa Rejection' ? undefined : Number(refundAmount),
+      bankAccountName: refundBankName || undefined,
+      bankIban: refundBankIban || undefined,
+      bankSwift: refundBankSwift || undefined
     });
   };
 
@@ -340,9 +336,9 @@ export const SuperAdminRefundCommissionHub = () => {
       {tabValue === 1 && (
         <Box className="grid grid-cols-12 gap-2">
           <Box className="col-span-12" sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-            {!isViewOnly && (
+            {(['super_admin', 'admin', 'operations', 'finance'].includes(currentUser?.role) || !isViewOnly) && (
               <Button variant="contained" color="primary" onClick={() => setRefundModalOpen(true)}>
-                Request Refund
+                + Request Refund
               </Button>
             )}
           </Box>
@@ -362,6 +358,7 @@ export const SuperAdminRefundCommissionHub = () => {
                     <TableRow>
                       <TableCell sx={{ fontWeight: 700 }}>Request ID</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Client</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Requested By</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Refund Amount</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
@@ -378,6 +375,15 @@ export const SuperAdminRefundCommissionHub = () => {
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{ref.clientName}</TableCell>
+                        <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                          <Chip
+                            label={ref.bankAccountName ? 'Admin / Assisted' : 'Client Self-Service'}
+                            color={ref.bankAccountName ? 'secondary' : 'default'}
+                            size="small"
+                            variant="outlined"
+                            sx={{ fontWeight: 700, fontSize: '0.72rem' }}
+                          />
+                        </TableCell>
                         <TableCell>
                           <Chip label={ref.category} variant="outlined" color={ref.category === 'Visa Rejection' ? 'error' : 'default'} size="small" sx={{ fontWeight: 700 }} />
                         </TableCell>
@@ -530,6 +536,24 @@ export const SuperAdminRefundCommissionHub = () => {
               </Typography>
             </Box>
           )}
+
+          <TextField
+            label="Client Bank Account Name (Optional)"
+            fullWidth
+            size="small"
+            placeholder="e.g. John Doe"
+            value={refundBankName}
+            onChange={(e) => setRefundBankName(e.target.value)}
+          />
+
+          <TextField
+            label="IBAN / Account Number (Optional)"
+            fullWidth
+            size="small"
+            placeholder="e.g. ES91 2100 0418 4502 0005 1332"
+            value={refundBankIban}
+            onChange={(e) => setRefundBankIban(e.target.value)}
+          />
 
           <TextField
             label="Reason for Refund"

@@ -152,7 +152,44 @@ export const SuperAdminClientDetails = () => {
     queryKey: ['lead-stages'],
     queryFn: dbService.getLeadStages });
 
+  // Refund Modal State
+  const [createRefundModalOpen, setCreateRefundModalOpen] = useState(false);
+  const [profileRefundCategory, setProfileRefundCategory] = useState('Visa Rejection');
+  const [profileRefundReason, setProfileRefundReason] = useState('');
+  const [profileRefundAmount, setProfileRefundAmount] = useState('');
+  const [profileRefundBankName, setProfileRefundBankName] = useState('');
+  const [profileRefundBankIban, setProfileRefundBankIban] = useState('');
+
   // Mutations
+  const createProfileRefundMutation = useMutation({
+    mutationFn: dbService.createRefundRequest,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['refund-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['refundRequests'] });
+      showAlert('Refund request created successfully for this client profile!', 'success');
+      setCreateRefundModalOpen(false);
+      setProfileRefundReason('');
+      setProfileRefundAmount('');
+      setProfileRefundBankName('');
+      setProfileRefundBankIban('');
+    }
+  });
+
+  const handleCreateProfileRefund = () => {
+    if (!profileRefundReason) {
+      showAlert('Please provide a reason for the refund request', 'warning');
+      return;
+    }
+    createProfileRefundMutation.mutate({
+      clientId: client.id,
+      category: profileRefundCategory,
+      reason: profileRefundReason,
+      amount: profileRefundCategory === 'Visa Rejection' ? undefined : Number(profileRefundAmount),
+      bankAccountName: profileRefundBankName || undefined,
+      bankIban: profileRefundBankIban || undefined
+    });
+  };
+
   const updateStatusMutation = useMutation({
     mutationFn: ({ clientId, visaStatus, status }) =>
       dbService.updateClientVisaStatus(clientId, visaStatus, status),
@@ -654,9 +691,20 @@ export const SuperAdminClientDetails = () => {
                   {/* Feature 5: Refund Section in Client Profile */}
                   <Box sx={{ mt: 4 }}>
                     <Divider sx={{ mb: 3 }} />
-                    <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
-                      💸 Refund Status & Requests
-                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                        💸 Refund Status & Requests
+                      </Typography>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        size="small"
+                        onClick={() => setCreateRefundModalOpen(true)}
+                        sx={{ fontWeight: 700 }}
+                      >
+                        + Create Refund Request
+                      </Button>
+                    </Box>
 
                     {(() => {
                       const clientRefunds = refundRequests.filter(r => r.clientId === client.id);
@@ -969,6 +1017,93 @@ export const SuperAdminClientDetails = () => {
               />
             </Box>
           )}
+        </Box>
+      </AppModal>
+
+      {/* Modal: Create Refund Request for this Client */}
+      <AppModal
+        open={createRefundModalOpen}
+        onClose={() => setCreateRefundModalOpen(false)}
+        title={`Create Refund Request (${client?.firstName || ''} ${client?.lastName || ''})`}
+      >
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}>
+          <Paper sx={{ p: 2, bgcolor: 'background.neutral', borderRadius: 2 }}>
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 700 }}>
+              TARGET CLIENT PROFILE:
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 800, color: 'primary.main' }}>
+              {client?.firstName} {client?.lastName} ({client?.email})
+            </Typography>
+          </Paper>
+
+          <FormControl fullWidth size="small">
+            <InputLabel id="profile-refund-category-label">Category</InputLabel>
+            <Select
+              labelId="profile-refund-category-label"
+              value={profileRefundCategory}
+              onChange={(e) => setProfileRefundCategory(e.target.value)}
+              label="Category"
+            >
+              <MenuItem value="Visa Rejection">Visa Rejection (Auto 50% Refund)</MenuItem>
+              <MenuItem value="Customer Discontent">Customer Discontent</MenuItem>
+              <MenuItem value="Service Cancellation">Service Cancellation</MenuItem>
+              <MenuItem value="Other">Other</MenuItem>
+            </Select>
+          </FormControl>
+
+          {profileRefundCategory !== 'Visa Rejection' && (
+            <TextField
+              label="Refund Amount (€)"
+              type="number"
+              fullWidth
+              size="small"
+              value={profileRefundAmount}
+              onChange={(e) => setProfileRefundAmount(e.target.value)}
+            />
+          )}
+
+          {profileRefundCategory === 'Visa Rejection' && (
+            <Box sx={{ p: 2, bgcolor: '#FEF2F2', borderRadius: 2, border: '1px solid', borderColor: '#FCA5A5' }}>
+              <Typography variant="caption" color="error.dark" sx={{ fontWeight: 700, display: 'block', mb: 0.5 }}>
+                VISA REJECTION CLAUSE (50% GUARANTEE):
+              </Typography>
+              <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'error.dark' }}>
+                System will calculate exactly 50% of the total paid fees for this client upon submission.
+              </Typography>
+            </Box>
+          )}
+
+          <TextField
+            label="Client Bank Account Name (Optional)"
+            fullWidth
+            size="small"
+            placeholder="e.g. John Doe"
+            value={profileRefundBankName}
+            onChange={(e) => setProfileRefundBankName(e.target.value)}
+          />
+
+          <TextField
+            label="IBAN / Account Number (Optional)"
+            fullWidth
+            size="small"
+            placeholder="e.g. ES91 2100 0418 4502 0005 1332"
+            value={profileRefundBankIban}
+            onChange={(e) => setProfileRefundBankIban(e.target.value)}
+          />
+
+          <TextField
+            label="Reason / Notes for Refund"
+            multiline
+            rows={3}
+            fullWidth
+            size="small"
+            value={profileRefundReason}
+            onChange={(e) => setProfileRefundReason(e.target.value)}
+          />
+
+          <Button variant="contained" color="primary" onClick={handleCreateProfileRefund}>
+            Submit Refund Request
+          </Button>
         </Box>
       </AppModal>
     </Box>
