@@ -28,6 +28,19 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
+import CircularProgress from '@mui/material/CircularProgress';
+
+
+const getMediaUrl = (url) => {
+  if (!url) return null;
+  if (url.includes('api.twilio.com')) {
+    const backendBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+    return `${backendBase}/social/media-proxy?url=${encodeURIComponent(url)}`;
+  }
+  return url;
+};
+
+import Link from '@mui/material/Link';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 
@@ -52,6 +65,9 @@ import CommentIcon from '@mui/icons-material/Comment';
 import PersonOffIcon from '@mui/icons-material/PersonOff';
 import MarkChatUnreadIcon from '@mui/icons-material/MarkChatUnread';
 import ChatIcon from '@mui/icons-material/Chat';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import DownloadIcon from '@mui/icons-material/Download';
 
 import PageHeader from '../../components/PageHeader';
 
@@ -145,12 +161,17 @@ export const OperationsSocialInbox = () => {
     mutationFn: (payload) => dbService.sendSocialMessage(payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['conversations'] })
   });
+
+  const uploadSocialMediaMutation = useMutation({
+    mutationFn: (file) => dbService.uploadSocialMedia(file)
+  });
   const [activeConvId, setActiveConvId] = useState('conv1');
   const [activeTab, setActiveTab] = useState(0);
   const [searchText, setSearchText] = useState('');
   const [replyText, setReplyText] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const messageEndRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // Connect to socket to handle real-time inbound/outbound WhatsApp updates
   useEffect(() => {
@@ -375,7 +396,7 @@ export const OperationsSocialInbox = () => {
         {/* Pending media preview (base64) for images */}
         {mediaUrl && (mediaType?.startsWith('image/') || mediaUrl.startsWith('data:image/')) && (
           <Box sx={{ mb: 1, borderRadius: 2, overflow: 'hidden', maxWidth: 240, border: '1px solid rgba(0,0,0,0.1)' }}>
-            <img src={mediaUrl} alt={mediaName} style={{ width: '100%', display: 'block', borderRadius: 8 }} />
+            <img src={getMediaUrl(mediaUrl)} alt={mediaName} style={{ width: '100%', display: 'block', borderRadius: 8 }} />
           </Box>
         )}
 
@@ -387,7 +408,7 @@ export const OperationsSocialInbox = () => {
               <Typography variant='caption' sx={{ fontWeight: 700, color: isAgent ? 'rgba(255,255,255,0.9)' : '#B91C1C', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mediaName}</Typography>
               <Typography variant='caption' sx={{ color: isAgent ? 'rgba(255,255,255,0.6)' : 'text.secondary' }}>PDF Document</Typography>
             </Box>
-            <IconButton size='small' component='a' href={mediaUrl} target='_blank' download sx={{ color: isAgent ? 'white' : '#EF4444', flexShrink: 0 }}><DownloadIcon fontSize='small' /></IconButton>
+            <IconButton size='small' component='a' href={getMediaUrl(mediaUrl)} target='_blank' download sx={{ color: isAgent ? 'white' : '#EF4444', flexShrink: 0 }}><DownloadIcon fontSize='small' /></IconButton>
           </Box>
         )}
 
@@ -451,6 +472,35 @@ export const OperationsSocialInbox = () => {
         )}
       </>
     );
+  };
+
+  const handleMediaSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !activeConv) return;
+    
+    try {
+      const res = await uploadSocialMediaMutation.mutateAsync(file);
+      if (res.success && res.mediaUrl) {
+        const newMsg = {
+          sender: 'agent',
+          text: '',
+          mediaUrl: res.mediaUrl,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        sendSocialMessageMutation.mutate({ 
+          conversationId: activeConvId, 
+          phone: activeConv.phone, 
+          message: newMsg 
+        });
+      }
+    } catch (error) {
+      console.error('File upload failed', error);
+      alert('Failed to upload file. Please try again.');
+    }
+    
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleTemplateChange = (e) => {
@@ -877,6 +927,31 @@ export const OperationsSocialInbox = () => {
                         >
                           <SendIcon fontSize="small" />
                         </Button>
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          style={{ display: 'none' }}
+                          onChange={handleMediaSelect}
+                        />
+                        <IconButton
+                          color="primary"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploadSocialMediaMutation.isPending}
+                          sx={{
+                            minWidth: 40,
+                            width: 40,
+                            height: 40,
+                            borderRadius: '50%',
+                            p: 0,
+                            flexShrink: 0
+                          }}
+                        >
+                          {uploadSocialMediaMutation.isPending ? (
+                            <CircularProgress size={20} />
+                          ) : (
+                            <AttachFileIcon />
+                          )}
+                        </IconButton>
                       </Box>
                     </Box>
                   </Box>
