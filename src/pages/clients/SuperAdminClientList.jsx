@@ -30,48 +30,7 @@ import ReceiptIcon from '@mui/icons-material/Receipt';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 
-import dayjs from 'dayjs';
 
-const FollowUpDatePickerInput = ({ value, onChange, style = {} }) => {
-  const [val, setVal] = useState(() => value ? dayjs(value).format('YYYY-MM-DD') : '');
-
-  React.useEffect(() => {
-    setVal(value ? dayjs(value).format('YYYY-MM-DD') : '');
-  }, [value]);
-
-  return (
-    <input
-      type="date"
-      value={val}
-      onClick={(e) => e.stopPropagation()}
-      onChange={(evt) => {
-        evt.stopPropagation();
-        const newVal = evt.target.value;
-        setVal(newVal);
-        if (!newVal || /^\d{4}-\d{2}-\d{2}$/.test(newVal)) {
-          onChange(newVal);
-        }
-      }}
-      onBlur={() => {
-        if (val && /^\d{4}-\d{2}-\d{2}$/.test(val) && val !== (value ? dayjs(value).format('YYYY-MM-DD') : '')) {
-          onChange(val);
-        }
-      }}
-      style={{
-        padding: '4px 8px',
-        borderRadius: '6px',
-        border: '1px solid #CBD5E1',
-        fontSize: '0.75rem',
-        fontFamily: 'inherit',
-        backgroundColor: '#FFFFFF',
-        color: '#1E293B',
-        cursor: 'pointer',
-        outline: 'none',
-        ...style
-      }}
-    />
-  );
-};
 import { dbService } from '../../services/dbService';
 import PageHeader from '../../components/PageHeader';
 import SearchBar from '../../components/SearchBar';
@@ -409,19 +368,11 @@ export const SuperAdminClientList = () => {
   });
 
   const columns = [
-<<<<<<< HEAD
     {
       id: 'clientCode',
       label: 'Client ID',
-      minWidth: 100,
-      render: (row) => row.clientCode || row.id
-=======
-    { 
-      id: 'clientCode', 
-      label: 'Client ID', 
-      minWidth: 110, 
-      render: (row) => <strong>{row.clientCode || row.displayId || row.id.substring(0, 8)}</strong> 
->>>>>>> 2a431a221c06a10972d8e66127b60cfc37e3d675
+      minWidth: 110,
+      render: (row) => <strong>{row.clientCode || row.displayId || row.id.substring(0, 8)}</strong>
     },
     {
       id: 'name',

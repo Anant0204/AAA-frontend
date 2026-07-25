@@ -1223,7 +1223,11 @@ export const DashboardLayout = () => {
                         key={notif.id}
                         onClick={() => {
                           handleNotifClick(notif.id);
-                          navigate(`/${getRolePrefix()}/documents`);
+                          if (notif.type === 'new_lead' || notif.type === 'new_booking') {
+                            navigate(`/${getRolePrefix()}/leads`);
+                          } else {
+                            navigate(`/${getRolePrefix()}/documents`);
+                          }
                         }}
                         sx={{
                           px: 2,
