@@ -338,10 +338,7 @@ export const dbService = {
     const res = await apiClient.get('/auth/me');
     return res.data;
   },
-  clientLogin: async (clientId, password) => {
-    const res = await apiClient.post('/clients/login', { clientId, password });
-    return res.data;
-  },
+
   changeClientPassword: async (clientId, newPassword) => {
     const res = await apiClient.put(`/clients/${clientId}/change-password`, { newPassword });
     return res.data;
@@ -350,8 +347,7 @@ export const dbService = {
   // STUBS (To prevent UI crash where APIs are not yet built)
   getNotifications: async () => [],
   addNotification: async () => ({}),
-  markNotificationRead: async (id) => ({ id }),
-  markAllNotificationsRead: async () => ({}),
+
   getConversations: async () => {
     const res = await apiClient.get('/social/conversations');
     return res.data;
@@ -394,15 +390,26 @@ export const dbService = {
         }
       }
       const textContent = typeof message === 'string' ? message : (message?.text || '');
+      const mediaUrl = typeof message === 'string' ? null : (message?.mediaUrl || null);
+      
       const sendRes = await apiClient.post('/social/messages/send', {
         phone: targetPhone || conversationId,
-        text: textContent
+        text: textContent,
+        mediaUrl: mediaUrl
       });
       return sendRes.data;
     } catch (e) {
-      console.error('Failed to send social message:', e);
+      console.error('Error sending social message:', e);
       throw e;
     }
+  },
+  uploadSocialMedia: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await apiClient.post('/social/upload-media', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return res.data;
   },
   getSettings: async () => {
     const res = await apiClient.get('/settings/company');

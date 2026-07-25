@@ -28,6 +28,8 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
+import CircularProgress from '@mui/material/CircularProgress';
+import Link from '@mui/material/Link';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 
@@ -52,6 +54,9 @@ import CommentIcon from '@mui/icons-material/Comment';
 import PersonOffIcon from '@mui/icons-material/PersonOff';
 import MarkChatUnreadIcon from '@mui/icons-material/MarkChatUnread';
 import ChatIcon from '@mui/icons-material/Chat';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import DownloadIcon from '@mui/icons-material/Download';
 
 import PageHeader from '../../components/PageHeader';
 
@@ -145,12 +150,17 @@ export const SocialInbox = () => {
     mutationFn: (payload) => dbService.sendSocialMessage(payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['conversations'] })
   });
+  
+  const uploadSocialMediaMutation = useMutation({
+    mutationFn: (file) => dbService.uploadSocialMedia(file)
+  });
   const [activeConvId, setActiveConvId] = useState('conv1');
   const [activeTab, setActiveTab] = useState(0);
   const [searchText, setSearchText] = useState('');
   const [replyText, setReplyText] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const messageEndRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // Connect to socket to handle real-time inbound/outbound WhatsApp updates
   useEffect(() => {
@@ -309,6 +319,35 @@ export const SocialInbox = () => {
 
     setReplyText('');
     setSelectedTemplate('');
+  };
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !activeConv) return;
+    
+    try {
+      const res = await uploadSocialMediaMutation.mutateAsync(file);
+      if (res.success && res.mediaUrl) {
+        const newMsg = {
+          sender: 'agent',
+          text: '',
+          mediaUrl: res.mediaUrl,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        sendSocialMessageMutation.mutate({ 
+          conversationId: activeConvId, 
+          phone: activeConv.phone, 
+          message: newMsg 
+        });
+      }
+    } catch (error) {
+      console.error('File upload failed', error);
+      alert('Failed to upload file. Please try again.');
+    }
+    
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleTemplateChange = (e) => {
@@ -626,9 +665,44 @@ export const SocialInbox = () => {
                                 borderColor: isAgent ? 'none' : 'divider'
                               }}
                             >
-                              <Typography variant="body2" component="div" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
-                                {renderWhatsAppText(msg.text, isAgent)}
-                              </Typography>
+                              {msg.mediaUrl ? (
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                  {getMediaUrl(msg.mediaUrl).match(/\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i) ? (
+                                    <Box 
+                                      component="img" 
+                                      src={getMediaUrl(msg.mediaUrl)} 
+                                      alt="Attachment"
+                                      sx={{ maxWidth: '100%', maxHeight: 200, borderRadius: 1, objectFit: 'contain' }}
+                                    />
+                                  ) : (
+                                    <Button
+                                      variant="outlined"
+                                      size="small"
+                                      startIcon={<InsertDriveFileIcon />}
+                                      endIcon={<DownloadIcon />}
+                                      href={getMediaUrl(msg.mediaUrl)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      sx={{ 
+                                        color: isAgent && activeConv.platform === 'whatsapp' ? 'text.primary' : 'inherit',
+                                        borderColor: isAgent && activeConv.platform === 'whatsapp' ? 'rgba(0,0,0,0.2)' : 'inherit',
+                                        bgcolor: 'rgba(255,255,255,0.2)'
+                                      }}
+                                    >
+                                      View Attachment
+                                    </Button>
+                                  )}
+                                  {msg.text && (
+                                    <Typography variant="body2" component="div" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                                      {renderWhatsAppText(msg.text, isAgent)}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              ) : (
+                                <Typography variant="body2" component="div" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                                  {renderWhatsAppText(msg.text, isAgent)}
+                                </Typography>
+                              )}
                             </Paper>
                             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, mx: 1, display: 'flex', gap: 0.8, alignItems: 'center' }}>
                               <span>{msg.timestamp}</span>
@@ -723,6 +797,31 @@ export const SocialInbox = () => {
                         >
                           <SendIcon fontSize="small" />
                         </Button>
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          style={{ display: 'none' }}
+                          onChange={handleFileSelect}
+                        />
+                        <IconButton
+                          color="primary"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploadSocialMediaMutation.isPending}
+                          sx={{
+                            minWidth: 40,
+                            width: 40,
+                            height: 40,
+                            borderRadius: '50%',
+                            p: 0,
+                            flexShrink: 0
+                          }}
+                        >
+                          {uploadSocialMediaMutation.isPending ? (
+                            <CircularProgress size={20} />
+                          ) : (
+                            <AttachFileIcon />
+                          )}
+                        </IconButton>
                       </Box>
                     </Box>
                   </Box>
