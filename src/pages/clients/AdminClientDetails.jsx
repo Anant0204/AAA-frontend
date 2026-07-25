@@ -180,14 +180,15 @@ export const AdminClientDetails = () => {
   }
 
   // Linked details
+  const originalLead = leads.find((l) => l.clientId === client.id || l.email === client.email);
   const clientPayments = payments.filter((p) => p.clientId === client.id);
   const clientDocuments = documents.filter((d) => d.clientId === client.id);
-  const clientConsultations = consultations.filter((c) => c.leadId === client.id || c.clientName === `${client.firstName} ${client.lastName}`);
+  const clientConsultations = consultations.filter((c) => c.leadId === originalLead?.id || c.clientName === `${client.firstName} ${client.lastName}`);
+  const consultationsWithRecordings = clientConsultations.filter(c => c.recordingUrl);
 
   const serviceObj = SERVICES.find((s) => s.id === client.serviceId);
   const packageObj = PACKAGES.find((p) => p.id === client.packageId);
   const consultantObj = consultants.find((c) => c.id === client.assignedConsultantId);
-  const originalLead = leads.find((l) => l.id === client.leadId || l.email === client.email);
 
   const handleOpenStatusModal = () => {
     setSelectedVisaStatus(client.visaStatus);
@@ -280,7 +281,7 @@ export const AdminClientDetails = () => {
               <Typography variant="caption" color="text.secondary" sx={{ mb: 1.5, display: 'block', wordBreak: 'break-all' }}>
                 {client.email}
               </Typography>
-              <Stack direction="column" spacing={1} alignItems="center">
+              <Stack direction="column" spacing={1} sx={{ alignItems: 'center' }}>
                 <Box>
                   <Typography variant="caption" color="text.secondary" display="block">Visa Process</Typography>
                   <StatusBadge status={client.visaStatus} />
@@ -341,12 +342,13 @@ export const AdminClientDetails = () => {
               onChange={(e, newTab) => setActiveTab(newTab)}
               sx={{ px: 3, pt: 1, borderBottom: '1px solid', borderColor: 'divider' }}
             >
-              <Tab label="Profile Summary" sx={{ fontWeight: 600 }} />
-              <Tab label="Documents Upload" sx={{ fontWeight: 600 }} />
-              <Tab label="Payments & Invoices" sx={{ fontWeight: 600 }} />
-              <Tab label="Meetings / Consultations" sx={{ fontWeight: 600 }} />
+              <Tab value={0} label="Profile Summary" sx={{ fontWeight: 600 }} />
+              <Tab value={1} label="Documents Upload" sx={{ fontWeight: 600 }} />
+              <Tab value={2} label="Payments & Invoices" sx={{ fontWeight: 600 }} />
+              <Tab value={3} label="Meetings / Consultations" sx={{ fontWeight: 600 }} />
+              <Tab value={4} label="Zoom Recordings" sx={{ fontWeight: 600 }} />
               {(canViewDeps && clientsActions.canManageDependents !== false) && (
-                <Tab label="Family & Dependents" sx={{ fontWeight: 600 }} />
+                <Tab value={5} label="Family & Dependents" sx={{ fontWeight: 600 }} />
               )}
             </Tabs>
 
@@ -702,7 +704,50 @@ export const AdminClientDetails = () => {
                 </Box>
               )}
 
-              {activeTab === 4 && canViewDeps && clientsActions.canManageDependents !== false && (
+              {activeTab === 4 && (
+                <Box>
+                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
+                    Zoom Meeting Recordings
+                  </Typography>
+                  {consultationsWithRecordings.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 3 }}>
+                      No Zoom recordings available yet.
+                    </Typography>
+                  ) : (
+                    consultationsWithRecordings.map((cons) => (
+                      <Paper
+                        key={cons.id}
+                        sx={{
+                          p: 2,
+                          mb: 2,
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          boxShadow: 'none' }}
+                      >
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                            {cons.type === 'eligibility' ? 'Eligibility Assessment' : 'Consultation Meeting'}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Date: {cons.date || cons.meetingDate} at {cons.timeSlot || cons.meetingTime}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          {(cons.recordingUrl.includes('.mp4') || cons.recordingUrl.includes('.webm')) ? (
+                            <video src={cons.recordingUrl} controls style={{ width: '100%', maxHeight: '400px', borderRadius: '8px' }} />
+                          ) : (
+                            <Button variant="contained" color="primary" href={cons.recordingUrl} target="_blank">
+                              Watch Recording on Zoom
+                            </Button>
+                          )}
+                        </Box>
+                      </Paper>
+                    ))
+                  )}
+                </Box>
+              )}
+
+              {activeTab === 5 && canViewDeps && clientsActions.canManageDependents !== false && (
                 <Box>
                   <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
                     👨‍👩‍👧‍👦 Family Members & Dependents Details

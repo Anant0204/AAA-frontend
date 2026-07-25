@@ -348,6 +348,7 @@ export const SuperAdminLeadDetails = () => {
 
   // Linked items
   const leadConsultations = consultations.filter((c) => c.leadId === lead.id);
+  const consultationsWithRecordings = leadConsultations.filter(c => c.recordingUrl);
   const leadPayments = payments.filter((p) => p.clientId === lead.id); // for leads prior to conversion
   const leadDocuments = documents.filter((d) => d.clientId === lead.id);
   const consultantObj = consultants.find((c) => c.id === lead.assignedConsultantId);
@@ -616,10 +617,11 @@ export const SuperAdminLeadDetails = () => {
               scrollButtons="auto"
               sx={{ px: 2.5, pt: 0.5, borderBottom: '1px solid', borderColor: 'divider' }}
             >
-              <Tab label="Overview" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
-              <Tab label="Meetings / Consultations" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
-              <Tab icon={<WhatsAppIcon fontSize="small" />} iconPosition="start" label="Comms & Chat" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
-              <Tab icon={<HistoryIcon fontSize="small" />} iconPosition="start" label="Activity Log & Timeline" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
+              <Tab value={0} label="Overview" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
+              <Tab value={1} label="Meetings / Consultations" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
+              <Tab value={2} icon={<WhatsAppIcon fontSize="small" />} iconPosition="start" label="Comms & Chat" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
+              <Tab value={3} icon={<HistoryIcon fontSize="small" />} iconPosition="start" label="Activity Log & Timeline" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
+              <Tab value={4} label="Zoom Recordings" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
             </Tabs>
 
             <Box sx={{ p: 2.5, flex: 1 }}>
@@ -1138,6 +1140,49 @@ export const SuperAdminLeadDetails = () => {
               {activeTab === 3 && (
                 <Box>
                   <CaseActivityTimeline leadId={lead.id} clientId={lead.clientId} />
+                </Box>
+              )}
+
+              {activeTab === 4 && (
+                <Box>
+                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
+                    Zoom Meeting Recordings
+                  </Typography>
+                  {consultationsWithRecordings.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 3 }}>
+                      No Zoom recordings available yet.
+                    </Typography>
+                  ) : (
+                    consultationsWithRecordings.map((cons) => (
+                      <Paper
+                        key={cons.id}
+                        sx={{
+                          p: 2,
+                          mb: 2,
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          boxShadow: 'none' }}
+                      >
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                            {cons.type === 'eligibility' ? 'Eligibility Assessment' : 'Consultation Meeting'}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Date: {cons.date || cons.meetingDate} at {cons.timeSlot || cons.meetingTime}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          {(cons.recordingUrl.includes('.mp4') || cons.recordingUrl.includes('.webm')) ? (
+                            <video src={cons.recordingUrl} controls style={{ width: '100%', maxHeight: '400px', borderRadius: '8px' }} />
+                          ) : (
+                            <Button variant="contained" color="primary" href={cons.recordingUrl} target="_blank">
+                              Watch Recording on Zoom
+                            </Button>
+                          )}
+                        </Box>
+                      </Paper>
+                    ))
+                  )}
                 </Box>
               )}
             </Box>
