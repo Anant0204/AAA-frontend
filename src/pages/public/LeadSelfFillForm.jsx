@@ -3,11 +3,16 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { getServicesForCountry, ALL_COUNTRIES } from "../../constants/countryServices";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://aaa-consultancy-backend-production.up.railway.app/api/v1";
+const API_URL = import.meta.env.VITE_API_URL || "https://aaa-consultancy-backend-production.up.railway.app/api/v1";
 
 
 
-const LANGUAGES = ["English", "Arabic", "Urdu", "Spanish", "French", "German"];
+const LANGUAGES = [
+  { value: "English", label: "English 🇺🇸" },
+  { value: "Arabic", label: "Arabic 🇦🇪" },
+  { value: "Urdu", label: "Urdu 🇵🇰" },
+  { value: "Multi-Language", label: "Multi-Language / Custom 🌐" }
+];
 
 const NATIONALITIES = [
   "Pakistani",
@@ -319,6 +324,21 @@ export const LeadSelfFillForm = () => {
     budget: "€100k - €250k"
   });
 
+  // Multi-Language sub-selection state
+  const [selectedMultiLangs, setSelectedMultiLangs] = useState(['English', 'Urdu']);
+  const [otherLangInput, setOtherLangInput] = useState('');
+
+  const getFinalLanguage = (langVal) => {
+    if (langVal !== 'Multi-Language') {
+      return langVal;
+    }
+    const langs = selectedMultiLangs.map((l) =>
+      l === 'Other' ? (otherLangInput.trim() || 'Other') : l
+    );
+    if (langs.length === 0) return 'Multi-Language';
+    return `Multi-Language (${langs.join(', ')})`;
+  };
+
   // Parse URL query parameters on mount to auto-populate fields or load from ID
   useEffect(() => {
     const searchString = window.location.search || (window.location.hash.includes("?") ? window.location.hash.split("?")[1] : "");
@@ -344,7 +364,7 @@ export const LeadSelfFillForm = () => {
         .then((res) => {
           if (res.data.success) {
             const cons = res.data.data;
-            
+
             // Check if within 1 hour
             let isWithinOneHour = false;
             if (cons.date && cons.timeSlot) {
@@ -353,7 +373,7 @@ export const LeadSelfFillForm = () => {
                 const [hours, minutes] = timePart.split(':').map(Number);
                 const [year, month, day] = cons.date.split('-').map(Number);
                 const meetingTime = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
-                
+
                 const diffMs = meetingTime.getTime() - Date.now();
                 const diffHours = diffMs / (1000 * 60 * 60);
                 if (diffHours <= 1) {
@@ -653,8 +673,20 @@ export const LeadSelfFillForm = () => {
       return;
     }
 
+    const finalPrefLang = getFinalLanguage(form.preferredLanguage);
+    const finalMeetingLang = getFinalLanguage(form.meetingPreferredLanguage);
+
     if (serviceCategory === "translation") {
-      navigate("/public/translation", { state: { prefilledLead: { ...form, serviceType: "Spanish Sworn Translation" } } });
+      navigate("/public/translation", {
+        state: {
+          prefilledLead: {
+            ...form,
+            preferredLanguage: finalPrefLang,
+            sourceLanguage: finalPrefLang,
+            serviceType: "Spanish Sworn Translation"
+          }
+        }
+      });
       return;
     }
 
@@ -676,6 +708,8 @@ export const LeadSelfFillForm = () => {
     // Prepare payload
     const payload = {
       ...form,
+      preferredLanguage: finalPrefLang,
+      meetingPreferredLanguage: finalMeetingLang,
       preferableArea: serviceCategory === "property" ? form.preferableAreaInSpain : undefined,
       budget: serviceCategory === "property" ? form.budget : undefined
     };
@@ -1139,13 +1173,96 @@ export const LeadSelfFillForm = () => {
                       style={{ ...inputStyle, color: "#fff" }}
                     >
                       {LANGUAGES.map((l) => (
-                        <option key={l} value={l} style={{ background: "#24243e", color: "#fff" }}>
-                          {l}
+                        <option key={l.value} value={l.value} style={{ background: "#24243e", color: "#fff" }}>
+                          {l.label}
                         </option>
                       ))}
                     </select>
                   </div>
                 </div>
+
+                {/* Sub-selection for Multi-Language */}
+                {form.preferredLanguage === 'Multi-Language' && (
+                  <div
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid rgba(118, 75, 162, 0.4)',
+                      borderRadius: '12px',
+                      padding: '14px 16px',
+                      marginTop: '-16px',
+                      marginBottom: '24px',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <label style={{ ...labelStyle, color: '#a78bfa', margin: 0, fontSize: '13px', fontWeight: 600 }}>
+                        Select Languages (Choose multiple) *
+                      </label>
+                      <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
+                        {selectedMultiLangs.length} selected
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
+                      {[
+                        { value: 'English', label: 'English 🇺🇸' },
+                        { value: 'Arabic', label: 'Arabic 🇦🇪' },
+                        { value: 'Urdu', label: 'Urdu 🇵🇰' },
+                        { value: 'Other', label: 'Other Language' }
+                      ].map((lang) => {
+                        const isSelected = selectedMultiLangs.includes(lang.value);
+                        return (
+                          <button
+                            key={lang.value}
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) {
+                                if (selectedMultiLangs.length > 1) {
+                                  setSelectedMultiLangs(selectedMultiLangs.filter((l) => l !== lang.value));
+                                }
+                              } else {
+                                setSelectedMultiLangs([...selectedMultiLangs, lang.value]);
+                              }
+                            }}
+                            style={{
+                              padding: '7px 14px',
+                              borderRadius: '20px',
+                              border: isSelected ? '1px solid #8b5cf6' : '1px solid rgba(255,255,255,0.15)',
+                              background: isSelected ? 'linear-gradient(135deg, #667eea, #764ba2)' : 'rgba(255,255,255,0.06)',
+                              color: '#fff',
+                              fontSize: '13px',
+                              fontWeight: 500,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              transition: 'all 0.2s ease',
+                              boxShadow: isSelected ? '0 2px 8px rgba(118, 75, 162, 0.4)' : 'none'
+                            }}
+                          >
+                            <span style={{ fontWeight: 'bold' }}>{isSelected ? '✓' : '+'}</span>
+                            <span>{lang.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {selectedMultiLangs.includes('Other') && (
+                      <div style={{ marginTop: '10px' }}>
+                        <input
+                          type="text"
+                          placeholder="Specify other language (e.g. French, Tagalog)..."
+                          value={otherLangInput}
+                          onChange={(e) => setOtherLangInput(e.target.value)}
+                          style={{
+                            ...inputStyle,
+                            background: 'rgba(255,255,255,0.08)',
+                            fontSize: '13px',
+                            padding: '10px 12px'
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Section: Visa Program (only for visa category) */}
                 {serviceCategory === 'visa' && (
@@ -1326,8 +1443,8 @@ export const LeadSelfFillForm = () => {
                         style={{ ...inputStyle, color: "#fff" }}
                       >
                         {LANGUAGES.map((l) => (
-                          <option key={l} value={l} style={{ background: "#24243e", color: "#fff" }}>
-                            {l}
+                          <option key={l.value} value={l.value} style={{ background: "#24243e", color: "#fff" }}>
+                            {l.label}
                           </option>
                         ))}
                       </select>

@@ -72,7 +72,7 @@ export const SuperAdminRefundCommissionHub = () => {
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [historyAgentId, setHistoryAgentId] = useState(null);
   const [historyAgentName, setHistoryAgentName] = useState('');
-  
+
   // Form states
   const [selectedClientId, setSelectedClientId] = useState('');
   const [refundCategory, setRefundCategory] = useState('Visa Rejection');
@@ -83,7 +83,7 @@ export const SuperAdminRefundCommissionHub = () => {
   const [refundBankSwift, setRefundBankSwift] = useState('');
   const [refundFile, setRefundFile] = useState(null);
   const [uploadingProof, setUploadingProof] = useState(false);
-  
+
   const [selectedAgentId, setSelectedAgentId] = useState('');
   const [commissionType, setCommissionType] = useState('10%');
   const [commissionValue, setCommissionValue] = useState('10');
@@ -120,7 +120,7 @@ export const SuperAdminRefundCommissionHub = () => {
   });
 
   const updateRefundStatusMutation = useMutation({
-    mutationFn: ({ refundId, status, payoutMethod, transactionRef, adminNotes }) => 
+    mutationFn: ({ refundId, status, payoutMethod, transactionRef, adminNotes }) =>
       dbService.updateRefundStatus(refundId, status, payoutMethod, transactionRef, adminNotes),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['refund-requests'] });
@@ -423,10 +423,10 @@ export const SuperAdminRefundCommissionHub = () => {
                         </TableCell>
                         <TableCell align="right">
                           <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                            <Button 
-                              size="small" 
-                              variant="contained" 
-                              color="secondary" 
+                            <Button
+                              size="small"
+                              variant="contained"
+                              color="secondary"
                               onClick={() => {
                                 setActiveAuditRefund(ref);
                                 setAuditPayoutMethod('Stripe Automatic');
@@ -726,21 +726,21 @@ export const SuperAdminRefundCommissionHub = () => {
               {activeAuditRefund.proofUrl ? (
                 <Box sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>📄 Official Embassy Resolution Letter Attached</Typography>
-                  <Button 
-                    size="small" 
-                    variant="outlined" 
-                    color="primary" 
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="primary"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       if (activeAuditRefund.proofUrl) {
                         const rawUrl = activeAuditRefund.proofUrl;
-                        const fullUrl = rawUrl.startsWith('http') 
-                          ? rawUrl 
+                        const fullUrl = rawUrl.startsWith('http')
+                          ? rawUrl
                           : `${(import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1').replace('/api/v1', '')}${rawUrl.startsWith('/') ? '' : '/'}${rawUrl}`;
                         window.open(fullUrl, '_blank', 'noopener,noreferrer');
                       }
-                    }} 
+                    }}
                     sx={{ fontWeight: 700 }}
                   >
                     View & Download PDF
@@ -786,7 +786,7 @@ export const SuperAdminRefundCommissionHub = () => {
                 <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
                   {activeAuditRefund.status === 'Processed' ? '🔒 Audit Decision & Payout Completed (Locked)' : 'Audit Decision & Payout Method Selection'}
                 </Typography>
-                
+
                 <Grid container spacing={2}>
                   {/* OPTION 1: STRIPE AUTOMATIC PAYOUT */}
                   {(() => {
@@ -800,12 +800,12 @@ export const SuperAdminRefundCommissionHub = () => {
                       <React.Fragment>
                         {canStripe && (
                           <Grid item xs={12} sm={!canBank ? 12 : 6}>
-                            <Paper 
-                              variant="outlined" 
-                              sx={{ 
-                                p: 2, 
-                                borderRadius: 3, 
-                                border: '1.5px solid', 
+                            <Paper
+                              variant="outlined"
+                              sx={{
+                                p: 2,
+                                borderRadius: 3,
+                                border: '1.5px solid',
                                 borderColor: auditPayoutMethod === 'Stripe Automatic' ? 'primary.main' : 'divider',
                                 bgcolor: auditPayoutMethod === 'Stripe Automatic' ? 'primary.lighter' : 'background.paper'
                               }}
@@ -833,7 +833,7 @@ export const SuperAdminRefundCommissionHub = () => {
                                     amount: activeAuditRefund.amount,
                                     clientName: activeAuditRefund.clientName
                                   };
-                                  
+
                                   if (requireConfirm) {
                                     setPendingPayoutAction(payoutPayload);
                                     setConfirmModalOpen(true);
@@ -852,12 +852,12 @@ export const SuperAdminRefundCommissionHub = () => {
                         {/* OPTION 2: MANUAL BANK TRANSFER */}
                         {canBank && (
                           <Grid item xs={12} sm={!canStripe ? 12 : 6}>
-                            <Paper 
-                              variant="outlined" 
-                              sx={{ 
-                                p: 2, 
-                                borderRadius: 3, 
-                                border: '1.5px solid', 
+                            <Paper
+                              variant="outlined"
+                              sx={{
+                                p: 2,
+                                borderRadius: 3,
+                                border: '1.5px solid',
                                 borderColor: auditPayoutMethod === 'Manual Bank Transfer' ? 'warning.main' : 'divider',
                                 bgcolor: auditPayoutMethod === 'Manual Bank Transfer' ? '#FAF6ED' : 'background.paper'
                               }}
@@ -893,30 +893,30 @@ export const SuperAdminRefundCommissionHub = () => {
                     <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, color: '#A37E1C' }}>
                       📋 AUTO-FILLED CLIENT BANK PAYOUT DATA:
                     </Typography>
-                    
+
                     <Grid container spacing={1}>
                       <Grid item xs={12} sm={6}>
-                        <TextField 
-                          fullWidth 
-                          size="small" 
-                          label="Account Holder Name (Auto-Filled)" 
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Account Holder Name (Auto-Filled)"
                           value={activeAuditRefund.bankAccountName || activeAuditRefund.clientName}
                           InputProps={{ readOnly: true }}
                         />
                       </Grid>
                       <Grid item xs={12} sm={6}>
-                        <TextField 
-                          fullWidth 
-                          size="small" 
-                          label="IBAN / Account Number (Auto-Filled)" 
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="IBAN / Account Number (Auto-Filled)"
                           value={activeAuditRefund.bankIban || 'ES91 2100 0418 45 0200051332'}
                           InputProps={{ readOnly: true }}
                         />
                       </Grid>
                       <Grid item xs={12}>
-                        <TextField 
-                          fullWidth 
-                          size="small" 
+                        <TextField
+                          fullWidth
+                          size="small"
                           required
                           disabled={activeAuditRefund?.status === 'Processed'}
                           label="Bank Transfer Reference / UTR Number *"
@@ -928,8 +928,8 @@ export const SuperAdminRefundCommissionHub = () => {
                       </Grid>
                     </Grid>
 
-                    <Button 
-                      variant="contained" 
+                    <Button
+                      variant="contained"
                       color="success"
                       fullWidth
                       disabled={!auditTransactionRef || updateRefundStatusMutation.isPending || activeAuditRefund?.status === 'Processed'}
@@ -952,11 +952,11 @@ export const SuperAdminRefundCommissionHub = () => {
                   </Paper>
                 )}
 
-                <TextField 
-                  fullWidth 
-                  multiline 
-                  rows={2} 
-                  size="small" 
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={2}
+                  size="small"
                   disabled={activeAuditRefund?.status === 'Processed'}
                   label="Super Admin Audit Notes"
                   placeholder="Internal audit observations..."
@@ -966,26 +966,26 @@ export const SuperAdminRefundCommissionHub = () => {
                 />
 
                 <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', mt: 1 }}>
-                  <Button 
-                    variant="outlined" 
+                  <Button
+                    variant="outlined"
                     color="error"
                     disabled={activeAuditRefund?.status === 'Processed'}
-                    onClick={() => updateRefundStatusMutation.mutate({ 
-                      refundId: activeAuditRefund.id, 
+                    onClick={() => updateRefundStatusMutation.mutate({
+                      refundId: activeAuditRefund.id,
                       status: 'Rejected',
-                      adminNotes: auditNotes 
+                      adminNotes: auditNotes
                     })}
                   >
                     Reject Claim
                   </Button>
-                  <Button 
-                    variant="outlined" 
+                  <Button
+                    variant="outlined"
                     color="info"
                     disabled={activeAuditRefund?.status === 'Processed'}
-                    onClick={() => updateRefundStatusMutation.mutate({ 
-                      refundId: activeAuditRefund.id, 
+                    onClick={() => updateRefundStatusMutation.mutate({
+                      refundId: activeAuditRefund.id,
                       status: 'Approved',
-                      adminNotes: auditNotes 
+                      adminNotes: auditNotes
                     })}
                   >
                     Approve Claim (Mark Pending Payout)
@@ -1022,15 +1022,15 @@ export const SuperAdminRefundCommissionHub = () => {
             </Typography>
 
             <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end', mt: 1 }}>
-              <Button 
-                variant="outlined" 
-                color="inherit" 
+              <Button
+                variant="outlined"
+                color="inherit"
                 onClick={() => setConfirmModalOpen(false)}
               >
                 Cancel Action
               </Button>
-              <Button 
-                variant="contained" 
+              <Button
+                variant="contained"
                 color="error"
                 disabled={updateRefundStatusMutation.isPending}
                 onClick={() => {

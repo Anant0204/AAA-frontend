@@ -47,6 +47,8 @@ import { SERVICES, PACKAGES } from '../../constants/mockData';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import AiSummaryModal from '../../components/AiSummaryModal';
 import { CommunicationHistoryTab } from '../../components/CommunicationHistoryTab';
+import UploadedDocumentsCard from '../../components/UploadedDocumentsCard';
+import CaseHistoryTimelineCard from '../../components/CaseHistoryTimelineCard';
 
 const FollowUpDatePickerInput = ({ value, onChange, style = {} }) => {
   const [val, setVal] = useState(() => value ? dayjs(value).format('YYYY-MM-DD') : '');
@@ -543,10 +545,19 @@ export const SuperAdminLeadDetails = () => {
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
                 {lead.firstName} {lead.lastName}
               </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 1.5, display: 'block', wordBreak: 'break-all' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block', wordBreak: 'break-all' }}>
                 {lead.email}
               </Typography>
-              <StatusBadge status={lead.status} />
+              <Chip
+                label={`Customer ID: ${lead.clientCode || lead.displayId || 'CID-12001'}`}
+                size="small"
+                color="primary"
+                variant="outlined"
+                sx={{ mb: 1, fontWeight: 700, fontSize: '11px' }}
+              />
+              <Box sx={{ mt: 0.5 }}>
+                <StatusBadge status={lead.status} />
+              </Box>
             </Box>
 
             <Box>
@@ -719,49 +730,75 @@ export const SuperAdminLeadDetails = () => {
                     </Box>
                   ) : null}
 
-                  {/* Meeting Preferences Section */}
+                  {/* Uploaded Translation Documents Section */}
                   <Box className="col-span-12">
-                    <Divider sx={{ my: 1.5 }} />
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5, flexWrap: 'wrap', gap: 1 }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                        📅 Meeting Preferences
-                      </Typography>
-                      {lead.formSubmittedAt ? (
-                        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.8, px: 1.5, py: 0.5, borderRadius: 2, background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)' }}>
-                          <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} />
-                          <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600 }}>Form Submitted — {dayjs(lead.formSubmittedAt).format('DD MMM YYYY')}</Typography>
+                    <UploadedDocumentsCard documents={lead.documents || []} />
+                  </Box>
+
+                  {/* Case History Timeline (Single Client ID Journey) */}
+                  <Box className="col-span-12">
+                    <CaseHistoryTimelineCard
+                      client={lead}
+                      cycles={lead.applicationCycles || []}
+                      onCreateCycle={async (data) => {
+                        await dbService.createApplicationCycle(data);
+                        queryClient.invalidateQueries({ queryKey: ['lead', id] });
+                        showAlert('New Application Cycle created under same Client ID!', 'success');
+                      }}
+                      onUpdateCycle={async (cycleId, data) => {
+                        await dbService.updateApplicationCycle(cycleId, data);
+                        queryClient.invalidateQueries({ queryKey: ['lead', id] });
+                        showAlert('Application Cycle updated!', 'success');
+                      }}
+                    />
+                  </Box>
+
+                  {/* Meeting Preferences Section (Hidden for Sworn Translation) */}
+                  {!((lead.serviceType || lead.serviceId || '').toLowerCase().includes('translation') || (lead.serviceType || lead.serviceId || '').toLowerCase().includes('sworn')) && (
+                    <Box className="col-span-12">
+                      <Divider sx={{ my: 1.5 }} />
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5, flexWrap: 'wrap', gap: 1 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                          📅 Meeting Preferences
+                        </Typography>
+                        {lead.formSubmittedAt ? (
+                          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.8, px: 1.5, py: 0.5, borderRadius: 2, background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)' }}>
+                            <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                            <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600 }}>Form Submitted — {dayjs(lead.formSubmittedAt).format('DD MMM YYYY')}</Typography>
+                          </Box>
+                        ) : (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.8, px: 1.5, py: 0.5, borderRadius: 2, background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)' }}>
+                              <HourglassEmptyIcon sx={{ fontSize: 16, color: 'warning.main' }} />
+                              <Typography variant="caption" sx={{ color: 'warning.main', fontWeight: 600 }}>Awaiting Form Submission</Typography>
+                            </Box>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={<SendIcon />}
+                              onClick={() => {
+                                const link = `${window.location.origin}/#/public/lead-form?id=${lead.id}`;
+                                navigator.clipboard.writeText(link);
+                                showAlert('Form link copied to clipboard! Send to lead via WhatsApp or Email.', 'success');
+                              }}
+                            >
+                              Copy Form Link
+                            </Button>
+                          </Box>
+                        )}
+                      </Box>
+                      {lead.meetingPreferredDate ? (
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5, p: 2, borderRadius: 2, background: 'rgba(102,126,234,0.06)', border: '1px solid rgba(102,126,234,0.2)' }}>
+                          <Box><Typography variant="caption" color="text.secondary">Preferred Date</Typography><Typography variant="body2" sx={{ fontWeight: 600 }}>📅 {lead.meetingPreferredDate}</Typography></Box>
+                          <Box><Typography variant="caption" color="text.secondary">Preferred Time Slot</Typography><Typography variant="body2" sx={{ fontWeight: 600 }}>🕐 {lead.meetingPreferredTime ? lead.meetingPreferredTime.charAt(0).toUpperCase() + lead.meetingPreferredTime.slice(1) : 'Not specified'}</Typography></Box>
+                          <Box><Typography variant="caption" color="text.secondary">Preferred Language</Typography><Typography variant="body2" sx={{ fontWeight: 600 }}>🌐 {lead.meetingPreferredLanguage || lead.preferredLanguage}</Typography></Box>
+                          {lead.meetingNotes && <Box className="col-span-2"><Typography variant="caption" color="text.secondary">Lead's Notes / Questions</Typography><Typography variant="body2" sx={{ fontWeight: 500, mt: 0.5, p: 1.5, background: 'rgba(0,0,0,0.04)', borderRadius: 1 }}>{lead.meetingNotes}</Typography></Box>}
                         </Box>
                       ) : (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.8, px: 1.5, py: 0.5, borderRadius: 2, background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)' }}>
-                            <HourglassEmptyIcon sx={{ fontSize: 16, color: 'warning.main' }} />
-                            <Typography variant="caption" sx={{ color: 'warning.main', fontWeight: 600 }}>Awaiting Form Submission</Typography>
-                          </Box>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<SendIcon />}
-                            onClick={() => {
-                              const link = `${window.location.origin}/#/public/lead-form?id=${lead.id}`;
-                              navigator.clipboard.writeText(link);
-                              showAlert('Form link copied to clipboard! Send to lead via WhatsApp or Email.', 'success');
-                            }}
-                          >
-                            Copy Form Link
-                          </Button>
-                        </Box>
+                        <Typography variant="body2" color="text.secondary">Lead has not submitted meeting preferences yet. Share the form link above.</Typography>
                       )}
                     </Box>
-                    {lead.meetingPreferredDate ? (
-                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5, p: 2, borderRadius: 2, background: 'rgba(102,126,234,0.06)', border: '1px solid rgba(102,126,234,0.2)' }}>
-                        <Box><Typography variant="caption" color="text.secondary">Preferred Date</Typography><Typography variant="body2" sx={{ fontWeight: 600 }}>📅 {lead.meetingPreferredDate}</Typography></Box>
-                        <Box><Typography variant="caption" color="text.secondary">Preferred Time Slot</Typography><Typography variant="body2" sx={{ fontWeight: 600 }}>🕐 {lead.meetingPreferredTime ? lead.meetingPreferredTime.charAt(0).toUpperCase() + lead.meetingPreferredTime.slice(1) : 'Not specified'}</Typography></Box>
-                        <Box><Typography variant="caption" color="text.secondary">Preferred Language</Typography><Typography variant="body2" sx={{ fontWeight: 600 }}>🌐 {lead.meetingPreferredLanguage || lead.preferredLanguage}</Typography></Box>
-                        {lead.meetingNotes && <Box className="col-span-2"><Typography variant="caption" color="text.secondary">Lead's Notes / Questions</Typography><Typography variant="body2" sx={{ fontWeight: 500, mt: 0.5, p: 1.5, background: 'rgba(0,0,0,0.04)', borderRadius: 1 }}>{lead.meetingNotes}</Typography></Box>}
-                      </Box>
-                    ) : (
-                      <Typography variant="body2" color="text.secondary">Lead has not submitted meeting preferences yet. Share the form link above.</Typography>
-                    )}
+                  )}
                     
                     <Box sx={{ mt: 3 }}>
                       {lead.status === 'Completed' || lead.status === 'Converted' ? (
@@ -783,7 +820,6 @@ export const SuperAdminLeadDetails = () => {
                         </Tooltip>
                       )}
                     </Box>
-                  </Box>
 
                   <Box className="col-span-12">
                     <Divider sx={{ my: 2 }} />

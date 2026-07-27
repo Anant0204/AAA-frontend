@@ -175,10 +175,10 @@ export const SuperAdminSocialInbox = () => {
 
   // Connect to socket to handle real-time inbound/outbound WhatsApp updates
   useEffect(() => {
-    const socketUrl = import.meta.env.VITE_API_URL 
-      ? import.meta.env.VITE_API_URL.replace('/api/v1', '') 
+    const socketUrl = import.meta.env.VITE_API_URL
+      ? import.meta.env.VITE_API_URL.replace('/api/v1', '')
       : 'https://aaa-consultancy-backend-production.up.railway.app';
-      
+
     const socket = io(socketUrl);
 
     socket.on('new_whatsapp_message', (data) => {
@@ -337,10 +337,10 @@ export const SuperAdminSocialInbox = () => {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    sendSocialMessageMutation.mutate({ 
-      conversationId: activeConvId, 
-      phone: activeConv.phone, 
-      message: newMsg 
+    sendSocialMessageMutation.mutate({
+      conversationId: activeConvId,
+      phone: activeConv.phone,
+      message: newMsg
     });
 
     setReplyText('');
@@ -350,7 +350,7 @@ export const SuperAdminSocialInbox = () => {
   const handleFileSelect = async (e) => {
     const file = e.target.files[0];
     if (!file || !activeConv) return;
-    
+
     try {
       const res = await uploadSocialMediaMutation.mutateAsync(file);
       if (res.success && res.mediaUrl) {
@@ -360,17 +360,17 @@ export const SuperAdminSocialInbox = () => {
           mediaUrl: res.mediaUrl,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
-        sendSocialMessageMutation.mutate({ 
-          conversationId: activeConvId, 
-          phone: activeConv.phone, 
-          message: newMsg 
+        sendSocialMessageMutation.mutate({
+          conversationId: activeConvId,
+          phone: activeConv.phone,
+          message: newMsg
         });
       }
     } catch (error) {
       console.error('File upload failed', error);
       alert('Failed to upload file. Please try again.');
     }
-    
+
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -391,7 +391,7 @@ export const SuperAdminSocialInbox = () => {
     return conversations.filter(c => {
       const matchesSearch = c.name.toLowerCase().includes(searchText.toLowerCase()) ||
         c.messages.some(m => m.text.toLowerCase().includes(searchText.toLowerCase()));
-      
+
       let matchesPlatform = false;
       if (selectedPlatform === 'all') {
         matchesPlatform = true;
@@ -706,9 +706,9 @@ export const SuperAdminSocialInbox = () => {
                               {msg.mediaUrl ? (
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                                   {getMediaUrl(msg.mediaUrl).match(/\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i) ? (
-                                    <Box 
-                                      component="img" 
-                                      src={getMediaUrl(msg.mediaUrl)} 
+                                    <Box
+                                      component="img"
+                                      src={getMediaUrl(msg.mediaUrl)}
                                       alt="Attachment"
                                       sx={{ maxWidth: '100%', maxHeight: 200, borderRadius: 1, objectFit: 'contain' }}
                                     />
@@ -721,7 +721,7 @@ export const SuperAdminSocialInbox = () => {
                                       href={getMediaUrl(msg.mediaUrl)}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      sx={{ 
+                                      sx={{
                                         color: isAgent && activeConv.platform === 'whatsapp' ? 'text.primary' : 'inherit',
                                         borderColor: isAgent && activeConv.platform === 'whatsapp' ? 'rgba(0,0,0,0.2)' : 'inherit',
                                         bgcolor: 'rgba(255,255,255,0.2)'

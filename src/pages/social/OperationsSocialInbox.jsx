@@ -175,10 +175,10 @@ export const OperationsSocialInbox = () => {
 
   // Connect to socket to handle real-time inbound/outbound WhatsApp updates
   useEffect(() => {
-    const socketUrl = import.meta.env.VITE_API_URL 
-      ? import.meta.env.VITE_API_URL.replace('/api/v1', '') 
+    const socketUrl = import.meta.env.VITE_API_URL
+      ? import.meta.env.VITE_API_URL.replace('/api/v1', '')
       : 'https://aaa-consultancy-backend-production.up.railway.app';
-      
+
     const socket = io(socketUrl);
 
     socket.on('new_whatsapp_message', (data) => {
@@ -337,10 +337,10 @@ export const OperationsSocialInbox = () => {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    sendSocialMessageMutation.mutate({ 
-      conversationId: activeConvId, 
-      phone: activeConv.phone, 
-      message: newMsg 
+    sendSocialMessageMutation.mutate({
+      conversationId: activeConvId,
+      phone: activeConv.phone,
+      message: newMsg
     });
 
     setReplyText('');
@@ -477,7 +477,7 @@ export const OperationsSocialInbox = () => {
   const handleMediaSelect = async (e) => {
     const file = e.target.files[0];
     if (!file || !activeConv) return;
-    
+
     try {
       const res = await uploadSocialMediaMutation.mutateAsync(file);
       if (res.success && res.mediaUrl) {
@@ -487,17 +487,17 @@ export const OperationsSocialInbox = () => {
           mediaUrl: res.mediaUrl,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
-        sendSocialMessageMutation.mutate({ 
-          conversationId: activeConvId, 
-          phone: activeConv.phone, 
-          message: newMsg 
+        sendSocialMessageMutation.mutate({
+          conversationId: activeConvId,
+          phone: activeConv.phone,
+          message: newMsg
         });
       }
     } catch (error) {
       console.error('File upload failed', error);
       alert('Failed to upload file. Please try again.');
     }
-    
+
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -518,7 +518,7 @@ export const OperationsSocialInbox = () => {
     return conversations.filter(c => {
       const matchesSearch = c.name.toLowerCase().includes(searchText.toLowerCase()) ||
         c.messages.some(m => m.text.toLowerCase().includes(searchText.toLowerCase()));
-      
+
       let matchesPlatform = false;
       if (selectedPlatform === 'all') {
         matchesPlatform = true;
