@@ -56,23 +56,39 @@ export const StatusBadge = ({ status, size = 'small' }) => {
         return { label: statusStr, color: 'primary', icon: <AutorenewIcon size={14} />, bg: '#EEF2F6', text: '#0F172A' };
       case 'documents pending':
       case 'waiting for payment':
+      case 'payment not completed':
       case 'pending acceptance':
         return { label: statusStr, color: 'warning', icon: <HourglassEmptyIcon size={14} />, bg: '#FEF3C7', text: '#D97706' };
       case 'under process':
+      case 'resubmission in progress':
+      case 'ready for resubmission':
       case 'submitted - pending decision':
         return { label: statusStr, color: 'secondary', icon: <HourglassEmptyIcon size={14} />, bg: '#DBEAFE', text: '#2563EB' };
+      case 'resubmitted':
+      case 'appeal in progress':
+        return { label: statusStr, color: 'primary', icon: <AutorenewIcon size={14} />, bg: '#F3E8FF', text: '#7E22CE' };
       case 'completed':
       case 'visa approved':
+      case 'appeal approved':
+      case 'refund approved':
+      case 'refund completed':
       case 'paid':
       case 'approved':
         return { label: statusStr, color: 'success', icon: <CheckCircleIcon size={14} />, bg: '#DCFCE7', text: '#15803D' };
+      case 'visa refused':
+      case 'appeal refused':
+      case 'refund rejected':
       case 'declined':
-        return { label: statusStr, color: 'error', icon: <CancelIcon size={14} />, bg: '#FEE2E2', text: '#B91C1C' };
       case 'cancelled':
       case 'no show':
       case 'failed':
       case 'rejected':
         return { label: statusStr, color: 'error', icon: <CancelIcon size={14} />, bg: '#FEE2E2', text: '#B91C1C' };
+      case 'refund eligible':
+      case 'refund under review':
+        return { label: statusStr, color: 'warning', icon: <HourglassEmptyIcon size={14} />, bg: '#FFEDD5', text: '#C2410C' };
+      case 'case closed':
+        return { label: statusStr, color: 'default', icon: <BlockIcon size={14} />, bg: '#E2E8F0', text: '#475569' };
       case 'cold lead':
         return { label: statusStr, color: 'default', icon: <BlockIcon size={14} />, bg: '#F1F5F9', text: '#64748B' };
       case 'lost lead':

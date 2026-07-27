@@ -430,6 +430,7 @@ export const SuperAdminLeadList = () => {
   };
 
   const columns = [
+    { id: 'clientCode', label: 'Customer ID', render: (row) => row.clientCode || row.displayId || 'CID-12001' },
     { id: 'id', label: 'Lead ID', minWidth: 90 },
     {
       id: 'name',
