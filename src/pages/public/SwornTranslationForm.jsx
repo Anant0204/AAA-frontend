@@ -144,6 +144,21 @@ const SwornTranslationForm = () => {
   const [isDragActive, setIsDragActive] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
+  // Multi-Language sub-selection state
+  const [selectedMultiLangs, setSelectedMultiLangs] = useState(['English', 'Urdu']);
+  const [otherLangInput, setOtherLangInput] = useState('');
+
+  const getFinalSourceLanguage = () => {
+    if (formData.sourceLanguage !== 'Multi-Language') {
+      return formData.sourceLanguage;
+    }
+    const langs = selectedMultiLangs.map((l) =>
+      l === 'Other' ? (otherLangInput.trim() || 'Other') : l
+    );
+    if (langs.length === 0) return 'Multi-Language';
+    return `Multi-Language (${langs.join(', ')})`;
+  };
+
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
@@ -180,7 +195,7 @@ const SwornTranslationForm = () => {
       formDataUpload.append('email', formData.email);
       formDataUpload.append('phone', formData.phone);
       formDataUpload.append('nationality', formData.nationality);
-      formDataUpload.append('sourceLanguage', formData.sourceLanguage);
+      formDataUpload.append('sourceLanguage', getFinalSourceLanguage());
       formDataUpload.append('targetLanguage', formData.targetLanguage);
 
       const res = await axios.post(`${API_URL}/booking/translation/upload`, formDataUpload, {
@@ -226,7 +241,7 @@ const SwornTranslationForm = () => {
       formDataCheckout.append('email', formData.email);
       formDataCheckout.append('phone', formData.phone);
       formDataCheckout.append('nationality', formData.nationality);
-      formDataCheckout.append('sourceLanguage', formData.sourceLanguage);
+      formDataCheckout.append('sourceLanguage', getFinalSourceLanguage());
       formDataCheckout.append('targetLanguage', formData.targetLanguage);
       formDataCheckout.append('wordCount', quote.wordCount);
       formDataCheckout.append('estimatedPrice', quote.estimatedPrice);
@@ -438,6 +453,88 @@ const SwornTranslationForm = () => {
                 </select>
               </div>
             </div>
+
+            {/* Sub-selection for Multi-Language */}
+            {formData.sourceLanguage === 'Multi-Language' && (
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(118, 75, 162, 0.4)',
+                  borderRadius: '12px',
+                  padding: '14px 16px',
+                  marginTop: '-4px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <label style={{ ...labelStyle, color: '#a78bfa', margin: 0, fontSize: '13px', fontWeight: 600 }}>
+                    Select Document Languages (Choose multiple) *
+                  </label>
+                  <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
+                    {selectedMultiLangs.length} selected
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
+                  {[
+                    { value: 'English', label: 'English 🇺🇸' },
+                    { value: 'Arabic', label: 'Arabic 🇦🇪' },
+                    { value: 'Urdu', label: 'Urdu 🇵🇰' },
+                    { value: 'Other', label: 'Other Language' }
+                  ].map((lang) => {
+                    const isSelected = selectedMultiLangs.includes(lang.value);
+                    return (
+                      <button
+                        key={lang.value}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            if (selectedMultiLangs.length > 1) {
+                              setSelectedMultiLangs(selectedMultiLangs.filter((l) => l !== lang.value));
+                            }
+                          } else {
+                            setSelectedMultiLangs([...selectedMultiLangs, lang.value]);
+                          }
+                        }}
+                        style={{
+                          padding: '7px 14px',
+                          borderRadius: '20px',
+                          border: isSelected ? '1px solid #8b5cf6' : '1px solid rgba(255,255,255,0.15)',
+                          background: isSelected ? 'linear-gradient(135deg, #667eea, #764ba2)' : 'rgba(255,255,255,0.06)',
+                          color: '#fff',
+                          fontSize: '13px',
+                          fontWeight: 500,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s ease',
+                          boxShadow: isSelected ? '0 2px 8px rgba(118, 75, 162, 0.4)' : 'none'
+                        }}
+                      >
+                        <span style={{ fontWeight: 'bold' }}>{isSelected ? '✓' : '+'}</span>
+                        <span>{lang.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {selectedMultiLangs.includes('Other') && (
+                  <div style={{ marginTop: '10px' }}>
+                    <input
+                      type="text"
+                      placeholder="Specify other language (e.g. French, Tagalog)..."
+                      value={otherLangInput}
+                      onChange={(e) => setOtherLangInput(e.target.value)}
+                      style={{
+                        ...inputStyle,
+                        background: 'rgba(255,255,255,0.08)',
+                        fontSize: '13px',
+                        padding: '10px 12px'
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Target Language (Static Spanish) */}
             <div>
