@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { getServicesForCountry, ALL_COUNTRIES } from "../../constants/countryServices";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://aaa-consultancy-production.up.railway.app/api/v1";
+const API_URL = import.meta.env.VITE_API_URL || "http://aaa-consultancy-backend-production.up.railway.app/api/v1";
 
 
 
@@ -359,7 +359,7 @@ export const LeadSelfFillForm = () => {
         .then((res) => {
           if (res.data.success) {
             const data = res.data.data;
-            
+
             const serviceTypeLower = (data.serviceType || "").toLowerCase();
             if (serviceTypeLower.includes("property") || serviceTypeLower.includes("investment")) {
               setServiceCategory("property");
@@ -412,7 +412,7 @@ export const LeadSelfFillForm = () => {
       axios.get(`${API_URL}/leads/${idParam}/public-details`)
         .then((res) => {
           const data = res.data;
-          
+
           const serviceTypeLower = (data.serviceType || "").toLowerCase();
           if (serviceTypeLower.includes("property") || serviceTypeLower.includes("investment")) {
             setServiceCategory("property");
@@ -476,7 +476,7 @@ export const LeadSelfFillForm = () => {
         for (let i = 0; i < count; i++) {
           initialDeps.push({ firstName: "", lastName: "", relation: "Spouse", passportNumber: "", nationality: "" });
         }
-        
+
         return {
           ...prev,
           phone: phoneParam ? decodeURIComponent(phoneParam).trim() : prev.phone,
@@ -619,12 +619,12 @@ export const LeadSelfFillForm = () => {
       setError("Please fill in all required personal details (Name, Email, Phone).");
       return;
     }
-    
+
     if (serviceCategory === "translation") {
       navigate("/public/translation", { state: { prefilledLead: { ...form, serviceType: "Spanish Sworn Translation" } } });
       return;
     }
-    
+
     if (!form.meetingPreferredDate || !form.meetingPreferredTime) {
       setError("Please select your preferred meeting date and time.");
       return;
@@ -641,7 +641,7 @@ export const LeadSelfFillForm = () => {
     setError("");
 
     // Prepare payload
-    const payload = { 
+    const payload = {
       ...form,
       preferableArea: serviceCategory === "property" ? form.preferableAreaInSpain : undefined,
       budget: serviceCategory === "property" ? form.budget : undefined
@@ -782,7 +782,7 @@ export const LeadSelfFillForm = () => {
                 letterSpacing: "-0.5px",
               }}
             >
-              AAA Consultancy Services 
+              AAA Consultancy Services
             </span>
           </div>
           <p
@@ -1319,12 +1319,12 @@ export const LeadSelfFillForm = () => {
                   {loading
                     ? "Submitting..."
                     : serviceCategory === "translation"
-                    ? "✅ Proceed to Sworn Translation Tool"
-                    : serviceCategory === "property"
-                    ? "✅ Book Free Consultation"
-                    : serviceCategory === "case_assessment"
-                    ? "✅ Book Free Case Assessment"
-                    : "✅ Book Free Eligibility Assessment"}
+                      ? "✅ Proceed to Sworn Translation Tool"
+                      : serviceCategory === "property"
+                        ? "✅ Book Free Consultation"
+                        : serviceCategory === "case_assessment"
+                          ? "✅ Book Free Case Assessment"
+                          : "✅ Book Free Eligibility Assessment"}
                 </button>
               </form>
             </>
@@ -1389,8 +1389,8 @@ export const LeadSelfFillForm = () => {
                 >
                   <li>Our team reviews your preferred time</li>
                   <li>
-                    {serviceCategory === "property" 
-                      ? "A property investment expert is assigned to your case" 
+                    {serviceCategory === "property"
+                      ? "A property investment expert is assigned to your case"
                       : "A Spain Visa expert is assigned to your case"}
                   </li>
                   <li>

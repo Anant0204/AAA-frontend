@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://aaa-consultancy-production.up.railway.app/api/v1';
+const API_URL = import.meta.env.VITE_API_URL || 'http://aaa-consultancy-backend-production.up.railway.app/api/v1';
 
 // Setup Axios instance with JWT Interceptor
 export const apiClient = axios.create({
