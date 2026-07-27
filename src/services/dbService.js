@@ -532,4 +532,18 @@ export const dbService = {
     const res = await apiClient.post('/ai/summarize-client', { clientId });
     return res.data;
   },
+
+  // PACKAGES & CHECKOUTS
+  getClientPackages: async () => {
+    const res = await apiClient.get('/payments/packages');
+    return res.data;
+  },
+  createPackageCheckout: async (payload) => {
+    const res = await apiClient.post('/payments/package-checkout', payload);
+    return res.data;
+  },
+  getPaymentBySessionId: async (sessionId) => {
+    const res = await apiClient.get(`/payments/session/${sessionId}`);
+    return res.data;
+  },
 };
