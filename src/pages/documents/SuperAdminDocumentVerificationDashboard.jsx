@@ -882,7 +882,7 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                           onClick={() => {
                             if (doc.url || doc.fileUrl) {
                               const fileUrl = doc.url
-                                ? `${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1').replace('/api/v1', '')}${doc.url}`
+                                ? `${(import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1').replace('/api/v1', '')}${doc.url}`
                                 : doc.fileUrl;
                               window.open(fileUrl, '_blank');
                             } else {
@@ -903,7 +903,7 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                             try {
                               showAlert(`Downloading ${docName}...`, 'info');
                               const rawUrl = doc.url
-                                ? `${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1').replace('/api/v1', '')}${doc.url}`
+                                ? `${(import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1').replace('/api/v1', '')}${doc.url}`
                                 : doc.fileUrl;
                               const response = await fetch(rawUrl);
                               if (!response.ok) throw new Error('Download failed');

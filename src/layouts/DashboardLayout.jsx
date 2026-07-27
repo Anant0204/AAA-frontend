@@ -247,8 +247,10 @@ export const DashboardLayout = () => {
   useEffect(() => {
     if (!currentUser?.id) return;
 
-    // Connect to backend Socket.io
-    const socket = io('https://aaa-consultancy-production.up.railway.app');
+    const socketUrl = import.meta.env.VITE_API_URL 
+      ? import.meta.env.VITE_API_URL.replace('/api/v1', '') 
+      : 'https://aaa-consultancy-backend-production.up.railway.app';
+    const socket = io(socketUrl);
 
     // Join the specific role room
     socket.emit('join-role', currentUser.role);

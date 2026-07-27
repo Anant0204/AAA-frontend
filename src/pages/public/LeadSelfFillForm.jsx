@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { getServicesForCountry, ALL_COUNTRIES } from "../../constants/countryServices";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://aaa-consultancy-production.up.railway.app/api/v1";
+const API_URL = import.meta.env.VITE_API_URL || "https://aaa-consultancy-backend-production.up.railway.app/api/v1";
 
 
 

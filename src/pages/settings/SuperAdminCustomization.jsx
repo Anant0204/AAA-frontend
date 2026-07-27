@@ -40,6 +40,13 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import BusinessIcon from '@mui/icons-material/Business';
+import VpnKeyIcon from '@mui/icons-material/VpnKey';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import WebIcon from '@mui/icons-material/Web';
+import PhoneIcon from '@mui/icons-material/Phone';
+import EmailIcon from '@mui/icons-material/Email';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
 
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount';
@@ -65,6 +72,7 @@ import { dbService } from '../../services/dbService';
 import PageHeader from '../../components/PageHeader';
 import { useAlert } from '../../contexts/AlertContext';
 import useAuth from '../../hooks/useAuth';
+import Settings from './Settings';
 
 const AVAILABLE_MENUS = [
   'Dashboard',
@@ -262,10 +270,55 @@ export const SuperAdminCustomization = () => {
     { id: 'marketing', label: 'Marketing Executive' }
   ];
 
-  // Top level tabs: 0 = Role Permissions, 1 = Stage Manager, 2 = Visa Document Checklists
+  // Top level tabs: 0 = Role Permissions, 1 = Stage Manager, 2 = Visa Document Checklists, 3 = Flow Settings, 4 = General Settings
   const [topTab, setTopTab] = useState(0);
   const [activeTab, setActiveTab] = useState(0);
   const currentRoleId = dynamicRoles[activeTab]?.id || 'admin';
+
+  // General Settings State & Queries
+  const [generalEditModalOpen, setGeneralEditModalOpen] = useState(false);
+  const [companyForm, setCompanyForm] = useState({
+    companyName: 'AAA Business Consultancy LLC',
+    phone: '+971 50 955 4142',
+    email: 'info@aaabusinessconsultancy.com',
+    address: 'Business Village, Block B, 4th Floor, Office F09, Deira, Dubai, UAE',
+    vatRate: 5,
+    vatId: 'VAT-AE-2026-9932',
+    website: 'https://aaabusinessconsultancy.com',
+    incorporationDate: '2018-05-12',
+    autoAssignConsultant: true
+  });
+
+  const { data: companySettings } = useQuery({
+    queryKey: ['companySettings'],
+    queryFn: dbService.getCompanySettings
+  });
+
+  useEffect(() => {
+    if (companySettings) {
+      setCompanyForm(prev => ({ ...prev, ...companySettings }));
+    }
+  }, [companySettings]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search || window.location.hash.substring(window.location.hash.indexOf('?')));
+    const tabParam = params.get('tab');
+    if (tabParam === 'general' || tabParam === '4') {
+      setTopTab(4);
+    }
+  }, []);
+
+  const saveCompanyMutation = useMutation({
+    mutationFn: dbService.updateCompanySettings,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['companySettings'] });
+      showAlert('Company general settings updated successfully!', 'success');
+      setGeneralEditModalOpen(false);
+    },
+    onError: (err) => {
+      showAlert(err?.message || 'Error updating general settings', 'error');
+    }
+  });
 
   const [selectedVisaId, setSelectedVisaId] = useState('dnv');
   const [newDocText, setNewDocText] = useState({
@@ -1201,6 +1254,7 @@ export const SuperAdminCustomization = () => {
             <Tab label="⚡ Lifecycle Stages Manager" sx={{ fontWeight: 800, px: 3, py: 2 }} />
             <Tab label="📂 Visa Document Checklists" sx={{ fontWeight: 800, px: 3, py: 2 }} />
             <Tab label="⚙️ Flow Settings" sx={{ fontWeight: 800, px: 3, py: 2 }} />
+            <Tab label="🏢 General Settings" sx={{ fontWeight: 800, px: 3, py: 2 }} />
           </Tabs>
         </Paper>
       </Box>
@@ -1998,6 +2052,13 @@ export const SuperAdminCustomization = () => {
               </Paper>
             </Box>
           </Box>
+        </Box>
+      )}
+
+      {/* ─── TAB 4: General Settings ─── */}
+      {topTab === 4 && (
+        <Box sx={{ width: '100%' }}>
+          <Settings hideHeader={true} />
         </Box>
       )}
 

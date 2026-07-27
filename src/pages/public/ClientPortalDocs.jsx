@@ -375,6 +375,11 @@ export const ClientPortalDocs = () => {
     enabled: !isClientRole
   });
 
+  const { data: dbPackages = [] } = useQuery({
+    queryKey: ['packages'],
+    queryFn: dbService.getPackages
+  });
+
   const dbClient = clients.find((c) => c.id === clientId);
   const localClientData = JSON.parse(localStorage.getItem('clientData') || 'null');
   const localMockClient = JSON.parse(localStorage.getItem('mockClientData') || 'null');
@@ -2109,7 +2114,7 @@ export const ClientPortalDocs = () => {
                             }}
                           >
                             {translatedDocs.map((doc) => {
-                              const fileUrl = `${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1').replace('/api/v1', '')}${doc.translatedUrl}`;
+                              const fileUrl = `${(import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1').replace('/api/v1', '')}${doc.translatedUrl}`;
                               return (
                                 <MenuItem
                                   key={doc.id}
@@ -2263,95 +2268,155 @@ export const ClientPortalDocs = () => {
                         </Card>
                       ) : (
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-                          <Card
-                            onClick={() => setSelectedPackage('full_process')}
-                            sx={{
-                              border: selectedPackage === 'full_process' ? '2px solid' : '1px solid',
-                              borderColor: selectedPackage === 'full_process' ? 'secondary.main' : 'divider',
-                              bgcolor: selectedPackage === 'full_process' ? 'rgba(20, 184, 166, 0.02)' : 'background.paper',
-                              borderRadius: 3,
-                              cursor: 'pointer',
-                              boxShadow: 'none'
-                            }}
-                          >
-                            <CardContent>
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>OPTION A: FULL PROCESSING PACKAGE</Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  {assessmentCredit > 0 && (
-                                    <Typography variant="body2" sx={{ textDecoration: 'line-through', color: 'text.secondary', fontWeight: 500 }}>€{optionAPrice}</Typography>
-                                  )}
-                                  <Typography variant="h6" color="secondary.main" sx={{ fontWeight: 800 }}>€{optionAPrice - assessmentCredit}</Typography>
-                                </Box>
-                              </Box>
-                              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                Complete professional end-to-end support for Spain Residency applications from eligibility to submission.
-                              </Typography>
-                              {selectedPackage === 'full_process' && (
-                                <Chip label="Selected" color="secondary" size="small" sx={{ fontWeight: 700 }} />
-                              )}
-                            </CardContent>
-                          </Card>
+                          {((dbPackages && dbPackages.length > 0) ? dbPackages : [
+                            {
+                              id: 'opt_a',
+                              code: 'full_process',
+                              name: 'OPTION A: FULL PROCESSING PACKAGE',
+                              description: 'Complete professional end-to-end support for Spain Residency applications from eligibility to submission.',
+                              price: 3500,
+                              additionalApplicantPrice: 500,
+                              isRecommended: false,
+                              includes: ['Eligibility & Document Auditing', 'Official Sworn Translation Management', 'Digital Nomad / NLV File Assembly', 'Consulate Appointment Assistance', 'Post-Submission Status Tracking']
+                            },
+                            {
+                              id: 'opt_b',
+                              code: 'premium',
+                              name: 'OPTION B: PREMIUM PACKAGE',
+                              description: 'Everything in Full Process + complete relocation administrative assistance (NIE/TIE fingerprint appointments, empadronamiento local registration, Social Security, Spanish Bank setup).',
+                              price: 4750,
+                              additionalApplicantPrice: 750,
+                              isRecommended: true,
+                              includes: ['Everything in Full Processing Package', 'Spanish Bank Account Opening Assistance', 'NIE / TIE Fingerprint Appointment Booking', 'Empadronamiento (Town Hall Registration)', 'Spanish Social Security Registration']
+                            },
+                            {
+                              id: 'opt_c',
+                              code: 'relocation',
+                              name: 'OPTION C: ADMINISTRATIVE RELOCATION PACKAGE',
+                              description: 'Post-approval administrative relocation support for clients who already have their visa approved and need settlement help in Spain.',
+                              price: 1750,
+                              additionalApplicantPrice: 500,
+                              isRecommended: false,
+                              includes: ['Post-Approval Residency Card (TIE) Processing', 'Town Hall Registration (Empadronamiento)', 'Spanish Health Card / Private Insurance Setup', 'Driver License Exchange Guidance']
+                            }
+                          ]).map((pkgItem) => {
+                            const pkgCode = pkgItem.code || pkgItem.id;
+                            const isSelected = selectedPackage === pkgCode || (selectedPackage === 'full_process' && pkgItem.code === 'option_a') || (selectedPackage === 'premium' && pkgItem.code === 'option_b') || (selectedPackage === 'relocation' && pkgItem.code === 'option_c');
+                            
+                            const calculatedPrice = (pkgItem.price || 2000) + (addApplicants * (pkgItem.additionalApplicantPrice || 500));
 
-                          <Card
-                            onClick={() => setSelectedPackage('premium')}
-                            sx={{
-                              border: selectedPackage === 'premium' ? '2px solid' : '1px solid',
-                              borderColor: selectedPackage === 'premium' ? 'secondary.main' : 'divider',
-                              bgcolor: selectedPackage === 'premium' ? 'rgba(20, 184, 166, 0.02)' : 'background.paper',
-                              borderRadius: 3,
-                              cursor: 'pointer',
-                              boxShadow: 'none'
-                            }}
-                          >
-                            <CardContent>
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>OPTION B: PREMIUM PACKAGE</Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  {assessmentCredit > 0 && (
-                                    <Typography variant="body2" sx={{ textDecoration: 'line-through', color: 'text.secondary', fontWeight: 500 }}>€{optionBPrice}</Typography>
+                            return (
+                              <Card
+                                key={pkgItem.id}
+                                onClick={() => setSelectedPackage(pkgCode)}
+                                sx={{
+                                  border: isSelected ? '2px solid' : (pkgItem.isRecommended ? '2px solid' : '1px solid'),
+                                  borderColor: isSelected ? 'secondary.main' : (pkgItem.isRecommended ? '#C59B27' : 'divider'),
+                                  bgcolor: isSelected ? 'rgba(20, 184, 166, 0.04)' : 'background.paper',
+                                  borderRadius: 3,
+                                  cursor: 'pointer',
+                                  position: 'relative',
+                                  boxShadow: isSelected ? '0 8px 24px rgba(197, 155, 39, 0.15)' : 'none',
+                                  transition: 'all 0.2s ease-in-out'
+                                }}
+                              >
+                                <CardContent sx={{ p: 3 }}>
+                                  {pkgItem.isRecommended && (
+                                    <Chip
+                                      label="✨ RECOMMENDED PACKAGE"
+                                      size="small"
+                                      sx={{
+                                        position: 'absolute',
+                                        top: 12,
+                                        right: 12,
+                                        bgcolor: '#C59B27',
+                                        color: '#051A3B',
+                                        fontWeight: 900,
+                                        fontSize: '0.65rem'
+                                      }}
+                                    />
                                   )}
-                                  <Typography variant="h6" color="secondary.main" sx={{ fontWeight: 800 }}>€{optionBPrice - assessmentCredit}</Typography>
-                                </Box>
-                              </Box>
-                              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                Everything in Full Process + complete relocation administrative assistance (NIE/TIE fingerprint appointments, empadronamiento local registration, Social Security, Spanish Bank setup).
-                              </Typography>
-                              {selectedPackage === 'premium' && (
-                                <Chip label="Selected" color="secondary" size="small" sx={{ fontWeight: 700 }} />
-                              )}
-                            </CardContent>
-                          </Card>
 
-                          <Card
-                            onClick={() => setSelectedPackage('relocation')}
-                            sx={{
-                              border: selectedPackage === 'relocation' ? '2px solid' : '1px solid',
-                              borderColor: selectedPackage === 'relocation' ? 'secondary.main' : 'divider',
-                              bgcolor: selectedPackage === 'relocation' ? 'rgba(20, 184, 166, 0.02)' : 'background.paper',
-                              borderRadius: 3,
-                              cursor: 'pointer',
-                              boxShadow: 'none'
-                            }}
-                          >
-                            <CardContent>
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>OPTION C: ADMINISTRATIVE RELOCATION PACKAGE</Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  {assessmentCredit > 0 && (
-                                    <Typography variant="body2" sx={{ textDecoration: 'line-through', color: 'text.secondary', fontWeight: 500 }}>€{optionCPrice}</Typography>
+                                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, pr: pkgItem.isRecommended ? 18 : 0 }}>
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#051A3B', fontFamily: 'Outfit, sans-serif' }}>
+                                      {pkgItem.name}
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                      {assessmentCredit > 0 && (
+                                        <Typography variant="body2" sx={{ textDecoration: 'line-through', color: 'text.secondary', fontWeight: 500 }}>€{calculatedPrice}</Typography>
+                                      )}
+                                      <Typography variant="h6" color="secondary.main" sx={{ fontWeight: 900, fontFamily: 'Outfit, sans-serif' }}>
+                                        €{calculatedPrice - assessmentCredit}
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+
+                                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.5 }}>
+                                    {pkgItem.description}
+                                  </Typography>
+
+                                  {/* Included Feature Points */}
+                                  {Array.isArray(pkgItem.includes) && pkgItem.includes.length > 0 && (
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mb: 2, pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
+                                      {pkgItem.includes.map((inc, i) => (
+                                        <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <CheckCircleIcon sx={{ color: 'success.main', fontSize: 16 }} />
+                                          <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                                            {inc}
+                                          </Typography>
+                                        </Box>
+                                      ))}
+                                    </Box>
                                   )}
-                                  <Typography variant="h6" color="secondary.main" sx={{ fontWeight: 800 }}>€{optionCPrice - assessmentCredit}</Typography>
-                                </Box>
-                              </Box>
-                              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                Post-approval administrative relocation support for clients who already have their visa approved and need settlement help in Spain.
-                              </Typography>
-                              {selectedPackage === 'relocation' && (
-                                <Chip label="Selected" color="secondary" size="small" sx={{ fontWeight: 700 }} />
-                              )}
-                            </CardContent>
-                          </Card>
+
+                                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+                                    {isSelected ? (
+                                      <Chip label="Selected Package" color="secondary" size="small" sx={{ fontWeight: 700 }} />
+                                    ) : (
+                                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Click card to select</Typography>
+                                    )}
+
+                                    <Button
+                                      size="small"
+                                      variant="contained"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedPackage(pkgCode);
+                                        showAlert('Processing invoice details...', 'info');
+                                        dbService.selectPackage({
+                                          clientId: client?.id || clientId,
+                                          packageId: pkgCode,
+                                          serviceType: pkgItem.name,
+                                          amount: calculatedPrice
+                                        })
+                                          .then(res => {
+                                            showAlert('Invoice generated! Redirecting...', 'success');
+                                            if (res.invoiceId) {
+                                              navigate(`/portal/invoices/${res.invoiceId}`);
+                                            }
+                                          })
+                                          .catch(err => {
+                                            showAlert(err.response?.data?.message || 'Error creating invoice', 'error');
+                                          });
+                                      }}
+                                      sx={{
+                                        bgcolor: '#051A3B',
+                                        color: '#C59B27',
+                                        fontWeight: 800,
+                                        borderRadius: 2,
+                                        px: 2,
+                                        textTransform: 'none',
+                                        fontSize: '0.78rem',
+                                        '&:hover': { bgcolor: '#C59B27', color: '#051A3B' }
+                                      }}
+                                    >
+                                      View Invoice →
+                                    </Button>
+                                  </Box>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
                         </Box>
                       )}
                     </Grid>

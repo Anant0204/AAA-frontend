@@ -27,6 +27,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import CreditCardIcon from '@mui/icons-material/CreditCard';
 
 // Components & Services
 import { dbService } from '../../services/dbService';
@@ -226,6 +227,25 @@ export const InvoiceDetails = () => {
     }
   };
 
+  const handleStripePay = async () => {
+    try {
+      showAlert('Redirecting to Stripe Checkout...', 'info');
+      const res = await dbService.createStripeCheckout({
+        paymentId: invoice.id,
+        amount: invoice.amount || 2000,
+        clientName: invoice.clientName || (client ? `${client.firstName} ${client.lastName}` : '')
+      });
+      if (res?.url || res?.checkoutUrl) {
+        window.location.href = res.url || res.checkoutUrl;
+      } else {
+        showAlert('Could not initialize Stripe Checkout session.', 'error');
+      }
+    } catch (err) {
+      console.error('Stripe Pay error:', err);
+      showAlert(err.response?.data?.message || 'Failed to initialize Stripe payment.', 'error');
+    }
+  };
+
   return (
     <Box>
       <Button
@@ -247,6 +267,21 @@ export const InvoiceDetails = () => {
             <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleDownload}>
               Download Invoice
             </Button>
+            {invoice.status === 'Pending' && (
+              <Button
+                variant="contained"
+                startIcon={<CreditCardIcon />}
+                onClick={handleStripePay}
+                sx={{
+                  bgcolor: '#4F46E5',
+                  color: 'white',
+                  fontWeight: 700,
+                  '&:hover': { bgcolor: '#4338CA' }
+                }}
+              >
+                Pay Now with Stripe
+              </Button>
+            )}
             {!isViewOnly && invoice.status === 'Pending' && (
               <>
                 <Button

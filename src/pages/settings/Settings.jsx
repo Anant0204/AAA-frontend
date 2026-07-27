@@ -109,7 +109,7 @@ const fieldStyle = {
     fontSize: '0.75rem' }
 };
 
-export const Settings = () => {
+export const Settings = ({ hideHeader = false }) => {
   const queryClient = useQueryClient();
   const { showAlert } = useAlert();
   const { currentUser } = useAuth();
@@ -365,33 +365,97 @@ export const Settings = () => {
     showAlert('New Spain residency pathway added', 'success');
   };
 
-  // Tab 2: Packages deliverables states
+  // Packages Management States
   const [selectedPkgToEdit, setSelectedPkgToEdit] = useState(null);
   const [isPkgModalOpen, setIsPkgModalOpen] = useState(false);
+  const [isCreatingNewPkg, setIsCreatingNewPkg] = useState(false);
+  const [editPkgName, setEditPkgName] = useState('');
   const [editPkgPrice, setEditPkgPrice] = useState(0);
+  const [editPkgAddApplicantPrice, setEditPkgAddApplicantPrice] = useState(500);
+  const [editPkgIsRecommended, setEditPkgIsRecommended] = useState(false);
   const [editPkgDesc, setEditPkgDesc] = useState('');
   const [editPkgIncludes, setEditPkgIncludes] = useState([]);
   const [newDeliverableVal, setNewDeliverableVal] = useState('');
 
   const handleOpenPkgEditModal = (pkg) => {
+    setIsCreatingNewPkg(false);
     setSelectedPkgToEdit(pkg);
+    setEditPkgName(pkg.name || '');
     setEditPkgPrice(pkg.price || 0);
+    setEditPkgAddApplicantPrice(pkg.additionalApplicantPrice || 500);
+    setEditPkgIsRecommended(Boolean(pkg.isRecommended));
     setEditPkgDesc(pkg.description || '');
     setEditPkgIncludes([...(pkg.includes || [])]);
     setNewDeliverableVal('');
     setIsPkgModalOpen(true);
   };
 
+  const handleOpenCreatePkgModal = () => {
+    setIsCreatingNewPkg(true);
+    const newTempPkg = {
+      id: `pkg_temp_${Date.now()}`,
+      name: 'NEW CUSTOM RELOCATION PACKAGE',
+      code: `pkg_custom_${Date.now()}`,
+      price: 2500,
+      additionalApplicantPrice: 500,
+      isRecommended: false,
+      description: 'Comprehensive Spain relocation support package.',
+      includes: ['Document Auditing', 'Residency Application Submission', 'Consulate Appointment Help']
+    };
+    setSelectedPkgToEdit(newTempPkg);
+    setEditPkgName(newTempPkg.name);
+    setEditPkgPrice(newTempPkg.price);
+    setEditPkgAddApplicantPrice(newTempPkg.additionalApplicantPrice);
+    setEditPkgIsRecommended(false);
+    setEditPkgDesc(newTempPkg.description);
+    setEditPkgIncludes([...newTempPkg.includes]);
+    setNewDeliverableVal('');
+    setIsPkgModalOpen(true);
+  };
+
   const handleSavePkgModal = () => {
     if (!selectedPkgToEdit) return;
-    const updated = packages.map((p) =>
-      p.id === selectedPkgToEdit.id
-        ? { ...p, price: Number(editPkgPrice) || 0, description: editPkgDesc, includes: editPkgIncludes }
-        : p
-    );
-    updatePackagesMutation.mutate(updated);
-    setIsPkgModalOpen(false);
-    showAlert(`${selectedPkgToEdit.name} updated successfully`, 'success');
+    const pkgPayload = {
+      ...selectedPkgToEdit,
+      name: editPkgName,
+      price: Number(editPkgPrice) || 0,
+      additionalApplicantPrice: Number(editPkgAddApplicantPrice) || 500,
+      isRecommended: Boolean(editPkgIsRecommended),
+      description: editPkgDesc,
+      includes: editPkgIncludes
+    };
+
+    if (isCreatingNewPkg) {
+      dbService.createPackage(pkgPayload)
+        .then(() => {
+          queryClient.invalidateQueries({ queryKey: ['packages'] });
+          showAlert('New package created successfully!', 'success');
+          setIsPkgModalOpen(false);
+        })
+        .catch(err => showAlert(err.message || 'Error creating package', 'error'));
+    } else {
+      const updated = packages.map((p) =>
+        p.id === selectedPkgToEdit.id ? pkgPayload : p
+      );
+      updatePackagesMutation.mutate(updated, {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['packages'] });
+          showAlert(`${editPkgName} updated successfully`, 'success');
+          setIsPkgModalOpen(false);
+        }
+      });
+    }
+  };
+
+  const handleDeletePkg = (pkgId, pkgName) => {
+    if (window.confirm(`Are you sure you want to delete "${pkgName}"?`)) {
+      dbService.deletePackage(pkgId)
+        .then(() => {
+          queryClient.invalidateQueries({ queryKey: ['packages'] });
+          showAlert('Package deleted successfully', 'info');
+        })
+        .catch(err => showAlert(err.message || 'Error deleting package', 'error'));
+    }
   };
 
   const handleAddModalDeliverable = () => {
@@ -462,21 +526,18 @@ export const Settings = () => {
       .replace(/{meetingTime}/g, '3:30 PM')
       .replace(/{meetingLink}/g, 'https://zoom.us/j/8839201928')
       .replace(/{rescheduleLink}/g, 'https://aaa-consultancy.com/reschedule?id=9928')
-      .replace(/{bookingLink}/g, 'https://aaa-consultancy.com/book-assessment')
-      .replace(/{invoiceId}/g, 'INV-2026-004')
-      .replace(/{packageName}/g, 'Premium Relocation Package')
-      .replace(/{amount}/g, '€2,500')
-      .replace(/{dueDate}/g, 'June 30, 2026')
       .replace(/{consultantName}/g, 'Sofia Rodriguez')
       .replace(/\n/g, '<br />');
   };
 
   return (
     <Box sx={{ width: '100%' }}>
-      <PageHeader
-        title="CRM Settings Panel"
-        subtitle="Manage company information, VAT rules, relocation services details, and notifications templates."
-      />
+      {!hideHeader && (
+        <PageHeader
+          title="CRM Settings Panel"
+          subtitle="Manage company information, VAT rules, relocation services details, and notifications templates."
+        />
+      )}
 
       {/* HORIZONTAL TABS SYSTEM - Matches Reports Tabs aesthetics */}
       <Tabs
@@ -487,8 +548,8 @@ export const Settings = () => {
         sx={{ borderBottom: '1px solid', borderColor: 'divider', mb: 4, width: '100%' }}
       >
         <Tab icon={<BusinessIcon />} iconPosition="start" label="General Info" sx={{ fontWeight: 700, minHeight: 48 }} />
+        <Tab icon={<CardMembershipIcon />} iconPosition="start" label="Packages" sx={{ fontWeight: 700, minHeight: 48 }} />
         <Tab icon={<MonetizationOnIcon />} iconPosition="start" label="Visa Settings" sx={{ fontWeight: 700, minHeight: 48 }} />
-        <Tab icon={<CardMembershipIcon />} iconPosition="start" label="Relocation Packages" sx={{ fontWeight: 700, minHeight: 48 }} />
         <Tab icon={<MessageIcon />} iconPosition="start" label="Templates Editor" sx={{ fontWeight: 700, minHeight: 48 }} />
         <Tab icon={<PaymentIcon />} iconPosition="start" label="Stripe Config" sx={{ fontWeight: 700, minHeight: 48 }} />
         <Tab icon={<CellTowerIcon />} iconPosition="start" label="Multi-Channel" sx={{ fontWeight: 700, minHeight: 48 }} />
@@ -955,7 +1016,157 @@ export const Settings = () => {
         </AppCard>
       )}
 
-      {/* TAB 2: PACKAGES */}
+      {/* TAB 1: PACKAGES */}
+      {activeTab === 1 && (
+        <AppCard
+          title="Visa & Relocation Packages Management"
+          subheader="Manage pricing, feature bullet points, and client portal package catalog."
+          action={
+            <Button
+              variant="contained"
+              color="secondary"
+              startIcon={<AddIcon />}
+              onClick={handleOpenCreatePkgModal}
+              sx={{ fontWeight: 800, borderRadius: 2.5, px: 3, textTransform: 'none' }}
+            >
+              + Add New Package
+            </Button>
+          }
+        >
+          <Box className="grid grid-cols-12 gap-7" sx={{ mt: 0.5 }}>
+            {packages.map((pkg) => (
+              <Box className="col-span-12 md:col-span-6" key={pkg.id}>
+                <Paper sx={{
+                  p: 4,
+                  borderRadius: 4,
+                  border: pkg.isRecommended ? '2px solid #C59B27' : '1px solid',
+                  borderColor: pkg.isRecommended ? '#C59B27' : 'divider',
+                  background: pkg.isRecommended 
+                    ? 'linear-gradient(180deg, #ffffff 0%, rgba(229, 192, 88, 0.08) 100%)' 
+                    : 'linear-gradient(180deg, #ffffff 0%, rgba(244, 246, 249, 0.4) 100%)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: '100%',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  justifyContent: 'space-between',
+                  boxShadow: pkg.isRecommended ? '0 12px 30px rgba(197, 155, 39, 0.2)' : '0 4px 20px -2px rgba(15, 23, 42, 0.04)',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 12px 30px -4px rgba(11, 27, 61, 0.1)',
+                    borderColor: 'primary.light'
+                  }
+                }}>
+                  <Box>
+                    {pkg.isRecommended && (
+                      <Chip
+                        label="✨ RECOMMENDED PACKAGE"
+                        size="small"
+                        sx={{
+                          position: 'absolute',
+                          top: 16,
+                          right: 16,
+                          bgcolor: '#C59B27',
+                          color: '#051A3B',
+                          fontWeight: 900,
+                          fontSize: '0.68rem'
+                        }}
+                      />
+                    )}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, pr: pkg.isRecommended ? 18 : 0 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Box sx={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 2,
+                          bgcolor: 'rgba(197, 155, 39, 0.1)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'secondary.main'
+                        }}>
+                          <CardMembershipIcon />
+                        </Box>
+                        <Box>
+                          <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main', fontSize: '1.2rem', fontFamily: "'Outfit', sans-serif" }}>
+                            {pkg.name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.05em' }}>
+                            Code: {(pkg.code || pkg.id).toUpperCase()}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Box sx={{
+                        bgcolor: 'secondary.main',
+                        color: 'secondary.contrastText',
+                        px: 2.5,
+                        py: 1,
+                        borderRadius: 2.5,
+                        fontWeight: 800,
+                        fontSize: '1.2rem',
+                        boxShadow: '0 4px 10px rgba(197, 155, 39, 0.25)',
+                        fontFamily: "'Outfit', sans-serif"
+                      }}>
+                        €{pkg.price?.toLocaleString() || 0}
+                      </Box>
+                    </Box>
+
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3, mt: 1.5, minHeight: 48, lineHeight: 1.6, fontSize: '0.92rem', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                      {pkg.description}
+                    </Typography>
+
+                    <Divider sx={{ mb: 2.5 }} />
+
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, textTransform: 'uppercase', color: 'secondary.main', letterSpacing: '0.05em', fontSize: '0.78rem' }}>
+                      Included Feature Points ({Array.isArray(pkg.includes) ? pkg.includes.length : 0}):
+                    </Typography>
+
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 3.5, flexGrow: 1 }}>
+                      {Array.isArray(pkg.includes) && pkg.includes.map((deliverable, index) => (
+                        <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                          <CheckCircleIcon sx={{ color: 'success.main', fontSize: 18, mt: 0.25 }} />
+                          <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary', fontSize: '0.88rem', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                            {deliverable}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                  </Box>
+
+                  <Box sx={{ display: 'flex', gap: 1.5 }}>
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      fullWidth
+                      startIcon={<EditIcon />}
+                      onClick={() => handleOpenPkgEditModal(pkg)}
+                      sx={{
+                        borderRadius: 2.5,
+                        py: 1.25,
+                        textTransform: 'none',
+                        fontWeight: 700,
+                        fontFamily: "'Outfit', sans-serif"
+                      }}
+                    >
+                      Configure Package Details
+                    </Button>
+                    <IconButton
+                      color="error"
+                      onClick={() => handleDeletePkg(pkg.id, pkg.name)}
+                      sx={{ border: '1px solid', borderColor: 'error.light', borderRadius: 2.5, p: 1.25 }}
+                    >
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </Paper>
+              </Box>
+            ))}
+          </Box>
+        </AppCard>
+      )}
+
+      {/* TAB 2: VISA SETTINGS */}
       {activeTab === 2 && (
         <AppCard title="Relocation Packages & Deliverables" subheader="Review pricing and client deliverables included in standard and premium relocation packages. Click configure to update details.">
           <Box className="grid grid-cols-12 gap-7" sx={{ mt: 0.5 }}>
@@ -1803,17 +2014,17 @@ export const Settings = () => {
 
             <DialogContent dividers sx={{ borderTop: '1px solid', borderColor: 'divider', borderBottom: '1px solid', px: 3, py: 2.5 }}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '2fr 1fr' }, gap: 2.5 }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '2fr 1fr 1fr' }, gap: 2 }}>
                   <TextField
                     label="Package Name"
-                    value={selectedPkgToEdit.name}
-                    disabled
+                    value={editPkgName}
+                    onChange={(e) => setEditPkgName(e.target.value)}
                     fullWidth
                     sx={fieldStyle}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start" sx={{ mr: 1 }}>
-                          <CardMembershipIcon color="disabled" sx={{ fontSize: 20 }} />
+                          <CardMembershipIcon color="primary" sx={{ fontSize: 20 }} />
                         </InputAdornment>
                       ) }}
                   />
@@ -1831,7 +2042,31 @@ export const Settings = () => {
                         </InputAdornment>
                       ) }}
                   />
+                  <TextField
+                    label="Add. Dep (€)"
+                    type="number"
+                    value={editPkgAddApplicantPrice}
+                    onChange={(e) => setEditPkgAddApplicantPrice(e.target.value)}
+                    fullWidth
+                    sx={fieldStyle}
+                    helperText="Per Dependent"
+                  />
                 </Box>
+
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={editPkgIsRecommended}
+                      onChange={(e) => setEditPkgIsRecommended(e.target.checked)}
+                      color="secondary"
+                    />
+                  }
+                  label={
+                    <Typography sx={{ fontWeight: 700, color: '#051A3B' }}>
+                      ✨ Mark as Recommended Package (Highlights Card on Client Portal)
+                    </Typography>
+                  }
+                />
 
                 <TextField
                   label="Client Description"
