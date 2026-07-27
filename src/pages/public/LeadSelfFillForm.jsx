@@ -1066,7 +1066,7 @@ export const LeadSelfFillForm = () => {
                     onChange={(val) => handleChange("countryOfResidence", val)}
                     options={ALL_COUNTRIES}
                     placeholder="Select Country"
-                    disabled={isExistingLead}
+                    disabled={false}
                     labelStyle={labelStyle}
                     inputStyle={inputStyle}
                   />

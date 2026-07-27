@@ -271,7 +271,7 @@ export const AdminLeadList = () => {
 
   // Handle forms
   const handleCreateLead = (data) => {
-    const defaultStatus = data.meetingPreferredDate ? 'Form Submitted' : (leadStages[0]?.name || 'New Lead');
+    const defaultStatus = data.meetingPreferredDate ? 'Meeting Scheduled' : (leadStages[0]?.name || 'New Lead');
     createLeadMutation.mutate({
       ...data,
       status: defaultStatus,
@@ -406,7 +406,7 @@ export const AdminLeadList = () => {
       render: (row) => dayjs(row.createdDate).format('YYYY-MM-DD') },
   ];
 
-  const leadStatuses = Array.from(new Set(['Form Submitted', ...leadStages.map(s => s.name)]));
+  const leadStatuses = Array.from(new Set([...leadStages.map(s => s.name)]));
 
   return (
     <Box>

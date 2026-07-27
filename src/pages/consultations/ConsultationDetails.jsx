@@ -529,7 +529,7 @@ export const ConsultationDetails = () => {
           >
             {SERVICES.map((s) => (
               <MenuItem key={s.id} value={s.id}>
-                {s.name} (Base fee: €{s.basePrice})
+                {s.name}
               </MenuItem>
             ))}
           </TextField>
