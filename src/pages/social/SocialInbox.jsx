@@ -166,7 +166,7 @@ export const SocialInbox = () => {
   useEffect(() => {
     const socketUrl = import.meta.env.VITE_API_URL 
       ? import.meta.env.VITE_API_URL.replace('/api/v1', '') 
-      : 'https://aaa-consultancy-production.up.railway.app';
+      : 'https://aaa-consultancy-backend-production.up.railway.app';
       
     const socket = io(socketUrl);
 

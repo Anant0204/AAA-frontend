@@ -34,7 +34,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 const getMediaUrl = (url) => {
   if (!url) return null;
   if (url.includes('api.twilio.com')) {
-    const backendBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+    const backendBase = import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1';
     return `${backendBase}/social/media-proxy?url=${encodeURIComponent(url)}`;
   }
   return url;
@@ -177,7 +177,7 @@ export const AdminSocialInbox = () => {
   useEffect(() => {
     const socketUrl = import.meta.env.VITE_API_URL 
       ? import.meta.env.VITE_API_URL.replace('/api/v1', '') 
-      : 'https://aaa-consultancy-production.up.railway.app';
+      : 'https://aaa-consultancy-backend-production.up.railway.app';
       
     const socket = io(socketUrl);
 

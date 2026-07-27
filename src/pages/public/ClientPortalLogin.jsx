@@ -103,6 +103,7 @@ export const ClientPortalLogin = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search || window.location.hash.substring(window.location.hash.indexOf('?')));
+    const magicToken = params.get('token');
     const urlClientId = params.get('clientId');
     const urlTempPassword = params.get('tempPassword');
     const successMsg = params.get('success');
@@ -110,20 +111,37 @@ export const ClientPortalLogin = () => {
     const sessionId = params.get('session_id') || params.get('sessionId');
     const paymentId = params.get('id');
 
+    if (magicToken) {
+      setIsLoading(true);
+      dbService.verifyMagicToken(magicToken)
+        .then(res => {
+          localStorage.setItem('token', res.token);
+          localStorage.setItem('clientToken', res.token);
+          localStorage.setItem('client-user', JSON.stringify(res.user));
+          showAlert('✨ Logged in via 1-Click Magic Link!', 'success');
+          navigate('/portal/docs');
+        })
+        .catch(err => {
+          console.error('Magic link auth error:', err);
+          showAlert(err.response?.data?.message || 'Magic Link invalid or expired.', 'error');
+        })
+        .finally(() => setIsLoading(false));
+    }
+
     if (urlClientId) setUsername(urlClientId);
     if (urlTempPassword) setPassword(urlTempPassword);
 
     if (isPaymentSuccess || sessionId || paymentId) {
       dbService.verifyCheckoutSession(sessionId, paymentId)
         .then(() => {
-          showAlert('Payment Successful! Status updated to Paid. Please log in using your credentials.', 'success');
+          showAlert('Payment Successful! Status updated to Paid.', 'success');
         })
         .catch(err => {
           console.error('Failed auto-verifying payment session:', err);
           showAlert('Payment completed! Account setup is ready.', 'success');
         });
     }
-  }, [showAlert]);
+  }, [showAlert, navigate]);
 
   const changeLanguage = (newLang) => {
     setLoginLang(newLang);
@@ -150,8 +168,15 @@ export const ClientPortalLogin = () => {
       localStorage.setItem('clientToken', res.token);
       localStorage.setItem('clientData', JSON.stringify(res.client));
       showAlert('Login successful! Welcome to the Client Portal.', 'success');
+
+      const params = new URLSearchParams(window.location.search || window.location.hash.substring(window.location.hash.indexOf('?')));
+      const redirect = params.get('redirect');
+      const paymentId = params.get('paymentId');
+
       if (res.client.isTemporaryPassword) {
         navigate('/portal/change-password');
+      } else if (redirect === 'no-show-payment' && paymentId) {
+        navigate(`/portal/no-show-payment?paymentId=${paymentId}`);
       } else {
         navigate(`/portal/documents/${res.client.id}`);
       }
@@ -177,8 +202,15 @@ export const ClientPortalLogin = () => {
       localStorage.setItem('clientToken', res.token);
       localStorage.setItem('clientData', JSON.stringify(res.client));
       showAlert('Login successful! Welcome to the Client Portal.', 'success');
+      
+      const params = new URLSearchParams(window.location.search || window.location.hash.substring(window.location.hash.indexOf('?')));
+      const redirect = params.get('redirect');
+      const paymentId = params.get('paymentId');
+
       if (res.client.isTemporaryPassword) {
         navigate('/portal/change-password');
+      } else if (redirect === 'no-show-payment' && paymentId) {
+        navigate(`/portal/no-show-payment?paymentId=${paymentId}`);
       } else {
         navigate(`/portal/documents/${res.client.id}`);
       }

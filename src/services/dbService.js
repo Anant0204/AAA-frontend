@@ -139,9 +139,9 @@ export const dbService = {
     return res.data;
   },
   completeConsultation: async (consultationId, outcome, notes, recommendedService, recommendedPackageId) => {
-    const res = await apiClient.patch(`/consultations/${consultationId}/outcome`, { 
-      status: 'Completed', 
-      eligibility: outcome, 
+    const res = await apiClient.patch(`/consultations/${consultationId}/outcome`, {
+      status: 'Completed',
+      eligibility: outcome,
       internalNotes: notes,
       recommendedService,
       recommendedPackageId
@@ -265,12 +265,62 @@ export const dbService = {
     const res = await apiClient.put('/settings/customization', { settings });
     return res.data;
   },
+  getCompanySettings: async () => {
+    const res = await apiClient.get('/settings/company');
+    return res.data;
+  },
+  updateCompanySettings: async (data) => {
+    const res = await apiClient.put('/settings/company', data);
+    return res.data;
+  },
   getLeadStages: async () => {
     const res = await apiClient.get('/settings/lead-stages');
     return res.data;
   },
   saveLeadStages: async (stages) => {
     const res = await apiClient.put('/settings/lead-stages', stages);
+    return res.data;
+  },
+
+  // PACKAGES & SERVICES
+  getServices: async () => {
+    const res = await apiClient.get('/settings/services');
+    return res.data;
+  },
+  updateServices: async (services) => {
+    const res = await apiClient.put('/settings/services', services);
+    return res.data;
+  },
+  getPackages: async () => {
+    const res = await apiClient.get('/settings/packages');
+    return res.data;
+  },
+  createPackage: async (pkg) => {
+    const res = await apiClient.post('/settings/packages', pkg);
+    return res.data;
+  },
+  updatePackages: async (packages) => {
+    const res = await apiClient.put('/settings/packages', packages);
+    return res.data;
+  },
+  deletePackage: async (id) => {
+    const res = await apiClient.delete(`/settings/packages/${id}`);
+    return res.data;
+  },
+  getEmailTemplates: async () => {
+    const res = await apiClient.get('/settings/templates/email');
+    return res.data;
+  },
+  updateEmailTemplates: async (templates) => {
+    const res = await apiClient.put('/settings/templates/email', templates);
+    return res.data;
+  },
+  getWhatsappTemplates: async () => {
+    const res = await apiClient.get('/settings/templates/whatsapp');
+    return res.data;
+  },
+  updateWhatsappTemplates: async (templates) => {
+    const res = await apiClient.put('/settings/templates/whatsapp', templates);
     return res.data;
   },
 
@@ -391,7 +441,7 @@ export const dbService = {
       }
       const textContent = typeof message === 'string' ? message : (message?.text || '');
       const mediaUrl = typeof message === 'string' ? null : (message?.mediaUrl || null);
-      
+
       const sendRes = await apiClient.post('/social/messages/send', {
         phone: targetPhone || conversationId,
         text: textContent,
@@ -530,20 +580,6 @@ export const dbService = {
 
   summarizeClient: async (clientId) => {
     const res = await apiClient.post('/ai/summarize-client', { clientId });
-    return res.data;
-  },
-
-  // PACKAGES & CHECKOUTS
-  getClientPackages: async () => {
-    const res = await apiClient.get('/payments/packages');
-    return res.data;
-  },
-  createPackageCheckout: async (payload) => {
-    const res = await apiClient.post('/payments/package-checkout', payload);
-    return res.data;
-  },
-  getPaymentBySessionId: async (sessionId) => {
-    const res = await apiClient.get(`/payments/session/${sessionId}`);
     return res.data;
   },
 };

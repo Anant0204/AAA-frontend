@@ -140,9 +140,9 @@ const ALL_CLIENT_COLUMNS = [
 
 const DEFAULT_ACTIONS = {
   leads: { canCreate: true, canDelete: true, canAssignAgent: true },
-  clients: { 
-    canChangeVisaStatus: true, 
-    canVerifyDocs: true, 
+  clients: {
+    canChangeVisaStatus: true,
+    canVerifyDocs: true,
     canDelete: true,
     canManageCredentials: true,
     canManageDependents: true,
@@ -610,10 +610,10 @@ export const SuperAdminCustomization = () => {
   const handleSaveNewRole = () => {
     if (!newRoleName.trim()) return;
     const newRoleId = newRoleName.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
-    
+
     // Create new roles array
     const updatedRoles = [...dynamicRoles, { id: newRoleId, label: newRoleName, icon: newRoleIcon }];
-    
+
     // Create new local settings with the added role and empty template
     const newSettings = {
       ...localSettings,
@@ -626,15 +626,15 @@ export const SuperAdminCustomization = () => {
         columns: JSON.parse(JSON.stringify(DEFAULT_COLUMNS))
       }
     };
-    
+
     setLocalSettings(newSettings);
     saveSettingsMutation.mutate(newSettings);
-    
+
     // Switch to new role
     setActiveTab(updatedRoles.length - 1);
     setTargetType('role');
     setSelectedUserId('');
-    
+
     setRoleDialogOpen(false);
     setNewRoleName('');
     setNewRoleIcon('SupportAgentIcon');
@@ -643,10 +643,10 @@ export const SuperAdminCustomization = () => {
   const handleDeleteRole = () => {
     if (window.confirm(`Are you sure you want to completely delete the "${dynamicRoles[activeTab]?.label}" role? This cannot be undone.`)) {
       const roleToDelete = currentRoleId;
-      
+
       // Remove from dynamicRoles
       const updatedRoles = dynamicRoles.filter(r => r.id !== roleToDelete);
-      
+
       // Remove from localSettings
       const newSettings = { ...localSettings };
       delete newSettings[roleToDelete];
@@ -654,7 +654,7 @@ export const SuperAdminCustomization = () => {
 
       setLocalSettings(newSettings);
       saveSettingsMutation.mutate(newSettings);
-      
+
       // Reset active tab to admin
       setActiveTab(0);
       setTargetType('role');
@@ -1281,7 +1281,7 @@ export const SuperAdminCustomization = () => {
               Choose whether to apply settings to all users in this role, or to override settings for a specific individual agent.
             </Typography>
             <Divider sx={{ mb: 2 }} />
-            
+
             <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, gap: 4 }}>
               <FormControl component="fieldset">
                 <RadioGroup
@@ -1526,7 +1526,7 @@ export const SuperAdminCustomization = () => {
 
 
 
-            
+
             {/* Action Buttons for Current Role */}
             <Box className="col-span-12" sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'flex-end', gap: 1.5, mt: 2 }}>
               <Button
@@ -1772,7 +1772,7 @@ export const SuperAdminCustomization = () => {
                               key={doc}
                               label={doc}
                               onDelete={() => handleRemoveDoc(cat.key, doc)}
-                              sx={{ 
+                              sx={{
                                 fontWeight: 600,
                                 borderRadius: 1.5,
                                 border: '1px solid rgba(0,0,0,0.06)'

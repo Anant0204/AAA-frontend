@@ -737,7 +737,7 @@ export const SuperAdminRefundCommissionHub = () => {
                         const rawUrl = activeAuditRefund.proofUrl;
                         const fullUrl = rawUrl.startsWith('http') 
                           ? rawUrl 
-                          : `${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1').replace('/api/v1', '')}${rawUrl.startsWith('/') ? '' : '/'}${rawUrl}`;
+                          : `${(import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1').replace('/api/v1', '')}${rawUrl.startsWith('/') ? '' : '/'}${rawUrl}`;
                         window.open(fullUrl, '_blank', 'noopener,noreferrer');
                       }
                     }} 
