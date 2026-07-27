@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Box from '@mui/material/Box';
@@ -29,48 +30,7 @@ import ReceiptIcon from '@mui/icons-material/Receipt';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 
-import dayjs from 'dayjs';
 
-const FollowUpDatePickerInput = ({ value, onChange, style = {} }) => {
-  const [val, setVal] = useState(() => value ? dayjs(value).format('YYYY-MM-DD') : '');
-
-  React.useEffect(() => {
-    setVal(value ? dayjs(value).format('YYYY-MM-DD') : '');
-  }, [value]);
-
-  return (
-    <input
-      type="date"
-      value={val}
-      onClick={(e) => e.stopPropagation()}
-      onChange={(evt) => {
-        evt.stopPropagation();
-        const newVal = evt.target.value;
-        setVal(newVal);
-        if (!newVal || /^\d{4}-\d{2}-\d{2}$/.test(newVal)) {
-          onChange(newVal);
-        }
-      }}
-      onBlur={() => {
-        if (val && /^\d{4}-\d{2}-\d{2}$/.test(val) && val !== (value ? dayjs(value).format('YYYY-MM-DD') : '')) {
-          onChange(val);
-        }
-      }}
-      style={{
-        padding: '4px 8px',
-        borderRadius: '6px',
-        border: '1px solid #CBD5E1',
-        fontSize: '0.75rem',
-        fontFamily: 'inherit',
-        backgroundColor: '#FFFFFF',
-        color: '#1E293B',
-        cursor: 'pointer',
-        outline: 'none',
-        ...style
-      }}
-    />
-  );
-};
 import { dbService } from '../../services/dbService';
 import PageHeader from '../../components/PageHeader';
 import SearchBar from '../../components/SearchBar';
@@ -96,6 +56,45 @@ const clientSchema = yup.object().shape({
   status: yup.string().required('Billing status is required'),
   profileSummary: yup.string(),
 });
+
+const FollowUpDatePickerInput = ({ value, onChange, isDue, style = {} }) => {
+  const [val, setVal] = useState(() => value ? dayjs(value).format('YYYY-MM-DD') : '');
+
+  React.useEffect(() => {
+    setVal(value ? dayjs(value).format('YYYY-MM-DD') : '');
+  }, [value]);
+
+  return (
+    <input
+      type="date"
+      value={val}
+      onClick={(e) => e.stopPropagation()}
+      onChange={(evt) => {
+        evt.stopPropagation();
+        const newVal = evt.target.value;
+        setVal(newVal);
+        if (!newVal || /^\d{4}-\d{2}-\d{2}$/.test(newVal)) {
+          onChange(newVal);
+        }
+      }}
+      onBlur={() => {
+        if (val && /^\d{4}-\d{2}-\d{2}$/.test(val) && val !== (value ? dayjs(value).format('YYYY-MM-DD') : '')) {
+          onChange(val);
+        }
+      }}
+      style={{
+        border: 'none',
+        background: 'transparent',
+        fontSize: '0.75rem',
+        fontWeight: 700,
+        color: isDue ? '#B45309' : '#1E293B',
+        outline: 'none',
+        cursor: 'pointer',
+        ...style
+      }}
+    />
+  );
+};
 
 export const SuperAdminClientList = () => {
   const navigate = useNavigate();
@@ -261,7 +260,25 @@ export const SuperAdminClientList = () => {
       setAddModalOpen(false);
       reset();
     },
+    onError: (err) => {
+      showAlert(err.message || 'Failed to onboard client', 'error');
+    },
   });
+
+  const updateClientMutation = useMutation({
+    mutationFn: ({ id, ...data }) => dbService.updateClient(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      showAlert('Client follow-up date updated', 'success');
+    },
+    onError: (err) => {
+      showAlert(err.message || 'Failed to update follow-up date', 'error');
+    }
+  });
+
+  const [pendingFollowUpOnly, setPendingFollowUpOnly] = useState(false);
+  const todayStr = dayjs().format('YYYY-MM-DD');
+  const pendingFollowUpsCount = clients.filter(c => c.nextFollowUpDate && (c.nextFollowUpDate.split('T')[0] <= todayStr)).length;
 
   // React Hook Form
   const {
@@ -351,11 +368,11 @@ export const SuperAdminClientList = () => {
   });
 
   const columns = [
-    { 
-      id: 'clientCode', 
-      label: 'Client ID', 
-      minWidth: 110, 
-      render: (row) => <strong>{row.clientCode || row.displayId || row.id.substring(0, 8)}</strong> 
+    {
+      id: 'clientCode',
+      label: 'Client ID',
+      minWidth: 110,
+      render: (row) => <strong>{row.clientCode || row.displayId || row.id.substring(0, 8)}</strong>
     },
     {
       id: 'name',

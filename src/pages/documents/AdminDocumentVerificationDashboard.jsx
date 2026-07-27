@@ -406,7 +406,7 @@ export const AdminDocumentVerificationDashboard = () => {
                         onMouseEnter={e => { if (!isSelected) e.currentTarget.style.backgroundColor = 'rgba(63,81,181,0.04)'; }}
                         onMouseLeave={e => { if (!isSelected) e.currentTarget.style.backgroundColor = idx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.015)'; }}
                       >
-                        <td style={{ padding: '9px 12px', fontWeight: 700, color: '#3F51B5', whiteSpace: 'nowrap', borderBottom: '1px solid rgba(63,81,181,0.1)' }}>{c.id}</td>
+                        <td style={{ padding: '9px 12px', fontWeight: 700, color: '#3F51B5', whiteSpace: 'nowrap', borderBottom: '1px solid rgba(63,81,181,0.1)' }}>{c.clientCode || c.id}</td>
                         <td style={{ padding: '9px 12px', fontWeight: isSelected ? 700 : 500, borderBottom: '1px solid rgba(63,81,181,0.1)', whiteSpace: 'nowrap' }}>
                           {c.firstName} {c.lastName}
                         </td>

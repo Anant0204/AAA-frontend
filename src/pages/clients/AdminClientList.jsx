@@ -290,11 +290,11 @@ export const AdminClientList = () => {
   };
 
   const columns = [
-    { 
-      id: 'clientCode', 
-      label: 'Client ID', 
-      minWidth: 110, 
-      render: (row) => <strong>{row.clientCode || row.displayId || row.id.substring(0, 8)}</strong> 
+    {
+      id: 'clientCode',
+      label: 'Client ID',
+      minWidth: 110,
+      render: (row) => <strong>{row.clientCode || row.displayId || row.id.substring(0, 8)}</strong>
     },
     {
       id: 'name',

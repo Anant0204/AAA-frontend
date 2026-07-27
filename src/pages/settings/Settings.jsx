@@ -1230,6 +1230,41 @@ export const Settings = () => {
               <strong>⚠️ Important:</strong> Only ONE Stripe account can be Active at a time for payment processing. The standby account is kept for failover or region-specific transactions. Toggle the switch to activate/deactivate accounts.
             </Typography>
           </Paper>
+
+          {/* ZOHO INVOICE API INTEGRATION CARD */}
+          <Paper sx={{ mt: 4, p: 3.5, borderRadius: 3, border: '1px solid', borderColor: 'primary.main', bgcolor: 'background.paper' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+              <ReceiptIcon color="primary" sx={{ fontSize: '1.8rem' }} />
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main', fontFamily: "'Outfit', sans-serif" }}>
+                  Zoho Invoice API Integration
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Connect your Zoho Invoice account to generate official Zoho Invoice links & receipts for clients via WhatsApp & Email.
+                </Typography>
+              </Box>
+            </Box>
+            <Divider sx={{ my: 2 }} />
+            <Box className="grid grid-cols-12 gap-3">
+              <Box className="col-span-12 md:col-span-6">
+                <TextField label="Zoho Organization ID" placeholder="e.g. 800123456" fullWidth size="small" defaultValue={process.env.ZOHO_ORGANIZATION_ID || ''} />
+              </Box>
+              <Box className="col-span-12 md:col-span-6">
+                <TextField label="Zoho Client ID" placeholder="1000.XXXXXX..." fullWidth size="small" defaultValue={process.env.ZOHO_CLIENT_ID || ''} />
+              </Box>
+              <Box className="col-span-12 md:col-span-6">
+                <TextField label="Zoho Client Secret" type="password" placeholder="••••••••••••" fullWidth size="small" defaultValue={process.env.ZOHO_CLIENT_SECRET || ''} />
+              </Box>
+              <Box className="col-span-12 md:col-span-6">
+                <TextField label="Zoho Refresh Token" type="password" placeholder="1000.XXXXXX..." fullWidth size="small" defaultValue={process.env.ZOHO_REFRESH_TOKEN || ''} />
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+              <Button variant="contained" color="primary" startIcon={<SaveIcon />} sx={{ borderRadius: 2.5, px: 4, fontWeight: 700, textTransform: 'none' }}>
+                Save Zoho Credentials
+              </Button>
+            </Box>
+          </Paper>
         </AppCard>
       )}
 
