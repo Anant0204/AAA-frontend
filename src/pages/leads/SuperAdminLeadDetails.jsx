@@ -20,6 +20,7 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import Tooltip from '@mui/material/Tooltip';
+import Chip from '@mui/material/Chip';
 
 // Icons
 import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
