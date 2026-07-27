@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://aaa-consultancy-backend-production.up.railway.app/api/v1';
+const API_URL = import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1';
 
 const LANGUAGES = [
   { value: 'English', label: 'English 🇺🇸' },
