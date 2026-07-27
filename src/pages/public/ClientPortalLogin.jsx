@@ -150,8 +150,15 @@ export const ClientPortalLogin = () => {
       localStorage.setItem('clientToken', res.token);
       localStorage.setItem('clientData', JSON.stringify(res.client));
       showAlert('Login successful! Welcome to the Client Portal.', 'success');
+
+      const params = new URLSearchParams(window.location.search || window.location.hash.substring(window.location.hash.indexOf('?')));
+      const redirect = params.get('redirect');
+      const paymentId = params.get('paymentId');
+
       if (res.client.isTemporaryPassword) {
         navigate('/portal/change-password');
+      } else if (redirect === 'no-show-payment' && paymentId) {
+        navigate(`/portal/no-show-payment?paymentId=${paymentId}`);
       } else {
         navigate(`/portal/documents/${res.client.id}`);
       }
@@ -177,8 +184,15 @@ export const ClientPortalLogin = () => {
       localStorage.setItem('clientToken', res.token);
       localStorage.setItem('clientData', JSON.stringify(res.client));
       showAlert('Login successful! Welcome to the Client Portal.', 'success');
+      
+      const params = new URLSearchParams(window.location.search || window.location.hash.substring(window.location.hash.indexOf('?')));
+      const redirect = params.get('redirect');
+      const paymentId = params.get('paymentId');
+
       if (res.client.isTemporaryPassword) {
         navigate('/portal/change-password');
+      } else if (redirect === 'no-show-payment' && paymentId) {
+        navigate(`/portal/no-show-payment?paymentId=${paymentId}`);
       } else {
         navigate(`/portal/documents/${res.client.id}`);
       }

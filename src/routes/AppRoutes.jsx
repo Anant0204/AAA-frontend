@@ -70,6 +70,7 @@ import ClientPortalChangePassword from '../pages/public/ClientPortalChangePasswo
 import ClientPortalDocs from '../pages/public/ClientPortalDocs';
 import LeadSelfFillForm from '../pages/public/LeadSelfFillForm';
 import PaymentSuccess from '../pages/public/PaymentSuccess';
+import NoShowPayment from '../pages/public/NoShowPayment';
 import AdminDocumentVerificationDashboard from '../pages/documents/AdminDocumentVerificationDashboard';
 import OperationsDocumentVerificationDashboard from '../pages/documents/OperationsDocumentVerificationDashboard';
 
@@ -310,6 +311,11 @@ export const AppRoutes = () => {
       <Route path="/portal/documents/:clientId" element={
         <ClientPortalGuard>
           <ClientPortalDocs />
+        </ClientPortalGuard>
+      } />
+      <Route path="/portal/no-show-payment" element={
+        <ClientPortalGuard>
+          <NoShowPayment />
         </ClientPortalGuard>
       } />
 
