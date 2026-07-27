@@ -268,7 +268,7 @@ export const AgentLeadDetails = () => {
   const consultantObj = consultants.find((c) => c.id === lead.assignedConsultantId);
   const serviceObj = SERVICES.find((s) => s.id === lead.serviceId);
 
-  const isConsultationPending = !lead.status || ['New Lead', 'Attempting Contact', 'Assessment Booked', 'Under Assessment'].includes(lead.status);
+  const isConsultationPending = !lead.status || ['New Lead', 'Attempting Contact', 'Assessment Booked', 'Under Assessment', 'Form Submitted', 'Meeting Scheduled'].includes(lead.status);
 
   const getMaskedPhone = (phone) => {
     if (!phone) return '';
