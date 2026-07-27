@@ -218,7 +218,7 @@ export const Settings = () => {
     queryFn: dbService.getServices
   });
 
-  const { data: packages = [] } = useQuery({
+  const { data: packages = [], refetch: refetchPackages } = useQuery({
     queryKey: ['packages'],
     queryFn: dbService.getPackages
   });
@@ -342,7 +342,7 @@ export const Settings = () => {
 
     const payload = {
       id: editingPkgId,
-      code: pkgCode || `pkg_${Date.now()}`,
+      code: pkgCode || (editingPkgId === 'opt_a' ? 'full_process' : editingPkgId === 'opt_b' ? 'premium' : editingPkgId === 'opt_c' ? 'relocation' : `pkg_${Date.now()}`),
       name: pkgName.trim(),
       price: Number(pkgPrice) || 0,
       additionalApplicantPrice: Number(pkgAddApplicantPrice) || 500,
@@ -360,6 +360,7 @@ export const Settings = () => {
             queryClient.setQueryData(['packages'], resData);
           }
           queryClient.invalidateQueries({ queryKey: ['packages'] });
+          refetchPackages();
           showAlert('Package details updated successfully! 🎉', 'success');
           setPkgModalOpen(false);
         }

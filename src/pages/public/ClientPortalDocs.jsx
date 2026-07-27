@@ -2240,7 +2240,7 @@ export const ClientPortalDocs = () => {
                   </Typography>
 
                   <Grid container spacing={3}>
-                    <Grid item xs={12} md={8}>
+                    <Grid item xs={12}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2 }}>Select Relocation Package</Typography>
 
                       {client.serviceId === 'tourism' || client.serviceId === 'tourist' ? (
@@ -2397,8 +2397,8 @@ export const ClientPortalDocs = () => {
                       )}
                     </Grid>
 
-                    <Grid item xs={12} md={4}>
-                      <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', bgcolor: '#F9FAFB' }}>
+                    <Grid item xs={12}>
+                      <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', bgcolor: '#F9FAFB', borderRadius: 3 }}>
                         <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Order Summary</Typography>
                         <Divider sx={{ my: 1.5 }} />
 

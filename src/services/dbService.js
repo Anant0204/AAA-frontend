@@ -478,7 +478,7 @@ export const dbService = {
     return res.data;
   },
   getPackages: async () => {
-    const res = await apiClient.get('/settings/packages');
+    const res = await apiClient.get(`/settings/packages?t=${Date.now()}`);
     return res.data;
   },
   updatePackages: async (data) => {
