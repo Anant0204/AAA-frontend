@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://aaa-consultancy-production.up.railway.app/api/v1';
+const API_URL = import.meta.env.VITE_API_URL || 'http://aaa-consultancy-backend-production.up.railway.app/api/v1';
 
 const LANGUAGES = [
   { value: 'English', label: 'English 🇺🇸' },
@@ -172,7 +172,7 @@ const SwornTranslationForm = () => {
     try {
       setStatus('loading');
       setError(null);
-      
+
       const formDataUpload = new FormData();
       formDataUpload.append('document', file);
       formDataUpload.append('firstName', formData.firstName);
@@ -215,7 +215,7 @@ const SwornTranslationForm = () => {
 
       const formDataCheckout = new FormData();
       formDataCheckout.append('document', file);
-      
+
       let finalCategory = category;
       if (category === 'Other') {
         finalCategory = `Other: ${customCategory || 'General Document'}`;
@@ -459,7 +459,7 @@ const SwornTranslationForm = () => {
             {/* File Upload Box */}
             <div>
               <label style={labelStyle}>Upload PDF Document *</label>
-              <div 
+              <div
                 onDragOver={(e) => { e.preventDefault(); setIsDragActive(true); }}
                 onDragLeave={() => setIsDragActive(false)}
                 onDrop={(e) => {
@@ -481,7 +481,7 @@ const SwornTranslationForm = () => {
                   transition: 'all 0.2s ease',
                 }}
               >
-                <input 
+                <input
                   id="landing-file-input"
                   type="file"
                   accept="application/pdf"
