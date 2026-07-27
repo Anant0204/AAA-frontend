@@ -18,10 +18,6 @@ import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import TextField from '@mui/material/TextField';
 import Card from '@mui/material/Card';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
 import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
 import Accordion from '@mui/material/Accordion';
@@ -256,14 +252,6 @@ export const ClientPortalDocs = () => {
   const queryClient = useQueryClient();
   const { showAlert } = useAlert();
   const [tabValue, setTabValue] = useState(0);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search);
-    if (params.get('redirect') === 'packages') {
-      setTabValue(1);
-    }
-  }, []);
-
   const [downloadMenuAnchor, setDownloadMenuAnchor] = useState(null);
   const [portalLang, setPortalLang] = useState(() => {
     return localStorage.getItem('client-portal-lang') || 'English';
@@ -349,12 +337,9 @@ export const ClientPortalDocs = () => {
   const [addonLoading, setAddonLoading] = useState(false);
 
   // Visa Package selection & Billing states
-  const [selectedPackageId, setSelectedPackageId] = useState('OPTION_B');
-  const [extraApplicants, setExtraApplicants] = useState(0);
-  const [invoicePreview, setInvoicePreview] = useState(null);
-  const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
-  const [termsAccepted, setTermsAccepted] = useState(false);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState('full_process');
+  const [billingTermsChecked, setBillingTermsChecked] = useState(false);
+  const [billingPaymentMethod, setBillingPaymentMethod] = useState('card');
 
   // Helper to extract numeric count of applicants
   const getApplicantsCount = (countStr) => {
@@ -449,14 +434,12 @@ export const ClientPortalDocs = () => {
     queryFn: dbService.getPayments
   });
 
-  const hasPaidPackage = Boolean(
-    allPayments && allPayments.some(p => 
-      (p.clientId === client?.id || p.clientId === clientId) && 
-      p.status === 'Paid' && 
-      ['OPTION_B', 'OPTION_C', 'OPTION_D'].includes(p.packageType)
+  const hasAnyPaidPayment = Boolean(
+    allPayments && allPayments.some(p =>
+      (p.clientId === client?.id || p.clientId === clientId) && p.status === 'Paid'
     )
   );
-  const isClientPaid = Boolean(client?.documentUploadAllowed || hasPaidPackage || translationPaid);
+  const isClientPaid = Boolean(client?.documentUploadAllowed || hasAnyPaidPayment || translationPaid);
 
   const { data: allRefunds = [], refetch: refetchRefunds } = useQuery({
     queryKey: ['refundRequests'],
@@ -842,30 +825,23 @@ export const ClientPortalDocs = () => {
     }
   });
 
-  const { data: packagesData, isLoading: isPackagesLoading } = useQuery({
-    queryKey: ['packagesConfig'],
-    queryFn: dbService.getClientPackages,
-    enabled: isClientRole
-  });
-
-  const generateInvoiceMutation = useMutation({
-    mutationFn: async () => {
-      const res = await dbService.createPackageCheckout({
-        packageId: selectedPackageId,
-        additionalApplicants: extraApplicants
+  const selectAndPayPackageMutation = useMutation({
+    mutationFn: async ({ packageId, amount, discount }) => {
+      const res = await dbService.createCheckoutSession({
+        packageId,
+        amount,
+        discount,
+        paymentMethod: billingPaymentMethod,
+        clientId: client?.id || clientId
       });
-      return res;
-    },
-    onSuccess: (data) => {
-      if (data.success && data.payment) {
-        setInvoicePreview(data.payment.invoiceSnapshot);
-        setInvoiceModalOpen(true);
+      if (res.success && res.url) {
+        window.location.href = res.url;
       } else {
-        showAlert(data.message || 'Failed to generate invoice.', 'error');
+        throw new Error(res.message || 'Failed to initialize payment checkout session');
       }
     },
     onError: (err) => {
-      showAlert(err?.response?.data?.message || err?.message || 'Failed to generate invoice. Please try again.', 'error');
+      showAlert(err?.message || 'Payment failed. Please try again.', 'error');
     }
   });
 
@@ -1200,6 +1176,75 @@ export const ClientPortalDocs = () => {
           </Typography>
         </Box>
       </Box>
+
+      {/* Recommended Package Selection Card for Automated Journey */}
+      {client && (client.status === 'Waiting for Payment' || !client.documentUploadAllowed) && (
+        <Paper
+          sx={{
+            maxWidth: 950,
+            mx: 'auto',
+            mb: 4,
+            p: 3.5,
+            borderRadius: 4,
+            background: 'linear-gradient(135deg, #051A3B 0%, #0F2B5B 100%)',
+            color: 'white',
+            border: '2px solid #C59B27',
+            boxShadow: '0 12px 30px rgba(197, 155, 39, 0.15)',
+            position: 'relative'
+          }}
+        >
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+            <Box sx={{ maxWidth: 600 }}>
+              <Chip
+                label="✨ RECOMMENDED VISA PACKAGE"
+                size="small"
+                sx={{ bgcolor: '#C59B27', color: '#051A3B', fontWeight: 900, mb: 1, fontSize: '0.75rem' }}
+              />
+              <Typography variant="h5" sx={{ fontWeight: 900, fontFamily: 'Outfit, sans-serif', color: '#E5C058' }}>
+                {client.serviceType || 'Spain Relocation & Visa Package'}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5, lineHeight: 1.5 }}>
+                Select your recommended relocation package to generate your itemized invoice (including 5% UAE VAT) and unlock your document upload checklist.
+              </Typography>
+            </Box>
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography variant="caption" sx={{ display: 'block', opacity: 0.8 }}>Package Price (+ 5% VAT)</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 900, color: '#E5C058' }}>€2,000.00</Typography>
+              <Button
+                variant="contained"
+                onClick={() => {
+                  showAlert('Processing package selection...', 'info');
+                  dbService.selectPackage({ packageId: client.packageId || 'standard', serviceType: client.serviceType || 'Spain Visa', amount: 2000 })
+                    .then(res => {
+                      showAlert('Package selected! Redirecting to Invoice...', 'success');
+                      if (res.invoiceId) {
+                        navigate(`/portal/invoices/${res.invoiceId}`);
+                      }
+                    })
+                    .catch(err => {
+                      console.error('Package selection error:', err);
+                      showAlert(err.response?.data?.message || 'Error selecting package', 'error');
+                    });
+                }}
+                sx={{
+                  mt: 1.5,
+                  px: 3,
+                  py: 1,
+                  fontWeight: 800,
+                  bgcolor: '#C59B27',
+                  color: '#051A3B',
+                  borderRadius: 2.5,
+                  textTransform: 'none',
+                  fontFamily: 'Outfit, sans-serif',
+                  '&:hover': { bgcolor: '#E5C058' }
+                }}
+              >
+                Select & View Invoice →
+              </Button>
+            </Box>
+          </Box>
+        </Paper>
+      )}
 
       {/* Tabs */}
       {!isTranslationClient && (
@@ -2133,7 +2178,7 @@ export const ClientPortalDocs = () => {
                             }}
                           >
                             {translatedDocs.map((doc) => {
-                              const fileUrl = `${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1').replace('/api/v1', '')}${doc.translatedUrl}`;
+                              const fileUrl = `${(import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1').replace('/api/v1', '')}${doc.translatedUrl}`;
                               return (
                                 <MenuItem
                                   key={doc.id}
@@ -2208,12 +2253,49 @@ export const ClientPortalDocs = () => {
         )}
 
         {tabValue === 1 && client && client.serviceId !== 'sworn_translation' && client.serviceId !== 'translation' && client.serviceId !== 'sworn' && client.serviceType !== 'Spanish Sworn Translation' && (() => {
-          // Check if client is already paid (they paid B, C, D)
-          const isClientPaid = Boolean(client?.documentUploadAllowed || hasPaidPackage);
+          const getApplicantsCount = (countStr) => {
+            if (!countStr || countStr === 'Main Only') return 1;
+            const numericVal = parseInt(countStr, 10);
+            if (!isNaN(numericVal) && String(numericVal) === countStr.trim()) {
+              return numericVal;
+            }
+            const match = countStr.match(/Main\s*\+\s*(\d+)/i);
+            if (match) {
+              return 1 + parseInt(match[1], 10);
+            }
+            return 1;
+          };
 
-          if (isClientPaid) {
-            return (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          const totalApplicants = getApplicantsCount(client.applicantsCount);
+          const addApplicants = totalApplicants - 1;
+
+          // Check for €250 assessment credit in the last 14 days
+          const paidAssessment = allPayments.find(p =>
+            p.clientId === client.id &&
+            p.status === 'Paid' &&
+            p.amount === 262.50 &&
+            (new Date() - new Date(p.createdAt)) < 14 * 24 * 60 * 60 * 1000
+          );
+          const assessmentCredit = paidAssessment ? 250 : 0;
+
+          // Option A: Full Processing (base €3500, additional €500)
+          const optionAPrice = 3500 + (addApplicants * 500);
+
+          // Option B: Premium (base €4750, additional €750)
+          const optionBPrice = 4750 + (addApplicants * 750);
+          const optionBDiscount = 0;
+
+          // Option C: Administrative Relocation (base €1750, additional €500)
+          const optionCPrice = 1750 + (addApplicants * 500);
+
+          // Tourist Schengen Visa (base €500, additional €250)
+          const schengenPrice = 500 + (addApplicants * 250);
+
+          const baseServicePrice = optionAPrice;
+
+          return (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {isClientPaid ? (
                 <Paper sx={{ p: 4, borderRadius: 3, border: '1px solid', borderColor: 'success.main', bgcolor: '#F0FDF4', boxShadow: 'none', textAlign: 'center' }}>
                   <CheckCircleIcon color="success" sx={{ fontSize: 56, mb: 2 }} />
                   <Typography variant="h5" sx={{ fontWeight: 800, mb: 1.5 }}>Visa Relocation Package Active & Paid</Typography>
@@ -2224,218 +2306,252 @@ export const ClientPortalDocs = () => {
                     Go to Document Center
                   </Button>
                 </Paper>
-              </Box>
-            );
-          }
-
-          // Otherwise show Selection
-          const activeCredit = packagesData?.credit?.hasCredit ? 250 : 0;
-          const creditExpiry = packagesData?.credit?.expiresAt ? new Date(packagesData.credit.expiresAt).toLocaleDateString() : '';
-
-          // Estimation calculations
-          const selectedPkgInfo = packagesData?.packages?.[selectedPackageId];
-          const basePrice = selectedPkgInfo ? selectedPkgInfo.basePrice : 0;
-          const additionalApplicantPrice = selectedPkgInfo ? selectedPkgInfo.additionalApplicantPrice : 0;
-          
-          // Deductible only for B or D
-          const isDeductible = selectedPackageId === 'OPTION_B' || selectedPackageId === 'OPTION_D';
-          const appliedCredit = isDeductible ? activeCredit : 0;
-
-          const additionalApplicantTotal = parseFloat((extraApplicants * additionalApplicantPrice).toFixed(2));
-          const packageTotal = parseFloat((basePrice + additionalApplicantTotal).toFixed(2));
-          const subtotal = parseFloat((packageTotal - appliedCredit).toFixed(2));
-          const vatRate = selectedPkgInfo ? selectedPkgInfo.vatRate : 5;
-          const vatAmount = parseFloat((subtotal * (vatRate / 100)).toFixed(2));
-          const total = parseFloat((subtotal + vatAmount).toFixed(2));
-
-          return (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {isPackagesLoading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
               ) : (
                 <Paper sx={{ p: 4, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
-                  <Typography variant="h5" sx={{ fontWeight: 800, mb: 1, color: '#051A3B', fontFamily: 'Outfit, sans-serif' }}>Visa Packages & Invoicing Hub</Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 800, mb: 1 }}>Visa Packages & Billing Hub</Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-                    Please select your preferred Spanish residency relocation package below to preview your invoice and authorize checkout.
+                    Please select your preferred relocation package below to initiate checkout and unlock your document checklists.
                   </Typography>
 
-                  {activeCredit > 0 && (
-                    <Box sx={{ mb: 3.5, p: 2, bgcolor: '#FEF3C7', border: '1px solid #F59E0B', borderRadius: 2.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <span style={{ fontSize: '20px' }}>💰</span>
-                      <Typography variant="body2" sx={{ fontWeight: 700, color: '#92400E' }}>
-                        You have an active €250.00 Professional Case Assessment Credit (valid until {creditExpiry}). This will be automatically applied as a deduction if you select Option B or Option D.
-                      </Typography>
-                    </Box>
-                  )}
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={8}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2 }}>Select Relocation Package</Typography>
 
-                  <Grid container spacing={3.5}>
-                    <Grid item xs={12} md={7}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2, color: '#051A3B' }}>Select Package Options</Typography>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-                        {packagesData?.packages && Object.values(packagesData.packages).map((pkg) => {
-                          const isSelected = selectedPackageId === pkg.id;
-                          return (
-                            <Card
-                              key={pkg.id}
-                              onClick={() => {
-                                setSelectedPackageId(pkg.id);
-                                if (pkg.id === 'OPTION_A') {
-                                  setExtraApplicants(0); // Option A cannot have extra applicants
-                                }
-                              }}
-                              sx={{
-                                border: isSelected ? '2px solid #C59B27' : '1px solid rgba(0,0,0,0.08)',
-                                bgcolor: isSelected ? 'rgba(197, 155, 39, 0.02)' : 'background.paper',
-                                borderRadius: 3,
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                '&:hover': { borderColor: '#C59B27', boxShadow: '0 4px 12px rgba(5,26,59,0.03)' },
-                                boxShadow: 'none'
-                              }}
-                            >
-                              <CardContent sx={{ p: 2.5 }}>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                                  <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#051A3B', fontFamily: 'Outfit, sans-serif' }}>
-                                    {pkg.name}
-                                  </Typography>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    {pkg.id === 'OPTION_A' ? (
-                                      <Typography variant="h6" sx={{ fontWeight: 900, color: '#C59B27' }}>€{pkg.basePrice}</Typography>
-                                    ) : (
-                                      <Typography variant="h6" sx={{ fontWeight: 900, color: '#C59B27' }}>€{pkg.basePrice} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Base</span></Typography>
-                                    )}
-                                  </Box>
-                                </Box>
-                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontWeight: 500, fontSize: '0.8rem', lineHeight: 1.4 }}>
-                                  {pkg.id === 'OPTION_A' && "One-to-one dedicated Spanish immigration case assessment and eligibility audit."}
-                                  {pkg.id === 'OPTION_B' && "Complete end-to-end professional support, file compilation, and submission of visa applications."}
-                                  {pkg.id === 'OPTION_C' && "Post-approval administrative relocation assistance (TIE fingerprint booking, empadronamiento, bank/SNS setup)."}
-                                  {pkg.id === 'OPTION_D' && "All-inclusive Premium support: Full Visa processing + Post-approval administrative relocation assistance."}
-                                </Typography>
-
-                                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                                  <Chip
-                                    label={pkg.refundable ? `${pkg.refundPercent}% Refundable` : "Non-Refundable"}
-                                    color={pkg.refundable ? "success" : "default"}
-                                    size="small"
-                                    sx={{ fontWeight: 800, fontSize: '0.68rem', height: 22 }}
-                                  />
-                                  {pkg.additionalApplicantPrice > 0 && (
-                                    <Chip
-                                      label={`+€${pkg.additionalApplicantPrice}/extra applicant`}
-                                      variant="outlined"
-                                      size="small"
-                                      sx={{ fontWeight: 700, fontSize: '0.68rem', height: 22 }}
-                                    />
+                      {client.serviceId === 'tourism' || client.serviceId === 'tourist' ? (
+                        <Card sx={{ border: '2px solid', borderColor: 'secondary.main', bgcolor: 'rgba(20, 184, 166, 0.02)', borderRadius: 3, cursor: 'pointer' }}>
+                          <CardContent>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                              <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Schengen Tourist Visa Package</Typography>
+                              <Typography variant="h6" color="secondary.main" sx={{ fontWeight: 800 }}>€400</Typography>
+                            </Box>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                              Complete Schengen guidance, invitation preparation, checklist review, and embassy appointment scheduling.
+                            </Typography>
+                            <Chip label="Selected Package" color="secondary" size="small" sx={{ fontWeight: 700 }} />
+                          </CardContent>
+                        </Card>
+                      ) : (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                          <Card
+                            onClick={() => setSelectedPackage('full_process')}
+                            sx={{
+                              border: selectedPackage === 'full_process' ? '2px solid' : '1px solid',
+                              borderColor: selectedPackage === 'full_process' ? 'secondary.main' : 'divider',
+                              bgcolor: selectedPackage === 'full_process' ? 'rgba(20, 184, 166, 0.02)' : 'background.paper',
+                              borderRadius: 3,
+                              cursor: 'pointer',
+                              boxShadow: 'none'
+                            }}
+                          >
+                            <CardContent>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>OPTION A: FULL PROCESSING PACKAGE</Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  {assessmentCredit > 0 && (
+                                    <Typography variant="body2" sx={{ textDecoration: 'line-through', color: 'text.secondary', fontWeight: 500 }}>€{optionAPrice}</Typography>
                                   )}
+                                  <Typography variant="h6" color="secondary.main" sx={{ fontWeight: 800 }}>€{optionAPrice - assessmentCredit}</Typography>
                                 </Box>
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
-                      </Box>
+                              </Box>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                Complete professional end-to-end support for Spain Residency applications from eligibility to submission.
+                              </Typography>
+                              {selectedPackage === 'full_process' && (
+                                <Chip label="Selected" color="secondary" size="small" sx={{ fontWeight: 700 }} />
+                              )}
+                            </CardContent>
+                          </Card>
+
+                          <Card
+                            onClick={() => setSelectedPackage('premium')}
+                            sx={{
+                              border: selectedPackage === 'premium' ? '2px solid' : '1px solid',
+                              borderColor: selectedPackage === 'premium' ? 'secondary.main' : 'divider',
+                              bgcolor: selectedPackage === 'premium' ? 'rgba(20, 184, 166, 0.02)' : 'background.paper',
+                              borderRadius: 3,
+                              cursor: 'pointer',
+                              boxShadow: 'none'
+                            }}
+                          >
+                            <CardContent>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>OPTION B: PREMIUM PACKAGE</Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  {assessmentCredit > 0 && (
+                                    <Typography variant="body2" sx={{ textDecoration: 'line-through', color: 'text.secondary', fontWeight: 500 }}>€{optionBPrice}</Typography>
+                                  )}
+                                  <Typography variant="h6" color="secondary.main" sx={{ fontWeight: 800 }}>€{optionBPrice - assessmentCredit}</Typography>
+                                </Box>
+                              </Box>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                Everything in Full Process + complete relocation administrative assistance (NIE/TIE fingerprint appointments, empadronamiento local registration, Social Security, Spanish Bank setup).
+                              </Typography>
+                              {selectedPackage === 'premium' && (
+                                <Chip label="Selected" color="secondary" size="small" sx={{ fontWeight: 700 }} />
+                              )}
+                            </CardContent>
+                          </Card>
+
+                          <Card
+                            onClick={() => setSelectedPackage('relocation')}
+                            sx={{
+                              border: selectedPackage === 'relocation' ? '2px solid' : '1px solid',
+                              borderColor: selectedPackage === 'relocation' ? 'secondary.main' : 'divider',
+                              bgcolor: selectedPackage === 'relocation' ? 'rgba(20, 184, 166, 0.02)' : 'background.paper',
+                              borderRadius: 3,
+                              cursor: 'pointer',
+                              boxShadow: 'none'
+                            }}
+                          >
+                            <CardContent>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>OPTION C: ADMINISTRATIVE RELOCATION PACKAGE</Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  {assessmentCredit > 0 && (
+                                    <Typography variant="body2" sx={{ textDecoration: 'line-through', color: 'text.secondary', fontWeight: 500 }}>€{optionCPrice}</Typography>
+                                  )}
+                                  <Typography variant="h6" color="secondary.main" sx={{ fontWeight: 800 }}>€{optionCPrice - assessmentCredit}</Typography>
+                                </Box>
+                              </Box>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                Post-approval administrative relocation support for clients who already have their visa approved and need settlement help in Spain.
+                              </Typography>
+                              {selectedPackage === 'relocation' && (
+                                <Chip label="Selected" color="secondary" size="small" sx={{ fontWeight: 700 }} />
+                              )}
+                            </CardContent>
+                          </Card>
+                        </Box>
+                      )}
                     </Grid>
 
-                    <Grid item xs={12} md={5}>
-                      <Paper sx={{ p: 3.5, border: '1px solid rgba(0,0,0,0.06)', borderRadius: 4, boxShadow: 'none', bgcolor: '#F8FAFC' }}>
-                        {selectedPackageId !== 'OPTION_A' && (
-                          <Box sx={{ mb: 3 }}>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 1.5 }}>
-                              Additional Applicants Count
-                            </Typography>
-                            <Box sx={{ display: 'inline-flex', alignItems: 'center', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 2.5, overflow: 'hidden', bgcolor: 'background.paper' }}>
-                              <Button
-                                size="small"
-                                onClick={() => setExtraApplicants(prev => Math.max(0, prev - 1))}
-                                sx={{ minWidth: 40, height: 36, color: '#051A3B', fontWeight: 900, fontSize: '1.1rem' }}
-                              >
-                                −
-                              </Button>
-                              <Box sx={{ minWidth: 40, textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', color: '#051A3B' }}>
-                                {extraApplicants}
-                              </Box>
-                              <Button
-                                size="small"
-                                onClick={() => setExtraApplicants(prev => prev + 1)}
-                                sx={{ minWidth: 40, height: 36, color: '#051A3B', fontWeight: 900, fontSize: '1.1rem' }}
-                              >
-                                +
-                              </Button>
-                            </Box>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, fontWeight: 500 }}>
-                              Number of additional dependents applying with you.
-                            </Typography>
-                          </Box>
-                        )}
-
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Invoice Preview (Estimate)</Typography>
+                    <Grid item xs={12} md={4}>
+                      <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', bgcolor: '#F9FAFB' }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Order Summary</Typography>
                         <Divider sx={{ my: 1.5 }} />
 
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2 }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>Base Price:</Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B' }}>€{basePrice.toFixed(2)}</Typography>
-                          </Box>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                          {/* Correct, clean calculations */}
+                          {(() => {
+                            const baseFee =
+                              client.serviceId === 'tourism' || client.serviceId === 'tourist'
+                                ? schengenPrice
+                                : (selectedPackage === 'relocation' ? optionCPrice : optionAPrice);
 
-                          {additionalApplicantTotal > 0 && (
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>Add. Applicants ({extraApplicants}):</Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B' }}>+€{additionalApplicantTotal.toFixed(2)}</Typography>
-                            </Box>
-                          )}
+                            const premiumAddon =
+                              selectedPackage === 'premium' && client.serviceId !== 'tourism' && client.serviceId !== 'tourist'
+                                ? optionBPrice - optionAPrice
+                                : 0;
 
-                          {appliedCredit > 0 && (
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', color: '#10B981' }}>
-                              <Typography variant="body2" color="inherit" sx={{ fontWeight: 500 }}>Assessment Credit Applied:</Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 800 }}>-€{appliedCredit.toFixed(2)}</Typography>
-                            </Box>
-                          )}
+                            const isDeductible = ['full_process', 'premium', 'relocation'].includes(selectedPackage);
+                            const activeCredit = isDeductible ? assessmentCredit : 0;
 
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>Subtotal:</Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B' }}>€{subtotal.toFixed(2)}</Typography>
-                          </Box>
+                            const subtotalBeforeVat = Math.max(0, baseFee + premiumAddon - activeCredit);
+                            const calculatedVat = subtotalBeforeVat * 0.05;
+                            const calculatedTotal = subtotalBeforeVat * 1.05;
 
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>VAT (5%):</Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B' }}>€{vatAmount.toFixed(2)}</Typography>
-                          </Box>
+                            return (
+                              <>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                  <Typography variant="body2" color="text.secondary">Base Relocation Fee:</Typography>
+                                  <Typography variant="body2" sx={{ fontWeight: 700 }}>€{baseFee}</Typography>
+                                </Box>
 
-                          <Divider sx={{ my: 1 }} />
+                                {premiumAddon > 0 && (
+                                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <Typography variant="body2" color="text.secondary">Relocation Add-on:</Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 700 }}>+€{premiumAddon}</Typography>
+                                  </Box>
+                                )}
 
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#051A3B' }}>Total Amount:</Typography>
-                            <Typography variant="h5" sx={{ fontWeight: 900, color: '#C59B27', fontFamily: 'Outfit, sans-serif' }}>
-                              €{total.toFixed(2)}
-                            </Typography>
-                          </Box>
+                                {activeCredit > 0 && (
+                                  <Box sx={{ display: 'flex', justifyContent: 'space-between', color: 'success.main' }}>
+                                    <Typography variant="body2" color="inherit">Assessment Fee Credit:</Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 700, fontWeight: 700 }}>-€{activeCredit}.00</Typography>
+                                  </Box>
+                                )}
+
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                  <Typography variant="body2" color="text.secondary">VAT (5%):</Typography>
+                                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                                    €{calculatedVat.toFixed(2)}
+                                  </Typography>
+                                </Box>
+
+                                <Divider sx={{ my: 1 }} />
+
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Payable Total:</Typography>
+                                  <Typography variant="h5" color="secondary.main" sx={{ fontWeight: 900 }}>
+                                    €{calculatedTotal.toFixed(2)}
+                                  </Typography>
+                                </Box>
+                              </>
+                            );
+                          })()}
                         </Box>
 
-                        <Divider sx={{ my: 2.5 }} />
+                        <Divider sx={{ my: 2 }} />
+
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', display: 'block', mb: 1 }}>Payment Provider</Typography>
+                        <TextField
+                          select
+                          size="small"
+                          fullWidth
+                          value={billingPaymentMethod}
+                          onChange={(e) => setBillingPaymentMethod(e.target.value)}
+                          sx={{ mb: 2 }}
+                        >
+                          <MenuItem value="card">Credit Card (Visa/Mastercard) 💳</MenuItem>
+                          <MenuItem value="apple">Apple Pay / Google Pay 📱</MenuItem>
+                          <MenuItem value="wallet">Link Wallet Selector 💼</MenuItem>
+                          <MenuItem value="tabby">Tabby installment (UAE Only)</MenuItem>
+                          <MenuItem value="tamara">Tamara installment (UAE Only)</MenuItem>
+                        </TextField>
 
                         <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', mb: 2 }}>
                           <input
                             type="checkbox"
                             id="billing-tc-checkbox"
-                            checked={termsAccepted}
-                            onChange={(e) => setTermsAccepted(e.target.checked)}
+                            checked={billingTermsChecked}
+                            onChange={(e) => setBillingTermsChecked(e.target.checked)}
                             style={{ marginTop: 3, transform: 'scale(1.1)', cursor: 'pointer' }}
                           />
-                          <label htmlFor="billing-tc-checkbox" style={{ fontSize: '0.75rem', color: '#64748b', cursor: 'pointer', lineHeight: 1.35, fontWeight: 500 }}>
-                            I agree to Spain Visa <a href="https://aaabusinessconsultancy.com/terms-conditions/" target="_blank" rel="noopener noreferrer" style={{ color: '#051A3B', textDecoration: 'underline', fontWeight: 700 }}>Terms of Service</a>, refund guarantees, and relocation conditions.
+                          <label htmlFor="billing-tc-checkbox" style={{ fontSize: '0.75rem', color: '#6B7280', cursor: 'pointer', lineHeight: 1.3, fontWeight: 500 }}>
+                            I agree to Spain Visa <a href="https://aaabusinessconsultancy.com/terms-conditions/" target="_blank" rel="noopener noreferrer" style={{ color: '#051A3B', textDecoration: 'underline', fontWeight: 700 }}>Terms of Service</a>, <strong>50% Refund Guarantee</strong> policies if refused, and relocation conditions.
                           </label>
                         </Box>
 
                         <Button
                           variant="contained"
                           fullWidth
-                          disabled={generateInvoiceMutation.isPending}
+                          disabled={selectAndPayPackageMutation.isPending}
                           onClick={() => {
-                            if (!termsAccepted) {
+                            if (!billingTermsChecked) {
                               showAlert('You must accept the terms and refund policy to check out.', 'warning');
                               return;
                             }
-                            generateInvoiceMutation.mutate();
+
+                            const baseFee =
+                              client.serviceId === 'tourism' || client.serviceId === 'tourist'
+                                ? schengenPrice
+                                : (selectedPackage === 'relocation' ? optionCPrice : optionAPrice);
+
+                            const premiumAddon =
+                              selectedPackage === 'premium' && client.serviceId !== 'tourism' && client.serviceId !== 'tourist'
+                                ? optionBPrice - optionAPrice
+                                : 0;
+
+                            const isDeductible = ['full_process', 'premium', 'relocation'].includes(selectedPackage);
+                            const activeCredit = isDeductible ? assessmentCredit : 0;
+                            const finalAmount = Math.max(0, baseFee + premiumAddon - activeCredit);
+                            const finalDiscount = 0;
+
+                            selectAndPayPackageMutation.mutate({
+                              packageId: selectedPackage,
+                              amount: finalAmount,
+                              discount: finalDiscount
+                            });
                           }}
                           sx={{
                             py: 1.5,
@@ -2449,130 +2565,18 @@ export const ClientPortalDocs = () => {
                             '&:hover': { bgcolor: '#C59B27', boxShadow: '0 4px 14px rgba(197, 155, 39, 0.3)' }
                           }}
                         >
-                          {generateInvoiceMutation.isPending ? 'Generating Invoice...' : 'Generate Invoice & Preview'}
+                          Authorize Secure Checkout
                         </Button>
+
+                        <Box sx={{ mt: 2, p: 1.5, border: '1px solid rgba(197,155,39,0.3)', bgcolor: '#FAF6ED', borderRadius: 2.5 }}>
+                          <Typography variant="caption" sx={{ fontWeight: 800, color: '#A37E1C', display: 'block', mb: 0.5 }}>⚠️ REFUND GUARANTEE TERMS</Typography>
+                          <Typography variant="caption" sx={{ color: '#A37E1C', display: 'block', fontSize: '0.68rem', lineHeight: 1.3, fontWeight: 500 }}>
+                            If your visa application gets refused by the consulate, you are entitled to a 50% refund under company refund rules.
+                          </Typography>
+                        </Box>
                       </Paper>
                     </Grid>
                   </Grid>
-
-                  {/* Invoice Preview Dialog */}
-                  <Dialog
-                    open={invoiceModalOpen}
-                    onClose={() => setInvoiceModalOpen(false)}
-                    PaperProps={{
-                      sx: { borderRadius: 4, p: 2, maxWidth: 500, width: '100%' }
-                    }}
-                  >
-                    <DialogTitle sx={{ textAlign: 'center', pb: 1 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 900, color: '#051A3B', fontFamily: 'Outfit, sans-serif' }}>
-                        Spain Residency Service Invoice
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
-                        AAA Business Consultancy · Official Invoice Preview
-                      </Typography>
-                    </DialogTitle>
-
-                    <DialogContent dividers sx={{ borderColor: 'rgba(0,0,0,0.06)' }}>
-                      {invoicePreview && (
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.2, color: '#334155' }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                            <Box>
-                              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>CLIENT</Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B' }}>{client.firstName} {client.lastName}</Typography>
-                              <Typography variant="caption" color="text.secondary">{client.email}</Typography>
-                            </Box>
-                            <Box sx={{ textAlign: 'right' }}>
-                              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>DATE</Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 800 }}>{new Date().toLocaleDateString()}</Typography>
-                            </Box>
-                          </Box>
-
-                          <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#f8fafc', border: '1px solid rgba(0,0,0,0.04)' }}>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', display: 'block', mb: 1 }}>Breakdown</Typography>
-                            
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', lineHeight: 2 }}>
-                              <tbody>
-                                <tr>
-                                  <td style={{ fontWeight: 600 }}>{invoicePreview.packageName}:</td>
-                                  <td style={{ textAlign: 'right', fontWeight: 700 }}>€{Number(invoicePreview.basePrice).toFixed(2)}</td>
-                                </tr>
-                                {invoicePreview.additionalApplicants > 0 && (
-                                  <tr>
-                                    <td style={{ fontWeight: 600 }}>Additional Applicants ({invoicePreview.additionalApplicants}):</td>
-                                    <td style={{ textAlign: 'right', fontWeight: 700 }}>+€{Number(invoicePreview.additionalApplicantTotal).toFixed(2)}</td>
-                                  </tr>
-                                )}
-                                {invoicePreview.creditApplied > 0 && (
-                                  <tr style={{ color: '#10B981' }}>
-                                    <td style={{ fontWeight: 600 }}>Professional Assessment Credit:</td>
-                                    <td style={{ textAlign: 'right', fontWeight: 700 }}>-€{Number(invoicePreview.creditApplied).toFixed(2)}</td>
-                                  </tr>
-                                )}
-                                <tr style={{ borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
-                                  <td style={{ fontWeight: 'bold', paddingTop: 4, paddingBottom: 4 }}>Subtotal:</td>
-                                  <td style={{ textAlign: 'right', fontWeight: 'bold', paddingTop: 4, paddingBottom: 4 }}>€{Number(invoicePreview.subtotal).toFixed(2)}</td>
-                                </tr>
-                                <tr>
-                                  <td style={{ fontWeight: 600 }}>VAT ({invoicePreview.vatRate}%):</td>
-                                  <td style={{ textAlign: 'right', fontWeight: 700 }}>€{Number(invoicePreview.vatAmount).toFixed(2)}</td>
-                                </tr>
-                                <tr style={{ fontSize: '1.05rem', borderTop: '1.5px solid #051A3B', color: '#051A3B' }}>
-                                  <td style={{ fontWeight: 900, paddingTop: 6 }}>TOTAL DUE:</td>
-                                  <td style={{ textAlign: 'right', fontWeight: 900, color: '#2563eb', paddingTop: 6 }}>€{Number(invoicePreview.total).toFixed(2)}</td>
-                                </tr>
-                              </tbody>
-                            </table>
-                          </Box>
-
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.45, fontStyle: 'italic' }}>
-                            Note: All payments are processed securely via Stripe. Upon successful payment, your checklist folders will immediately unlock. In case of consulate rejection, a 50% refund is guaranteed under our terms.
-                          </Typography>
-                        </Box>
-                      )}
-                    </DialogContent>
-
-                    <DialogActions sx={{ px: 3, py: 2, display: 'flex', gap: 1.5 }}>
-                      <Button
-                        variant="outlined"
-                        onClick={() => setInvoiceModalOpen(false)}
-                        sx={{
-                          flex: 1,
-                          py: 1.25,
-                          borderRadius: 2.5,
-                          textTransform: 'none',
-                          fontWeight: 800,
-                          borderColor: '#C59B27',
-                          color: '#C59B27',
-                          fontFamily: 'Outfit, sans-serif',
-                          '&:hover': { borderColor: '#051A3B', color: '#051A3B' }
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        variant="contained"
-                        onClick={() => {
-                          if (generateInvoiceMutation.data && generateInvoiceMutation.data.stripeUrl) {
-                            setInvoiceModalOpen(false);
-                            window.location.href = generateInvoiceMutation.data.stripeUrl;
-                          }
-                        }}
-                        sx={{
-                          flex: 2,
-                          py: 1.25,
-                          borderRadius: 2.5,
-                          textTransform: 'none',
-                          fontWeight: 800,
-                          bgcolor: '#2563eb',
-                          color: 'white',
-                          fontFamily: 'Outfit, sans-serif',
-                          '&:hover': { bgcolor: '#1d4ed8' }
-                        }}
-                      >
-                        💳 Pay Now Securely
-                      </Button>
-                    </DialogActions>
-                  </Dialog>
                 </Paper>
               )}
             </Box>

@@ -40,13 +40,6 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import BusinessIcon from '@mui/icons-material/Business';
-import VpnKeyIcon from '@mui/icons-material/VpnKey';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import WebIcon from '@mui/icons-material/Web';
-import PhoneIcon from '@mui/icons-material/Phone';
-import EmailIcon from '@mui/icons-material/Email';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
 
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount';
@@ -72,7 +65,6 @@ import { dbService } from '../../services/dbService';
 import PageHeader from '../../components/PageHeader';
 import { useAlert } from '../../contexts/AlertContext';
 import useAuth from '../../hooks/useAuth';
-import Settings from './Settings';
 
 const AVAILABLE_MENUS = [
   'Dashboard',
@@ -148,9 +140,9 @@ const ALL_CLIENT_COLUMNS = [
 
 const DEFAULT_ACTIONS = {
   leads: { canCreate: true, canDelete: true, canAssignAgent: true },
-  clients: { 
-    canChangeVisaStatus: true, 
-    canVerifyDocs: true, 
+  clients: {
+    canChangeVisaStatus: true,
+    canVerifyDocs: true,
     canDelete: true,
     canManageCredentials: true,
     canManageDependents: true,
@@ -270,55 +262,10 @@ export const SuperAdminCustomization = () => {
     { id: 'marketing', label: 'Marketing Executive' }
   ];
 
-  // Top level tabs: 0 = Role Permissions, 1 = Stage Manager, 2 = Visa Document Checklists, 3 = Flow Settings, 4 = General Settings
+  // Top level tabs: 0 = Role Permissions, 1 = Stage Manager, 2 = Visa Document Checklists
   const [topTab, setTopTab] = useState(0);
   const [activeTab, setActiveTab] = useState(0);
   const currentRoleId = dynamicRoles[activeTab]?.id || 'admin';
-
-  // General Settings State & Queries
-  const [generalEditModalOpen, setGeneralEditModalOpen] = useState(false);
-  const [companyForm, setCompanyForm] = useState({
-    companyName: 'AAA Business Consultancy LLC',
-    phone: '+971 50 955 4142',
-    email: 'info@aaabusinessconsultancy.com',
-    address: 'Business Village, Block B, 4th Floor, Office F09, Deira, Dubai, UAE',
-    vatRate: 5,
-    vatId: 'VAT-AE-2026-9932',
-    website: 'https://aaabusinessconsultancy.com',
-    incorporationDate: '2018-05-12',
-    autoAssignConsultant: true
-  });
-
-  const { data: companySettings } = useQuery({
-    queryKey: ['companySettings'],
-    queryFn: dbService.getCompanySettings
-  });
-
-  useEffect(() => {
-    if (companySettings) {
-      setCompanyForm(prev => ({ ...prev, ...companySettings }));
-    }
-  }, [companySettings]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search || window.location.hash.substring(window.location.hash.indexOf('?')));
-    const tabParam = params.get('tab');
-    if (tabParam === 'general' || tabParam === '4') {
-      setTopTab(4);
-    }
-  }, []);
-
-  const saveCompanyMutation = useMutation({
-    mutationFn: dbService.updateCompanySettings,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['companySettings'] });
-      showAlert('Company general settings updated successfully!', 'success');
-      setGeneralEditModalOpen(false);
-    },
-    onError: (err) => {
-      showAlert(err?.message || 'Error updating general settings', 'error');
-    }
-  });
 
   const [selectedVisaId, setSelectedVisaId] = useState('dnv');
   const [newDocText, setNewDocText] = useState({
@@ -663,10 +610,10 @@ export const SuperAdminCustomization = () => {
   const handleSaveNewRole = () => {
     if (!newRoleName.trim()) return;
     const newRoleId = newRoleName.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
-    
+
     // Create new roles array
     const updatedRoles = [...dynamicRoles, { id: newRoleId, label: newRoleName, icon: newRoleIcon }];
-    
+
     // Create new local settings with the added role and empty template
     const newSettings = {
       ...localSettings,
@@ -679,15 +626,15 @@ export const SuperAdminCustomization = () => {
         columns: JSON.parse(JSON.stringify(DEFAULT_COLUMNS))
       }
     };
-    
+
     setLocalSettings(newSettings);
     saveSettingsMutation.mutate(newSettings);
-    
+
     // Switch to new role
     setActiveTab(updatedRoles.length - 1);
     setTargetType('role');
     setSelectedUserId('');
-    
+
     setRoleDialogOpen(false);
     setNewRoleName('');
     setNewRoleIcon('SupportAgentIcon');
@@ -696,10 +643,10 @@ export const SuperAdminCustomization = () => {
   const handleDeleteRole = () => {
     if (window.confirm(`Are you sure you want to completely delete the "${dynamicRoles[activeTab]?.label}" role? This cannot be undone.`)) {
       const roleToDelete = currentRoleId;
-      
+
       // Remove from dynamicRoles
       const updatedRoles = dynamicRoles.filter(r => r.id !== roleToDelete);
-      
+
       // Remove from localSettings
       const newSettings = { ...localSettings };
       delete newSettings[roleToDelete];
@@ -707,7 +654,7 @@ export const SuperAdminCustomization = () => {
 
       setLocalSettings(newSettings);
       saveSettingsMutation.mutate(newSettings);
-      
+
       // Reset active tab to admin
       setActiveTab(0);
       setTargetType('role');
@@ -1254,7 +1201,6 @@ export const SuperAdminCustomization = () => {
             <Tab label="⚡ Lifecycle Stages Manager" sx={{ fontWeight: 800, px: 3, py: 2 }} />
             <Tab label="📂 Visa Document Checklists" sx={{ fontWeight: 800, px: 3, py: 2 }} />
             <Tab label="⚙️ Flow Settings" sx={{ fontWeight: 800, px: 3, py: 2 }} />
-            <Tab label="🏢 General Settings" sx={{ fontWeight: 800, px: 3, py: 2 }} />
           </Tabs>
         </Paper>
       </Box>
@@ -1335,7 +1281,7 @@ export const SuperAdminCustomization = () => {
               Choose whether to apply settings to all users in this role, or to override settings for a specific individual agent.
             </Typography>
             <Divider sx={{ mb: 2 }} />
-            
+
             <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, gap: 4 }}>
               <FormControl component="fieldset">
                 <RadioGroup
@@ -1580,7 +1526,7 @@ export const SuperAdminCustomization = () => {
 
 
 
-            
+
             {/* Action Buttons for Current Role */}
             <Box className="col-span-12" sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'flex-end', gap: 1.5, mt: 2 }}>
               <Button
@@ -1826,7 +1772,7 @@ export const SuperAdminCustomization = () => {
                               key={doc}
                               label={doc}
                               onDelete={() => handleRemoveDoc(cat.key, doc)}
-                              sx={{ 
+                              sx={{
                                 fontWeight: 600,
                                 borderRadius: 1.5,
                                 border: '1px solid rgba(0,0,0,0.06)'
@@ -2052,13 +1998,6 @@ export const SuperAdminCustomization = () => {
               </Paper>
             </Box>
           </Box>
-        </Box>
-      )}
-
-      {/* ─── TAB 4: General Settings ─── */}
-      {topTab === 4 && (
-        <Box sx={{ width: '100%' }}>
-          <Settings hideHeader={true} />
         </Box>
       )}
 
