@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { getServicesForCountry, ALL_COUNTRIES } from "../../constants/countryServices";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://aaa-consultancy-backend-production.up.railway.app/api/v1";
+const API_URL = import.meta.env.VITE_API_URL || "http://aaa-consultancy-backend-production.up.railway.app/api/v1";
 
 
 
@@ -255,6 +255,7 @@ export const LeadSelfFillForm = () => {
   // Reschedule & Cancel state
   const [rescheduleConsultationId, setRescheduleConsultationId] = useState(null);
   const [cancelConsultationId, setCancelConsultationId] = useState(null);
+  const [isCancelBlocked, setIsCancelBlocked] = useState(false);
   const [actionDoneMsg, setActionDoneMsg] = useState("");
 
   // Optional lookup state
@@ -337,6 +338,38 @@ export const LeadSelfFillForm = () => {
       setRescheduleConsultationId(cId);
     } else if (isCancel && cId) {
       setCancelConsultationId(cId);
+      setLoading(true);
+      setError("");
+      axios.get(`${API_URL}/consultations/public/${cId}`)
+        .then((res) => {
+          if (res.data.success) {
+            const cons = res.data.data;
+            
+            // Check if within 1 hour
+            let isWithinOneHour = false;
+            if (cons.date && cons.timeSlot) {
+              const timePart = cons.timeSlot.split('-')[0].trim();
+              if (timePart.includes(':')) {
+                const [hours, minutes] = timePart.split(':').map(Number);
+                const [year, month, day] = cons.date.split('-').map(Number);
+                const meetingTime = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
+                
+                const diffMs = meetingTime.getTime() - Date.now();
+                const diffHours = diffMs / (1000 * 60 * 60);
+                if (diffHours <= 1) {
+                  isWithinOneHour = true;
+                }
+              }
+            }
+            setIsCancelBlocked(isWithinOneHour);
+          }
+        })
+        .catch((err) => {
+          setError(err.response?.data?.message || "Failed to retrieve consultation details.");
+        })
+        .finally(() => {
+          setLoading(false);
+        });
     }
 
     // Set initial category from URL parameter
@@ -359,7 +392,7 @@ export const LeadSelfFillForm = () => {
         .then((res) => {
           if (res.data.success) {
             const data = res.data.data;
-            
+
             const serviceTypeLower = (data.serviceType || "").toLowerCase();
             if (serviceTypeLower.includes("property") || serviceTypeLower.includes("investment")) {
               setServiceCategory("property");
@@ -412,7 +445,7 @@ export const LeadSelfFillForm = () => {
       axios.get(`${API_URL}/leads/${idParam}/public-details`)
         .then((res) => {
           const data = res.data;
-          
+
           const serviceTypeLower = (data.serviceType || "").toLowerCase();
           if (serviceTypeLower.includes("property") || serviceTypeLower.includes("investment")) {
             setServiceCategory("property");
@@ -476,7 +509,7 @@ export const LeadSelfFillForm = () => {
         for (let i = 0; i < count; i++) {
           initialDeps.push({ firstName: "", lastName: "", relation: "Spouse", passportNumber: "", nationality: "" });
         }
-        
+
         return {
           ...prev,
           phone: phoneParam ? decodeURIComponent(phoneParam).trim() : prev.phone,
@@ -619,12 +652,12 @@ export const LeadSelfFillForm = () => {
       setError("Please fill in all required personal details (Name, Email, Phone).");
       return;
     }
-    
+
     if (serviceCategory === "translation") {
       navigate("/public/translation", { state: { prefilledLead: { ...form, serviceType: "Spanish Sworn Translation" } } });
       return;
     }
-    
+
     if (!form.meetingPreferredDate || !form.meetingPreferredTime) {
       setError("Please select your preferred meeting date and time.");
       return;
@@ -641,7 +674,7 @@ export const LeadSelfFillForm = () => {
     setError("");
 
     // Prepare payload
-    const payload = { 
+    const payload = {
       ...form,
       preferableArea: serviceCategory === "property" ? form.preferableAreaInSpain : undefined,
       budget: serviceCategory === "property" ? form.budget : undefined
@@ -708,8 +741,16 @@ export const LeadSelfFillForm = () => {
     });
   };
 
-  // Get minimum date (today)
-  const today = new Date().toISOString().split("T")[0];
+  // Get minimum date (tomorrow in local timezone, NOT UTC)
+  // Using toISOString() would give UTC date which can be wrong for IST (+5:30) users
+  const getNextDayStr = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate() + 1).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+  const minBookingDate = getNextDayStr();
 
 
 
@@ -782,7 +823,7 @@ export const LeadSelfFillForm = () => {
                 letterSpacing: "-0.5px",
               }}
             >
-              AAA Consultancy Services 
+              AAA Consultancy Services
             </span>
           </div>
           <p
@@ -814,26 +855,34 @@ export const LeadSelfFillForm = () => {
               <h3 style={{ color: "#ff4d4d", fontSize: "20px", fontWeight: 700, margin: "0 0 12px" }}>
                 Cancel Consultation Appointment
               </h3>
-              <p style={{ color: "rgba(255,255,255,0.8)", fontSize: "14px", lineHeight: 1.6, marginBottom: "24px" }}>
-                Are you sure you want to cancel your scheduled Spain Visa Eligibility Assessment?
-              </p>
+              {isCancelBlocked ? (
+                <div style={{ color: "#ff4d4d", fontSize: "14px", fontWeight: 600, margin: "20px 0", padding: "12px", background: "rgba(255, 77, 77, 0.1)", borderRadius: "8px", lineHeight: "1.5" }}>
+                  🚫 Cancellation is not allowed within 1 hour of the scheduled meeting time.
+                </div>
+              ) : (
+                <p style={{ color: "rgba(255,255,255,0.8)", fontSize: "14px", lineHeight: 1.6, marginBottom: "24px" }}>
+                  Are you sure you want to cancel your scheduled Spain Visa Eligibility Assessment?
+                </p>
+              )}
               <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
-                <button
-                  type="button"
-                  onClick={handleCancelBooking}
-                  disabled={loading}
-                  style={{
-                    background: "#ef4444",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: "10px",
-                    padding: "12px 20px",
-                    fontWeight: 700,
-                    cursor: "pointer"
-                  }}
-                >
-                  {loading ? "Cancelling..." : "❌ Yes, Cancel Booking"}
-                </button>
+                {!isCancelBlocked && (
+                  <button
+                    type="button"
+                    onClick={handleCancelBooking}
+                    disabled={loading}
+                    style={{
+                      background: "#ef4444",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "10px",
+                      padding: "12px 20px",
+                      fontWeight: 700,
+                      cursor: "pointer"
+                    }}
+                  >
+                    {loading ? "Cancelling..." : "❌ Yes, Cancel Booking"}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setCancelConsultationId(null)}
@@ -847,7 +896,7 @@ export const LeadSelfFillForm = () => {
                     cursor: "pointer"
                   }}
                 >
-                  🔙 Keep My Booking
+                  🔙 {isCancelBlocked ? "Go Back" : "Keep My Booking"}
                 </button>
               </div>
             </div>
@@ -1066,7 +1115,7 @@ export const LeadSelfFillForm = () => {
                     onChange={(val) => handleChange("countryOfResidence", val)}
                     options={ALL_COUNTRIES}
                     placeholder="Select Country"
-                    disabled={isExistingLead}
+                    disabled={false}
                     labelStyle={labelStyle}
                     inputStyle={inputStyle}
                   />
@@ -1224,7 +1273,7 @@ export const LeadSelfFillForm = () => {
                       <input
                         type="date"
                         required={serviceCategory !== "translation"}
-                        min={today}
+                        min={minBookingDate}
                         value={form.meetingPreferredDate}
                         onChange={(e) =>
                           handleChange("meetingPreferredDate", e.target.value)
@@ -1319,12 +1368,12 @@ export const LeadSelfFillForm = () => {
                   {loading
                     ? "Submitting..."
                     : serviceCategory === "translation"
-                    ? "✅ Proceed to Sworn Translation Tool"
-                    : serviceCategory === "property"
-                    ? "✅ Book Free Consultation"
-                    : serviceCategory === "case_assessment"
-                    ? "✅ Book Free Case Assessment"
-                    : "✅ Book Free Eligibility Assessment"}
+                      ? "✅ Proceed to Sworn Translation Tool"
+                      : serviceCategory === "property"
+                        ? "✅ Book Free Consultation"
+                        : serviceCategory === "case_assessment"
+                          ? "✅ Book Free Case Assessment"
+                          : "✅ Book Free Eligibility Assessment"}
                 </button>
               </form>
             </>
@@ -1389,8 +1438,8 @@ export const LeadSelfFillForm = () => {
                 >
                   <li>Our team reviews your preferred time</li>
                   <li>
-                    {serviceCategory === "property" 
-                      ? "A property investment expert is assigned to your case" 
+                    {serviceCategory === "property"
+                      ? "A property investment expert is assigned to your case"
                       : "A Spain Visa expert is assigned to your case"}
                   </li>
                   <li>

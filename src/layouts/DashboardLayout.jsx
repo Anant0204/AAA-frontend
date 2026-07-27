@@ -209,7 +209,7 @@ export const DashboardLayout = () => {
   const { data: notifications = [] } = useQuery({
     queryKey: ['notifications'],
     queryFn: dbService.getMyNotifications,
-    refetchInterval: 15000,
+    refetchInterval: 5000,
     refetchOnWindowFocus: true,
     retry: false // don't spam errors if user is not logged in
   });
@@ -267,7 +267,15 @@ export const DashboardLayout = () => {
       showAlert('Your permissions have been updated by an administrator.', 'info');
     });
 
+    // Listen for new lead/booking notifications — refresh bell icon instantly
+    socket.on('new-notification', (data) => {
+      console.log('[Socket] New notification received:', data);
+      // Immediately refresh the notifications list without waiting for the 15s poll
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    });
+
     return () => {
+      socket.off('new-notification');
       socket.disconnect();
     };
   }, [currentUser?.id, currentUser?.role, queryClient, showAlert]);

@@ -36,6 +36,13 @@ export const StatusBadge = ({ status, size = 'small' }) => {
 
     const s = sStr.toLowerCase();
     switch (s) {
+      // Meeting Stages
+      case 'meeting scheduled':
+        return { label: statusStr, color: 'primary', icon: <AutorenewIcon size={14} />, bg: '#E0E7FF', text: '#3730A3' };
+      case 'meeting completed':
+        return { label: statusStr, color: 'success', icon: <CheckCircleIcon size={14} />, bg: '#DCFCE7', text: '#15803D' };
+      case 'meeting cancelled':
+        return { label: statusStr, color: 'error', icon: <CancelIcon size={14} />, bg: '#FEE2E2', text: '#B91C1C' };
       // Leads & Clients
       case 'new lead':
       case 'new':

@@ -613,7 +613,7 @@ export const AgentConsultationDetails = () => {
               >
                 {SERVICES.map((s) => (
                   <MenuItem key={s.id} value={s.id}>
-                    {s.name} (Base fee: €{s.basePrice})
+                    {s.name}
                   </MenuItem>
                 ))}
               </TextField>
@@ -626,10 +626,10 @@ export const AgentConsultationDetails = () => {
                 fullWidth
                 sx={{ mb: 2 }}
               >
-                <MenuItem value="Option B">Option B: Full Processing (base €3,500)</MenuItem>
-                <MenuItem value="Option C">Option C: Premium Relocation (base €4,750)</MenuItem>
-                <MenuItem value="Option D">Option D: Administrative Relocation (base €1,750)</MenuItem>
-                <MenuItem value="Tourist Visa">Schengen Tourist Visa (base €500)</MenuItem>
+                <MenuItem value="Option B">Option B: Full Processing</MenuItem>
+                <MenuItem value="Option C">Option C: Premium Relocation</MenuItem>
+                <MenuItem value="Option D">Option D: Administrative Relocation</MenuItem>
+                <MenuItem value="Tourist Visa">Option A: Schengen Tourist Visa</MenuItem>
               </TextField>
             </>
           )}
