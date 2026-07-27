@@ -255,6 +255,7 @@ export const LeadSelfFillForm = () => {
   // Reschedule & Cancel state
   const [rescheduleConsultationId, setRescheduleConsultationId] = useState(null);
   const [cancelConsultationId, setCancelConsultationId] = useState(null);
+  const [isCancelBlocked, setIsCancelBlocked] = useState(false);
   const [actionDoneMsg, setActionDoneMsg] = useState("");
 
   // Optional lookup state
@@ -337,6 +338,38 @@ export const LeadSelfFillForm = () => {
       setRescheduleConsultationId(cId);
     } else if (isCancel && cId) {
       setCancelConsultationId(cId);
+      setLoading(true);
+      setError("");
+      axios.get(`${API_URL}/consultations/public/${cId}`)
+        .then((res) => {
+          if (res.data.success) {
+            const cons = res.data.data;
+            
+            // Check if within 1 hour
+            let isWithinOneHour = false;
+            if (cons.date && cons.timeSlot) {
+              const timePart = cons.timeSlot.split('-')[0].trim();
+              if (timePart.includes(':')) {
+                const [hours, minutes] = timePart.split(':').map(Number);
+                const [year, month, day] = cons.date.split('-').map(Number);
+                const meetingTime = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
+                
+                const diffMs = meetingTime.getTime() - Date.now();
+                const diffHours = diffMs / (1000 * 60 * 60);
+                if (diffHours <= 1) {
+                  isWithinOneHour = true;
+                }
+              }
+            }
+            setIsCancelBlocked(isWithinOneHour);
+          }
+        })
+        .catch((err) => {
+          setError(err.response?.data?.message || "Failed to retrieve consultation details.");
+        })
+        .finally(() => {
+          setLoading(false);
+        });
     }
 
     // Set initial category from URL parameter
@@ -708,8 +741,13 @@ export const LeadSelfFillForm = () => {
     });
   };
 
-  // Get minimum date (today)
-  const today = new Date().toISOString().split("T")[0];
+  // Get minimum date (next calendar day)
+  const getNextDayStr = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split("T")[0];
+  };
+  const minBookingDate = getNextDayStr();
 
 
 
@@ -814,26 +852,34 @@ export const LeadSelfFillForm = () => {
               <h3 style={{ color: "#ff4d4d", fontSize: "20px", fontWeight: 700, margin: "0 0 12px" }}>
                 Cancel Consultation Appointment
               </h3>
-              <p style={{ color: "rgba(255,255,255,0.8)", fontSize: "14px", lineHeight: 1.6, marginBottom: "24px" }}>
-                Are you sure you want to cancel your scheduled Spain Visa Eligibility Assessment?
-              </p>
+              {isCancelBlocked ? (
+                <div style={{ color: "#ff4d4d", fontSize: "14px", fontWeight: 600, margin: "20px 0", padding: "12px", background: "rgba(255, 77, 77, 0.1)", borderRadius: "8px", lineHeight: "1.5" }}>
+                  🚫 Cancellation is not allowed within 1 hour of the scheduled meeting time.
+                </div>
+              ) : (
+                <p style={{ color: "rgba(255,255,255,0.8)", fontSize: "14px", lineHeight: 1.6, marginBottom: "24px" }}>
+                  Are you sure you want to cancel your scheduled Spain Visa Eligibility Assessment?
+                </p>
+              )}
               <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
-                <button
-                  type="button"
-                  onClick={handleCancelBooking}
-                  disabled={loading}
-                  style={{
-                    background: "#ef4444",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: "10px",
-                    padding: "12px 20px",
-                    fontWeight: 700,
-                    cursor: "pointer"
-                  }}
-                >
-                  {loading ? "Cancelling..." : "❌ Yes, Cancel Booking"}
-                </button>
+                {!isCancelBlocked && (
+                  <button
+                    type="button"
+                    onClick={handleCancelBooking}
+                    disabled={loading}
+                    style={{
+                      background: "#ef4444",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "10px",
+                      padding: "12px 20px",
+                      fontWeight: 700,
+                      cursor: "pointer"
+                    }}
+                  >
+                    {loading ? "Cancelling..." : "❌ Yes, Cancel Booking"}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setCancelConsultationId(null)}
@@ -847,7 +893,7 @@ export const LeadSelfFillForm = () => {
                     cursor: "pointer"
                   }}
                 >
-                  🔙 Keep My Booking
+                  🔙 {isCancelBlocked ? "Go Back" : "Keep My Booking"}
                 </button>
               </div>
             </div>
@@ -1224,7 +1270,7 @@ export const LeadSelfFillForm = () => {
                       <input
                         type="date"
                         required={serviceCategory !== "translation"}
-                        min={today}
+                        min={minBookingDate}
                         value={form.meetingPreferredDate}
                         onChange={(e) =>
                           handleChange("meetingPreferredDate", e.target.value)
