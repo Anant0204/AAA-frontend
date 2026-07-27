@@ -741,11 +741,14 @@ export const LeadSelfFillForm = () => {
     });
   };
 
-  // Get minimum date (next calendar day)
+  // Get minimum date (tomorrow in local timezone, NOT UTC)
+  // Using toISOString() would give UTC date which can be wrong for IST (+5:30) users
   const getNextDayStr = () => {
     const d = new Date();
-    d.setDate(d.getDate() + 1);
-    return d.toISOString().split("T")[0];
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate() + 1).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   };
   const minBookingDate = getNextDayStr();
 
