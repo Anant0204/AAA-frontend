@@ -364,7 +364,7 @@ export const LeadSelfFillForm = () => {
         .then((res) => {
           if (res.data.success) {
             const cons = res.data.data;
-            
+
             // Check if within 1 hour
             let isWithinOneHour = false;
             if (cons.date && cons.timeSlot) {
@@ -373,7 +373,7 @@ export const LeadSelfFillForm = () => {
                 const [hours, minutes] = timePart.split(':').map(Number);
                 const [year, month, day] = cons.date.split('-').map(Number);
                 const meetingTime = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
-                
+
                 const diffMs = meetingTime.getTime() - Date.now();
                 const diffHours = diffMs / (1000 * 60 * 60);
                 if (diffHours <= 1) {

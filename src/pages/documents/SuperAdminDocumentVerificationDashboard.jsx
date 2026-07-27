@@ -578,12 +578,12 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                   if (tableFilters.assignedConsultantId && c.assignedConsultantId !== tableFilters.assignedConsultantId) return false;
                   return true;
                 }).length === 0 && (
-                  <tr>
-                    <td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: '#94A3B8', fontWeight: 500 }}>
-                      No clients match the current filters.
-                    </td>
-                  </tr>
-                )}
+                    <tr>
+                      <td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: '#94A3B8', fontWeight: 500 }}>
+                        No clients match the current filters.
+                      </td>
+                    </tr>
+                  )}
               </tbody>
             </table>
           </Box>
@@ -772,383 +772,383 @@ export const SuperAdminDocumentVerificationDashboard = () => {
               </Box>
             )}
 
-          {/* BOTTOM FULL-WIDTH COLUMN: Uploaded Document Checklist (3 Columns Side-by-Side) */}
-          <Box className="col-span-12" sx={{ mt: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <AssignmentIcon color="secondary" /> Uploaded Document Checklist
-              </Typography>
-            </Box>
+            {/* BOTTOM FULL-WIDTH COLUMN: Uploaded Document Checklist (3 Columns Side-by-Side) */}
+            <Box className="col-span-12" sx={{ mt: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <AssignmentIcon color="secondary" /> Uploaded Document Checklist
+                </Typography>
+              </Box>
 
-            {(() => {
-              const allDocs = documents.filter(d => d && (d.clientId === selectedClient?.id || (selectedClient?.email && d.clientEmail === selectedClient.email)));
-              
-              const isStaffDoc = (d) => {
-                const cat = (d.category || '').toLowerCase();
-                const belongs = (d.belongsTo || '').toLowerCase();
-                const role = (d.uploadedByRole || d.uploadedBy || '').toLowerCase();
-                return (
-                  cat.includes('sworn') ||
-                  cat.includes('official') ||
-                  cat.includes('translation') ||
-                  belongs.includes('staff') ||
-                  role === 'agent' ||
-                  role === 'staff' ||
-                  role === 'admin' ||
-                  role === 'operations' ||
-                  role === 'consultant'
-                );
-              };
+              {(() => {
+                const allDocs = documents.filter(d => d && (d.clientId === selectedClient?.id || (selectedClient?.email && d.clientEmail === selectedClient.email)));
 
-              const agentDocs = allDocs.filter(d => d.status !== 'Rejected' && isStaffDoc(d));
-              const customerDocs = allDocs.filter(d => d.status !== 'Rejected' && !isStaffDoc(d));
-              const rejectedDocs = allDocs.filter(d => d.status === 'Rejected');
+                const isStaffDoc = (d) => {
+                  const cat = (d.category || '').toLowerCase();
+                  const belongs = (d.belongsTo || '').toLowerCase();
+                  const role = (d.uploadedByRole || d.uploadedBy || '').toLowerCase();
+                  return (
+                    cat.includes('sworn') ||
+                    cat.includes('official') ||
+                    cat.includes('translation') ||
+                    belongs.includes('staff') ||
+                    role === 'agent' ||
+                    role === 'staff' ||
+                    role === 'admin' ||
+                    role === 'operations' ||
+                    role === 'consultant'
+                  );
+                };
 
-              const renderDocCard = (doc) => {
-                const isApproved = doc.status === 'Approved' || doc.status === 'Verified';
-                const isRejected = doc.status === 'Rejected';
-                const docName = doc.name || doc.fileName || 'Uploaded Document';
+                const agentDocs = allDocs.filter(d => d.status !== 'Rejected' && isStaffDoc(d));
+                const customerDocs = allDocs.filter(d => d.status !== 'Rejected' && !isStaffDoc(d));
+                const rejectedDocs = allDocs.filter(d => d.status === 'Rejected');
 
-                return (
-                  <Card
-                    key={doc.id}
-                    variant="outlined"
-                    sx={{
-                      borderRadius: 2,
-                      mb: 1.2,
-                      borderColor: isApproved ? 'success.main' : isRejected ? 'error.main' : 'divider',
-                      bgcolor: isApproved ? '#F0FDF4' : isRejected ? '#FEF2F2' : '#FFFFFF',
-                      boxShadow: 'none',
-                      transition: 'all 0.2s',
-                      '&:hover': { boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }
-                    }}
-                  >
-                    <Box sx={{ p: 1.2 }}>
-                      {/* Top Line: File Icon + Truncated Name + Status Chip */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.8 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, minWidth: 0, flex: 1 }}>
-                          <InsertDriveFileIcon sx={{ fontSize: 18, color: isApproved ? '#16A34A' : isRejected ? '#DC2626' : '#64748B', flexShrink: 0 }} />
-                          <Typography
-                            variant="subtitle2"
-                            title={docName}
-                            sx={{
-                              fontWeight: 700,
-                              fontSize: '0.78rem',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              color: '#1E293B',
-                              flex: 1
-                            }}
-                          >
-                            {docName}
-                          </Typography>
-                        </Box>
-                        <Chip
-                          label={doc.status || 'Pending'}
-                          color={isApproved ? 'success' : isRejected ? 'error' : 'warning'}
-                          size="small"
-                          sx={{ fontWeight: 800, height: 18, fontSize: '0.6rem', px: 0.5, flexShrink: 0 }}
-                        />
-                      </Box>
+                const renderDocCard = (doc) => {
+                  const isApproved = doc.status === 'Approved' || doc.status === 'Verified';
+                  const isRejected = doc.status === 'Rejected';
+                  const docName = doc.name || doc.fileName || 'Uploaded Document';
 
-                      {/* Category & Size Sub-line */}
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, px: 0.2 }}>
-                        <Typography variant="caption" sx={{ fontSize: '0.68rem', color: '#64748B' }}>
-                          Cat: <strong style={{ color: '#334155' }}>{doc.category || doc.docType || 'General'}</strong>
-                        </Typography>
-                        <Typography variant="caption" sx={{ fontSize: '0.68rem', color: '#64748B' }}>
-                          Size: <strong style={{ color: '#334155' }}>{doc.fileSize || '1.5 MB'}</strong>
-                        </Typography>
-                      </Box>
-
-                      {/* Optional Comment/Reason Box */}
-                      {doc.comment && (
-                        <Box sx={{ mb: 1, p: 0.8, bgcolor: isApproved ? '#DCFCE7' : '#FEE2E2', borderRadius: 1, borderLeft: '2.5px solid', borderColor: isApproved ? '#16A34A' : '#DC2626' }}>
-                          <Typography variant="caption" sx={{ fontSize: '0.65rem', color: isApproved ? '#15803D' : '#B91C1C', fontWeight: 600, display: 'block', wordBreak: 'break-word' }}>
-                            Note: {doc.comment}
-                          </Typography>
-                        </Box>
-                      )}
-
-                      <Divider sx={{ my: 0.8 }} />
-
-                      {/* Compact Action Buttons Row (Single Line 100% Fit) */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, width: '100%', flexWrap: 'nowrap' }}>
-                        <Button
-                          variant="outlined"
-                          color="secondary"
-                          size="small"
-                          onClick={() => {
-                            if (doc.url || doc.fileUrl) {
-                              const fileUrl = doc.url
-                                ? `${(import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1').replace('/api/v1', '')}${doc.url}`
-                                : doc.fileUrl;
-                              window.open(fileUrl, '_blank');
-                            } else {
-                              handleOpenMockFile(doc);
-                            }
-                          }}
-                          sx={{ textTransform: 'none', fontSize: '0.62rem', fontWeight: 700, minWidth: 0, flex: 1, px: 0.4, py: 0.3 }}
-                        >
-                          Open
-                        </Button>
-
-                        <Button
-                          variant="outlined"
-                          color="info"
-                          size="small"
-                          disabled={!doc.url && !doc.fileUrl}
-                          onClick={async () => {
-                            try {
-                              showAlert(`Downloading ${docName}...`, 'info');
-                              const rawUrl = doc.url
-                                ? `${(import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1').replace('/api/v1', '')}${doc.url}`
-                                : doc.fileUrl;
-                              const response = await fetch(rawUrl);
-                              if (!response.ok) throw new Error('Download failed');
-                              const blob = await response.blob();
-                              const blobUrl = window.URL.createObjectURL(blob);
-                              const link = document.createElement('a');
-                              link.href = blobUrl;
-                              link.download = docName;
-                              document.body.appendChild(link);
-                              link.click();
-                              document.body.removeChild(link);
-                              window.URL.revokeObjectURL(blobUrl);
-                              showAlert('Downloaded!', 'success');
-                            } catch (err) {
-                              console.error(err);
-                              showAlert('Failed to download document.', 'error');
-                            }
-                          }}
-                          sx={{ textTransform: 'none', fontSize: '0.62rem', fontWeight: 700, minWidth: 0, flex: 1, px: 0.4, py: 0.3 }}
-                        >
-                          Download
-                        </Button>
-
-                        {isTranslationClient && (
-                          <>
-                            <input
-                              type="file"
-                              id={`translated-file-input-${doc.id}`}
-                              style={{ display: 'none' }}
-                              accept="application/pdf"
-                              onChange={async (e) => {
-                                if (e.target.files && e.target.files[0]) {
-                                  try {
-                                    await dbService.uploadTranslatedDocument(doc.id, e.target.files[0]);
-                                    queryClient.invalidateQueries({ queryKey: ['documents'] });
-                                    queryClient.invalidateQueries({ queryKey: ['clients'] });
-                                    showAlert('Translated document uploaded successfully!', 'success');
-                                  } catch (err) {
-                                    console.error(err);
-                                    showAlert('Failed to upload translated document.', 'error');
-                                  }
-                                }
+                  return (
+                    <Card
+                      key={doc.id}
+                      variant="outlined"
+                      sx={{
+                        borderRadius: 2,
+                        mb: 1.2,
+                        borderColor: isApproved ? 'success.main' : isRejected ? 'error.main' : 'divider',
+                        bgcolor: isApproved ? '#F0FDF4' : isRejected ? '#FEF2F2' : '#FFFFFF',
+                        boxShadow: 'none',
+                        transition: 'all 0.2s',
+                        '&:hover': { boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }
+                      }}
+                    >
+                      <Box sx={{ p: 1.2 }}>
+                        {/* Top Line: File Icon + Truncated Name + Status Chip */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.8 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, minWidth: 0, flex: 1 }}>
+                            <InsertDriveFileIcon sx={{ fontSize: 18, color: isApproved ? '#16A34A' : isRejected ? '#DC2626' : '#64748B', flexShrink: 0 }} />
+                            <Typography
+                              variant="subtitle2"
+                              title={docName}
+                              sx={{
+                                fontWeight: 700,
+                                fontSize: '0.78rem',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                color: '#1E293B',
+                                flex: 1
                               }}
-                            />
-                            <Button
-                              variant="contained"
-                              color="warning"
-                              size="small"
-                              onClick={() => document.getElementById(`translated-file-input-${doc.id}`).click()}
-                              sx={{ textTransform: 'none', fontSize: '0.62rem', fontWeight: 700, minWidth: 0, flex: 1, px: 0.4, py: 0.3 }}
                             >
-                              {doc.translatedUrl ? 'Re-Trans' : 'Trans'}
-                            </Button>
-                          </>
+                              {docName}
+                            </Typography>
+                          </Box>
+                          <Chip
+                            label={doc.status || 'Pending'}
+                            color={isApproved ? 'success' : isRejected ? 'error' : 'warning'}
+                            size="small"
+                            sx={{ fontWeight: 800, height: 18, fontSize: '0.6rem', px: 0.5, flexShrink: 0 }}
+                          />
+                        </Box>
+
+                        {/* Category & Size Sub-line */}
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, px: 0.2 }}>
+                          <Typography variant="caption" sx={{ fontSize: '0.68rem', color: '#64748B' }}>
+                            Cat: <strong style={{ color: '#334155' }}>{doc.category || doc.docType || 'General'}</strong>
+                          </Typography>
+                          <Typography variant="caption" sx={{ fontSize: '0.68rem', color: '#64748B' }}>
+                            Size: <strong style={{ color: '#334155' }}>{doc.fileSize || '1.5 MB'}</strong>
+                          </Typography>
+                        </Box>
+
+                        {/* Optional Comment/Reason Box */}
+                        {doc.comment && (
+                          <Box sx={{ mb: 1, p: 0.8, bgcolor: isApproved ? '#DCFCE7' : '#FEE2E2', borderRadius: 1, borderLeft: '2.5px solid', borderColor: isApproved ? '#16A34A' : '#DC2626' }}>
+                            <Typography variant="caption" sx={{ fontSize: '0.65rem', color: isApproved ? '#15803D' : '#B91C1C', fontWeight: 600, display: 'block', wordBreak: 'break-word' }}>
+                              Note: {doc.comment}
+                            </Typography>
+                          </Box>
                         )}
 
-                        <Button
-                          variant="contained"
-                          color="success"
-                          size="small"
-                          disabled={isApproved || reviewDocumentMutation.isLoading || clientsActions.canVerifyDocs === false}
-                          onClick={() => {
-                            reviewDocumentMutation.mutate({
-                              documentId: doc.id,
-                              status: 'Approved',
-                              comment: 'Verified and approved.'
-                            });
-                          }}
-                          sx={{ textTransform: 'none', fontSize: '0.62rem', fontWeight: 700, minWidth: 0, flex: 1, px: 0.4, py: 0.3 }}
-                        >
-                          Approve
-                        </Button>
+                        <Divider sx={{ my: 0.8 }} />
 
-                        <Button
-                          variant="outlined"
-                          color="error"
-                          size="small"
-                          disabled={isRejected || reviewDocumentMutation.isLoading || clientsActions.canVerifyDocs === false}
-                          onClick={() => {
-                            const reason = window.prompt(`Enter reason for rejecting "${docName}":`);
-                            if (reason !== null) {
+                        {/* Compact Action Buttons Row (Single Line 100% Fit) */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, width: '100%', flexWrap: 'nowrap' }}>
+                          <Button
+                            variant="outlined"
+                            color="secondary"
+                            size="small"
+                            onClick={() => {
+                              if (doc.url || doc.fileUrl) {
+                                const fileUrl = doc.url
+                                  ? `${(import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1').replace('/api/v1', '')}${doc.url}`
+                                  : doc.fileUrl;
+                                window.open(fileUrl, '_blank');
+                              } else {
+                                handleOpenMockFile(doc);
+                              }
+                            }}
+                            sx={{ textTransform: 'none', fontSize: '0.62rem', fontWeight: 700, minWidth: 0, flex: 1, px: 0.4, py: 0.3 }}
+                          >
+                            Open
+                          </Button>
+
+                          <Button
+                            variant="outlined"
+                            color="info"
+                            size="small"
+                            disabled={!doc.url && !doc.fileUrl}
+                            onClick={async () => {
+                              try {
+                                showAlert(`Downloading ${docName}...`, 'info');
+                                const rawUrl = doc.url
+                                  ? `${(import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1').replace('/api/v1', '')}${doc.url}`
+                                  : doc.fileUrl;
+                                const response = await fetch(rawUrl);
+                                if (!response.ok) throw new Error('Download failed');
+                                const blob = await response.blob();
+                                const blobUrl = window.URL.createObjectURL(blob);
+                                const link = document.createElement('a');
+                                link.href = blobUrl;
+                                link.download = docName;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                window.URL.revokeObjectURL(blobUrl);
+                                showAlert('Downloaded!', 'success');
+                              } catch (err) {
+                                console.error(err);
+                                showAlert('Failed to download document.', 'error');
+                              }
+                            }}
+                            sx={{ textTransform: 'none', fontSize: '0.62rem', fontWeight: 700, minWidth: 0, flex: 1, px: 0.4, py: 0.3 }}
+                          >
+                            Download
+                          </Button>
+
+                          {isTranslationClient && (
+                            <>
+                              <input
+                                type="file"
+                                id={`translated-file-input-${doc.id}`}
+                                style={{ display: 'none' }}
+                                accept="application/pdf"
+                                onChange={async (e) => {
+                                  if (e.target.files && e.target.files[0]) {
+                                    try {
+                                      await dbService.uploadTranslatedDocument(doc.id, e.target.files[0]);
+                                      queryClient.invalidateQueries({ queryKey: ['documents'] });
+                                      queryClient.invalidateQueries({ queryKey: ['clients'] });
+                                      showAlert('Translated document uploaded successfully!', 'success');
+                                    } catch (err) {
+                                      console.error(err);
+                                      showAlert('Failed to upload translated document.', 'error');
+                                    }
+                                  }
+                                }}
+                              />
+                              <Button
+                                variant="contained"
+                                color="warning"
+                                size="small"
+                                onClick={() => document.getElementById(`translated-file-input-${doc.id}`).click()}
+                                sx={{ textTransform: 'none', fontSize: '0.62rem', fontWeight: 700, minWidth: 0, flex: 1, px: 0.4, py: 0.3 }}
+                              >
+                                {doc.translatedUrl ? 'Re-Trans' : 'Trans'}
+                              </Button>
+                            </>
+                          )}
+
+                          <Button
+                            variant="contained"
+                            color="success"
+                            size="small"
+                            disabled={isApproved || reviewDocumentMutation.isLoading || clientsActions.canVerifyDocs === false}
+                            onClick={() => {
                               reviewDocumentMutation.mutate({
                                 documentId: doc.id,
-                                status: 'Rejected',
-                                comment: reason || 'Document rejected.'
+                                status: 'Approved',
+                                comment: 'Verified and approved.'
                               });
-                            }
-                          }}
-                          sx={{ textTransform: 'none', fontSize: '0.62rem', fontWeight: 700, minWidth: 0, flex: 1, px: 0.4, py: 0.3 }}
-                        >
-                          Reject
-                        </Button>
+                            }}
+                            sx={{ textTransform: 'none', fontSize: '0.62rem', fontWeight: 700, minWidth: 0, flex: 1, px: 0.4, py: 0.3 }}
+                          >
+                            Approve
+                          </Button>
+
+                          <Button
+                            variant="outlined"
+                            color="error"
+                            size="small"
+                            disabled={isRejected || reviewDocumentMutation.isLoading || clientsActions.canVerifyDocs === false}
+                            onClick={() => {
+                              const reason = window.prompt(`Enter reason for rejecting "${docName}":`);
+                              if (reason !== null) {
+                                reviewDocumentMutation.mutate({
+                                  documentId: doc.id,
+                                  status: 'Rejected',
+                                  comment: reason || 'Document rejected.'
+                                });
+                              }
+                            }}
+                            sx={{ textTransform: 'none', fontSize: '0.62rem', fontWeight: 700, minWidth: 0, flex: 1, px: 0.4, py: 0.3 }}
+                          >
+                            Reject
+                          </Button>
+                        </Box>
                       </Box>
+                    </Card>
+                  );
+                };
+
+                return isTranslationClient ? (
+                  // 3 COLUMNS SIDE-BY-SIDE FOR SWORN TRANSLATION CLIENTS
+                  <Box className="grid grid-cols-12 gap-5">
+                    {/* COLUMN 1: Customer Uploaded Documents */}
+                    <Box className="col-span-12 md:col-span-4">
+                      <Paper elevation={0} sx={{ p: 2, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 3, height: '100%' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2, color: 'secondary.main', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span>👤 Customer Uploaded</span>
+                          <Chip label={customerDocs.length} color="secondary" size="small" sx={{ fontWeight: 800 }} />
+                        </Typography>
+                        {customerDocs.length === 0 ? (
+                          <Paper sx={{ p: 3, textAlign: 'center', border: '1px dashed', borderColor: 'divider', borderRadius: 2, bgcolor: '#FFFFFF' }}>
+                            <Typography color="text.secondary" variant="body2">No customer-uploaded documents submitted yet.</Typography>
+                          </Paper>
+                        ) : (
+                          <Box
+                            sx={{
+                              maxHeight: 430,
+                              overflowY: 'auto',
+                              pr: 0.5,
+                              '&::-webkit-scrollbar': { width: '5px' },
+                              '&::-webkit-scrollbar-thumb': { bgcolor: '#CBD5E1', borderRadius: '4px' }
+                            }}
+                          >
+                            {customerDocs.map(renderDocCard)}
+                          </Box>
+                        )}
+                      </Paper>
                     </Box>
-                  </Card>
+
+                    {/* COLUMN 2: Agent Uploaded Documents */}
+                    <Box className="col-span-12 md:col-span-4">
+                      <Paper elevation={0} sx={{ p: 2, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 3, height: '100%' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2, color: 'info.main', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span>👨‍💼 Agent / Staff Uploaded</span>
+                          <Chip label={agentDocs.length} color="info" size="small" sx={{ fontWeight: 800 }} />
+                        </Typography>
+                        {agentDocs.length === 0 ? (
+                          <Paper sx={{ p: 3, textAlign: 'center', border: '1px dashed', borderColor: 'divider', borderRadius: 2, bgcolor: '#FFFFFF' }}>
+                            <Typography color="text.secondary" variant="body2">No agent/staff-uploaded documents attached yet.</Typography>
+                          </Paper>
+                        ) : (
+                          <Box
+                            sx={{
+                              maxHeight: 430,
+                              overflowY: 'auto',
+                              pr: 0.5,
+                              '&::-webkit-scrollbar': { width: '5px' },
+                              '&::-webkit-scrollbar-thumb': { bgcolor: '#CBD5E1', borderRadius: '4px' }
+                            }}
+                          >
+                            {agentDocs.map(renderDocCard)}
+                          </Box>
+                        )}
+                      </Paper>
+                    </Box>
+
+                    {/* COLUMN 3: Rejected Documents & History */}
+                    <Box className="col-span-12 md:col-span-4">
+                      <Paper elevation={0} sx={{ p: 2, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 3, height: '100%' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2, color: 'error.main', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span>🔴 Rejected Documents & History</span>
+                          <Chip label={rejectedDocs.length} color="error" size="small" sx={{ fontWeight: 800 }} />
+                        </Typography>
+                        {rejectedDocs.length === 0 ? (
+                          <Paper sx={{ p: 3, textAlign: 'center', border: '1px dashed', borderColor: 'divider', borderRadius: 2, bgcolor: '#FFFFFF' }}>
+                            <Typography color="text.secondary" variant="body2">No rejected document history for this client profile.</Typography>
+                          </Paper>
+                        ) : (
+                          <Box
+                            sx={{
+                              maxHeight: 430,
+                              overflowY: 'auto',
+                              pr: 0.5,
+                              '&::-webkit-scrollbar': { width: '5px' },
+                              '&::-webkit-scrollbar-thumb': { bgcolor: '#CBD5E1', borderRadius: '4px' }
+                            }}
+                          >
+                            {rejectedDocs.map(renderDocCard)}
+                          </Box>
+                        )}
+                      </Paper>
+                    </Box>
+                  </Box>
+                ) : (
+                  // 2 WIDER COLUMNS (50% / 50%) FOR VISA PACKAGE CLIENTS (NO AGENT UPLOAD COLUMN)
+                  <Box className="grid grid-cols-12 gap-5">
+                    {/* COLUMN 1: Customer Uploaded Documents (col-span-6) */}
+                    <Box className="col-span-12 md:col-span-6">
+                      <Paper elevation={0} sx={{ p: 2, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 3, height: '100%' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2, color: 'secondary.main', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span>👤 Customer Uploaded Documents</span>
+                          <Chip label={customerDocs.length} color="secondary" size="small" sx={{ fontWeight: 800 }} />
+                        </Typography>
+                        {customerDocs.length === 0 ? (
+                          <Paper sx={{ p: 3, textAlign: 'center', border: '1px dashed', borderColor: 'divider', borderRadius: 2, bgcolor: '#FFFFFF' }}>
+                            <Typography color="text.secondary" variant="body2">No customer-uploaded documents submitted yet.</Typography>
+                          </Paper>
+                        ) : (
+                          <Box
+                            sx={{
+                              maxHeight: 430,
+                              overflowY: 'auto',
+                              pr: 0.5,
+                              '&::-webkit-scrollbar': { width: '5px' },
+                              '&::-webkit-scrollbar-thumb': { bgcolor: '#CBD5E1', borderRadius: '4px' }
+                            }}
+                          >
+                            {customerDocs.map(renderDocCard)}
+                          </Box>
+                        )}
+                      </Paper>
+                    </Box>
+
+                    {/* COLUMN 2: Rejected Documents & History (col-span-6) */}
+                    <Box className="col-span-12 md:col-span-6">
+                      <Paper elevation={0} sx={{ p: 2, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 3, height: '100%' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2, color: 'error.main', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span>🔴 Rejected Documents & History</span>
+                          <Chip label={rejectedDocs.length} color="error" size="small" sx={{ fontWeight: 800 }} />
+                        </Typography>
+                        {rejectedDocs.length === 0 ? (
+                          <Paper sx={{ p: 3, textAlign: 'center', border: '1px dashed', borderColor: 'divider', borderRadius: 2, bgcolor: '#FFFFFF' }}>
+                            <Typography color="text.secondary" variant="body2">No rejected document history for this client profile.</Typography>
+                          </Paper>
+                        ) : (
+                          <Box
+                            sx={{
+                              maxHeight: 430,
+                              overflowY: 'auto',
+                              pr: 0.5,
+                              '&::-webkit-scrollbar': { width: '5px' },
+                              '&::-webkit-scrollbar-thumb': { bgcolor: '#CBD5E1', borderRadius: '4px' }
+                            }}
+                          >
+                            {rejectedDocs.map(renderDocCard)}
+                          </Box>
+                        )}
+                      </Paper>
+                    </Box>
+                  </Box>
                 );
-              };
-
-              return isTranslationClient ? (
-                // 3 COLUMNS SIDE-BY-SIDE FOR SWORN TRANSLATION CLIENTS
-                <Box className="grid grid-cols-12 gap-5">
-                  {/* COLUMN 1: Customer Uploaded Documents */}
-                  <Box className="col-span-12 md:col-span-4">
-                    <Paper elevation={0} sx={{ p: 2, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 3, height: '100%' }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2, color: 'secondary.main', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span>👤 Customer Uploaded</span>
-                        <Chip label={customerDocs.length} color="secondary" size="small" sx={{ fontWeight: 800 }} />
-                      </Typography>
-                      {customerDocs.length === 0 ? (
-                        <Paper sx={{ p: 3, textAlign: 'center', border: '1px dashed', borderColor: 'divider', borderRadius: 2, bgcolor: '#FFFFFF' }}>
-                          <Typography color="text.secondary" variant="body2">No customer-uploaded documents submitted yet.</Typography>
-                        </Paper>
-                      ) : (
-                        <Box
-                          sx={{
-                            maxHeight: 430,
-                            overflowY: 'auto',
-                            pr: 0.5,
-                            '&::-webkit-scrollbar': { width: '5px' },
-                            '&::-webkit-scrollbar-thumb': { bgcolor: '#CBD5E1', borderRadius: '4px' }
-                          }}
-                        >
-                          {customerDocs.map(renderDocCard)}
-                        </Box>
-                      )}
-                    </Paper>
-                  </Box>
-
-                  {/* COLUMN 2: Agent Uploaded Documents */}
-                  <Box className="col-span-12 md:col-span-4">
-                    <Paper elevation={0} sx={{ p: 2, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 3, height: '100%' }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2, color: 'info.main', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span>👨‍💼 Agent / Staff Uploaded</span>
-                        <Chip label={agentDocs.length} color="info" size="small" sx={{ fontWeight: 800 }} />
-                      </Typography>
-                      {agentDocs.length === 0 ? (
-                        <Paper sx={{ p: 3, textAlign: 'center', border: '1px dashed', borderColor: 'divider', borderRadius: 2, bgcolor: '#FFFFFF' }}>
-                          <Typography color="text.secondary" variant="body2">No agent/staff-uploaded documents attached yet.</Typography>
-                        </Paper>
-                      ) : (
-                        <Box
-                          sx={{
-                            maxHeight: 430,
-                            overflowY: 'auto',
-                            pr: 0.5,
-                            '&::-webkit-scrollbar': { width: '5px' },
-                            '&::-webkit-scrollbar-thumb': { bgcolor: '#CBD5E1', borderRadius: '4px' }
-                          }}
-                        >
-                          {agentDocs.map(renderDocCard)}
-                        </Box>
-                      )}
-                    </Paper>
-                  </Box>
-
-                  {/* COLUMN 3: Rejected Documents & History */}
-                  <Box className="col-span-12 md:col-span-4">
-                    <Paper elevation={0} sx={{ p: 2, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 3, height: '100%' }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2, color: 'error.main', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span>🔴 Rejected Documents & History</span>
-                        <Chip label={rejectedDocs.length} color="error" size="small" sx={{ fontWeight: 800 }} />
-                      </Typography>
-                      {rejectedDocs.length === 0 ? (
-                        <Paper sx={{ p: 3, textAlign: 'center', border: '1px dashed', borderColor: 'divider', borderRadius: 2, bgcolor: '#FFFFFF' }}>
-                          <Typography color="text.secondary" variant="body2">No rejected document history for this client profile.</Typography>
-                        </Paper>
-                      ) : (
-                        <Box
-                          sx={{
-                            maxHeight: 430,
-                            overflowY: 'auto',
-                            pr: 0.5,
-                            '&::-webkit-scrollbar': { width: '5px' },
-                            '&::-webkit-scrollbar-thumb': { bgcolor: '#CBD5E1', borderRadius: '4px' }
-                          }}
-                        >
-                          {rejectedDocs.map(renderDocCard)}
-                        </Box>
-                      )}
-                    </Paper>
-                  </Box>
-                </Box>
-              ) : (
-                // 2 WIDER COLUMNS (50% / 50%) FOR VISA PACKAGE CLIENTS (NO AGENT UPLOAD COLUMN)
-                <Box className="grid grid-cols-12 gap-5">
-                  {/* COLUMN 1: Customer Uploaded Documents (col-span-6) */}
-                  <Box className="col-span-12 md:col-span-6">
-                    <Paper elevation={0} sx={{ p: 2, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 3, height: '100%' }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2, color: 'secondary.main', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span>👤 Customer Uploaded Documents</span>
-                        <Chip label={customerDocs.length} color="secondary" size="small" sx={{ fontWeight: 800 }} />
-                      </Typography>
-                      {customerDocs.length === 0 ? (
-                        <Paper sx={{ p: 3, textAlign: 'center', border: '1px dashed', borderColor: 'divider', borderRadius: 2, bgcolor: '#FFFFFF' }}>
-                          <Typography color="text.secondary" variant="body2">No customer-uploaded documents submitted yet.</Typography>
-                        </Paper>
-                      ) : (
-                        <Box
-                          sx={{
-                            maxHeight: 430,
-                            overflowY: 'auto',
-                            pr: 0.5,
-                            '&::-webkit-scrollbar': { width: '5px' },
-                            '&::-webkit-scrollbar-thumb': { bgcolor: '#CBD5E1', borderRadius: '4px' }
-                          }}
-                        >
-                          {customerDocs.map(renderDocCard)}
-                        </Box>
-                      )}
-                    </Paper>
-                  </Box>
-
-                  {/* COLUMN 2: Rejected Documents & History (col-span-6) */}
-                  <Box className="col-span-12 md:col-span-6">
-                    <Paper elevation={0} sx={{ p: 2, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 3, height: '100%' }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2, color: 'error.main', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span>🔴 Rejected Documents & History</span>
-                        <Chip label={rejectedDocs.length} color="error" size="small" sx={{ fontWeight: 800 }} />
-                      </Typography>
-                      {rejectedDocs.length === 0 ? (
-                        <Paper sx={{ p: 3, textAlign: 'center', border: '1px dashed', borderColor: 'divider', borderRadius: 2, bgcolor: '#FFFFFF' }}>
-                          <Typography color="text.secondary" variant="body2">No rejected document history for this client profile.</Typography>
-                        </Paper>
-                      ) : (
-                        <Box
-                          sx={{
-                            maxHeight: 430,
-                            overflowY: 'auto',
-                            pr: 0.5,
-                            '&::-webkit-scrollbar': { width: '5px' },
-                            '&::-webkit-scrollbar-thumb': { bgcolor: '#CBD5E1', borderRadius: '4px' }
-                          }}
-                        >
-                          {rejectedDocs.map(renderDocCard)}
-                        </Box>
-                      )}
-                    </Paper>
-                  </Box>
-                </Box>
-              );
-            })()}
+              })()}
+            </Box>
           </Box>
         </Box>
-      </Box>
-    )}
+      )}
 
       {/* Credentials Dialog */}
       <Dialog

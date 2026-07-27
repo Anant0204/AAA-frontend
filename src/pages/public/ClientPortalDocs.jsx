@@ -2901,10 +2901,10 @@ export const ClientPortalDocs = () => {
             const currentPkg = (dbPackages && dbPackages.length > 0)
               ? (dbPackages.find(p => (p.code || p.id) === selectedPackage) || dbPackages[0])
               : {
-                  full_process: { name: 'OPTION A: FULL PROCESSING PACKAGE', price: 3500, additionalApplicantPrice: 500 },
-                  premium: { name: 'OPTION B: PREMIUM PACKAGE', price: 4750, additionalApplicantPrice: 750 },
-                  relocation: { name: 'OPTION C: ADMINISTRATIVE RELOCATION PACKAGE', price: 1750, additionalApplicantPrice: 500 }
-                }[selectedPackage] || { name: 'OPTION A: FULL PROCESSING PACKAGE', price: 3500, additionalApplicantPrice: 500 };
+                full_process: { name: 'OPTION A: FULL PROCESSING PACKAGE', price: 3500, additionalApplicantPrice: 500 },
+                premium: { name: 'OPTION B: PREMIUM PACKAGE', price: 4750, additionalApplicantPrice: 750 },
+                relocation: { name: 'OPTION C: ADMINISTRATIVE RELOCATION PACKAGE', price: 1750, additionalApplicantPrice: 500 }
+              }[selectedPackage] || { name: 'OPTION A: FULL PROCESSING PACKAGE', price: 3500, additionalApplicantPrice: 500 };
 
             const basePrice = currentPkg?.price || (selectedPackage === 'premium' ? 4750 : (selectedPackage === 'relocation' ? 1750 : 3500));
             const addPrice = (addApplicants * (currentPkg?.additionalApplicantPrice || 500));
