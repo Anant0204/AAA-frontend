@@ -24,7 +24,7 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import Tooltip from '@mui/material/Tooltip';
-import Chip from '@mui/material/Chip';
+
 
 // Icons
 import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
@@ -104,7 +104,8 @@ export const SuperAdminLeadDetails = () => {
   const { data: conversations = [] } = useQuery({
     queryKey: ['conversations'],
     queryFn: dbService.getConversations,
-    refetchInterval: 3000 });
+    refetchInterval: 3000
+  });
 
   const [aiResponderActive, setAiResponderActive] = useState(() => {
     return localStorage.getItem('crm-ai-responder-active') !== 'false';
@@ -120,17 +121,20 @@ export const SuperAdminLeadDetails = () => {
 
   const addConversationMutation = useMutation({
     mutationFn: dbService.addConversation,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['conversations'] }) });
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['conversations'] })
+  });
 
   const receiveSocialMessageMutation = useMutation({
-    mutationFn: ({ conversationId, message, isActive }) => 
+    mutationFn: ({ conversationId, message, isActive }) =>
       dbService.receiveSocialMessage(conversationId, message, isActive),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['conversations'] }) });
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['conversations'] })
+  });
 
   const sendSocialMessageMutation = useMutation({
-    mutationFn: ({ conversationId, message }) => 
+    mutationFn: ({ conversationId, message }) =>
       dbService.sendSocialMessage(conversationId, message),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['conversations'] }) });
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['conversations'] })
+  });
 
   const [activeTab, setActiveTab] = useState(0);
   const [noteText, setNoteText] = useState('');
@@ -157,55 +161,67 @@ export const SuperAdminLeadDetails = () => {
     {
       id: 'greeting',
       label: 'Initial Greeting',
-      body: (lead) => `Hello ${lead?.firstName} 👋, I'm from AAA Business Consultancy. We received your inquiry regarding Spain ${lead?.serviceId || 'visa'} services. May we schedule a quick consultation call to understand your goals?` },
+      body: (lead) => `Hello ${lead?.firstName} 👋, I'm from AAA Business Consultancy. We received your inquiry regarding Spain ${lead?.serviceId || 'visa'} services. May we schedule a quick consultation call to understand your goals?`
+    },
     {
       id: 'qualification_q1',
       label: 'Q1 - Income Qualification',
-      body: (lead) => `Hi ${lead?.firstName} 👋! To assess your eligibility, could you share:\n• Your current monthly income (after tax)?\n• Is your income from remote work, business, or passive investments?\n• Your current country of residence?` },
+      body: (lead) => `Hi ${lead?.firstName} 👋! To assess your eligibility, could you share:\n• Your current monthly income (after tax)?\n• Is your income from remote work, business, or passive investments?\n• Your current country of residence?`
+    },
     {
       id: 'qualification_q2',
       label: 'Q2 - Family & Dependents',
-      body: (lead) => `Thank you ${lead?.firstName}! One more question:\n• Will you be applying with family members (spouse/children)?\n• How many total applicants?\n• Do you have an existing Spanish connection or assets?` },
+      body: (lead) => `Thank you ${lead?.firstName}! One more question:\n• Will you be applying with family members (spouse/children)?\n• How many total applicants?\n• Do you have an existing Spanish connection or assets?`
+    },
     {
       id: 'booking_link',
       label: 'Book Consultation Link',
-      body: (lead) => `Hi ${lead?.firstName}! You can book your FREE initial consultation directly here:\n👉 https://calendly.com/aaaconsultancy/assessment\n\nOur team is ready to guide your Spain residency journey. 🇪🇸` },
+      body: (lead) => `Hi ${lead?.firstName}! You can book your FREE initial consultation directly here:\n👉 https://calendly.com/aaaconsultancy/assessment\n\nOur team is ready to guide your Spain residency journey. 🇪🇸`
+    },
     {
       id: 'docs_reminder',
       label: 'Documents Checklist Reminder',
-      body: (lead) => `Dear ${lead?.firstName}, this is a friendly reminder to prepare the following documents:\n📄 Valid Passport (6+ months validity)\n💰 3-Month Bank Statements\n📋 Employment / Income Proof\n🏠 Proof of Address\nPlease upload them through our secure portal as soon as possible.` },
+      body: (lead) => `Dear ${lead?.firstName}, this is a friendly reminder to prepare the following documents:\n📄 Valid Passport (6+ months validity)\n💰 3-Month Bank Statements\n📋 Employment / Income Proof\n🏠 Proof of Address\nPlease upload them through our secure portal as soon as possible.`
+    },
     {
       id: 'follow_up',
       label: 'Follow-Up Nudge',
-      body: (lead) => `Hi ${lead?.firstName} 👋! We wanted to follow up on your Spain visa inquiry. Our team has an opening this week for a consultation. Would you like to schedule a quick call to discuss your options?` },
+      body: (lead) => `Hi ${lead?.firstName} 👋! We wanted to follow up on your Spain visa inquiry. Our team has an opening this week for a consultation. Would you like to schedule a quick call to discuss your options?`
+    },
   ];
 
   // Fetch Lead details
   const { data: lead, isLoading } = useQuery({
     queryKey: ['lead', id],
-    queryFn: () => dbService.getLeadById(id) });
+    queryFn: () => dbService.getLeadById(id)
+  });
 
   // Fetch linked consultations, payments, documents
   const { data: consultations = [] } = useQuery({
     queryKey: ['consultations'],
-    queryFn: dbService.getConsultations });
+    queryFn: dbService.getConsultations
+  });
 
   const { data: payments = [] } = useQuery({
     queryKey: ['payments'],
-    queryFn: dbService.getPayments });
+    queryFn: dbService.getPayments
+  });
 
   const { data: documents = [] } = useQuery({
     queryKey: ['documents'],
-    queryFn: dbService.getDocuments });
+    queryFn: dbService.getDocuments
+  });
 
   // Fetch Consultants dynamically
   const { data: consultants = [] } = useQuery({
     queryKey: ['consultants'],
-    queryFn: dbService.getConsultants });
+    queryFn: dbService.getConsultants
+  });
 
   const { data: leadStages = [] } = useQuery({
     queryKey: ['lead-stages'],
-    queryFn: dbService.getLeadStages });
+    queryFn: dbService.getLeadStages
+  });
 
   const leadStatuses = leadStages.map(s => s.name);
 
@@ -226,7 +242,8 @@ export const SuperAdminLeadDetails = () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       showAlert('Status updated successfully', 'success');
       setStatusModalOpen(false);
-    } });
+    }
+  });
 
   const addNoteMutation = useMutation({
     mutationFn: (leadData) => dbService.updateLead(leadData),
@@ -234,7 +251,8 @@ export const SuperAdminLeadDetails = () => {
       queryClient.invalidateQueries({ queryKey: ['lead', id] });
       showAlert('Note added successfully', 'success');
       setNoteText('');
-    } });
+    }
+  });
 
   const updateFollowUpMutation = useMutation({
     mutationFn: (nextFollowUpDate) => dbService.updateLead({ id: lead.id, nextFollowUpDate }),
@@ -242,7 +260,8 @@ export const SuperAdminLeadDetails = () => {
       queryClient.invalidateQueries({ queryKey: ['lead', id] });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       showAlert('Follow-up date updated successfully', 'success');
-    } });
+    }
+  });
 
   const reassignConsultantMutation = useMutation({
     mutationFn: async (consultantId) => {
@@ -290,7 +309,8 @@ export const SuperAdminLeadDetails = () => {
         applicantsCount: count,
         assignedToId: lead.assignedToId || 'c1',
         status: 'Waiting for Payment',
-        profileSummary: `${lead.firstName} migrated from Lead. Wants ${lead.serviceId} processing.` });
+        profileSummary: `${lead.firstName} migrated from Lead. Wants ${lead.serviceId} processing.`
+      });
 
       // 2. Calculate Pricing & Generate Invoice
       const serviceObj = SERVICES.find((s) => s.id === lead.serviceId);
@@ -318,7 +338,8 @@ export const SuperAdminLeadDetails = () => {
         packageId,
         amount,
         discount,
-        status: 'Pending' });
+        status: 'Pending'
+      });
 
       // 4. Update Lead status to Completed
       await dbService.updateLeadStatus(lead.id, 'Completed');
@@ -332,7 +353,8 @@ export const SuperAdminLeadDetails = () => {
       showAlert('Lead successfully converted to Client and Invoice generated!', 'success');
       setConvertModalOpen(false);
       navigate(`/clients/details/${client.id}`);
-    } });
+    }
+  });
 
   if (isLoading) {
     return (
@@ -369,7 +391,8 @@ export const SuperAdminLeadDetails = () => {
       timeline: [
         { date: new Date().toISOString(), event: 'Added a note to case file', user: currentUser.name },
         ...lead.timeline,
-      ] };
+      ]
+    };
     addNoteMutation.mutate(updatedLead);
   };
 
@@ -399,7 +422,8 @@ export const SuperAdminLeadDetails = () => {
     convertLeadMutation.mutate({
       lead,
       packageId: isSchengen ? 'none' : selectedPackageId,
-      count: isSchengen ? 1 : applicantsCount });
+      count: isSchengen ? 1 : applicantsCount
+    });
   };
 
   const handleSimulateClientMsg = () => {
@@ -505,9 +529,9 @@ export const SuperAdminLeadDetails = () => {
         subtitle={`Lead ID: ${lead.id} | Nationality: ${lead.nationality}`}
         action={
           <Stack direction="row" spacing={1.5}>
-            <Button 
-              variant="contained" 
-              color="info" 
+            <Button
+              variant="contained"
+              color="info"
               onClick={() => setAiSummaryOpen(true)}
               startIcon={<SmartToyIcon />}
               sx={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)', color: 'white', '&:hover': { opacity: 0.95 } }}
@@ -520,10 +544,10 @@ export const SuperAdminLeadDetails = () => {
             {lead.status !== 'Completed' && lead.status !== 'Converted' && leadsActions.canChangeVisaStatus && (
               <Tooltip title={!hasCompletedConsultation ? "A consultation must be 'Completed' before conversion." : ""} arrow placement="bottom">
                 <span style={{ display: 'inline-block' }}>
-                  <Button 
-                    variant="contained" 
-                    color="secondary" 
-                    onClick={handleConvertLead} 
+                  <Button
+                    variant="contained"
+                    color="secondary"
+                    onClick={handleConvertLead}
                     disabled={!hasCompletedConsultation}
                     startIcon={<CheckCircleIcon />}
                   >
@@ -804,27 +828,27 @@ export const SuperAdminLeadDetails = () => {
                       )}
                     </Box>
                   )}
-                    
-                    <Box sx={{ mt: 3 }}>
-                      {lead.status === 'Completed' || lead.status === 'Converted' ? (
-                        <Typography variant="body2" color="success.main" sx={{ fontWeight: 600 }}>Already Converted</Typography>
-                      ) : (
-                        <Tooltip title={!hasCompletedConsultation ? "A consultation must be 'Completed' before conversion." : ""} arrow placement="top">
-                          <span style={{ display: 'inline-block' }}>
-                            <Button
-                              variant="contained"
-                              color="secondary"
-                              onClick={() => setConvertModalOpen(true)}
-                              disabled={!hasCompletedConsultation}
-                              sx={{ textTransform: 'none', fontWeight: 600, boxShadow: 'none', mb: 2 }}
-                            >
-                              <CheckCircleIcon sx={{ mr: 1, fontSize: 18 }} />
-                              Convert to Client
-                            </Button>
-                          </span>
-                        </Tooltip>
-                      )}
-                    </Box>
+
+                  <Box sx={{ mt: 3 }}>
+                    {lead.status === 'Completed' || lead.status === 'Converted' ? (
+                      <Typography variant="body2" color="success.main" sx={{ fontWeight: 600 }}>Already Converted</Typography>
+                    ) : (
+                      <Tooltip title={!hasCompletedConsultation ? "A consultation must be 'Completed' before conversion." : ""} arrow placement="top">
+                        <span style={{ display: 'inline-block' }}>
+                          <Button
+                            variant="contained"
+                            color="secondary"
+                            onClick={() => setConvertModalOpen(true)}
+                            disabled={!hasCompletedConsultation}
+                            sx={{ textTransform: 'none', fontWeight: 600, boxShadow: 'none', mb: 2 }}
+                          >
+                            <CheckCircleIcon sx={{ mr: 1, fontSize: 18 }} />
+                            Convert to Client
+                          </Button>
+                        </span>
+                      </Tooltip>
+                    )}
+                  </Box>
 
                   <Box className="col-span-12">
                     <Divider sx={{ my: 2 }} />
@@ -840,7 +864,8 @@ export const SuperAdminLeadDetails = () => {
                         backgroundColor: 'background.neutral',
                         mb: 2,
                         whiteSpace: 'pre-wrap',
-                        fontSize: '0.875rem' }}
+                        fontSize: '0.875rem'
+                      }}
                     >
                       {lead.notes || 'No notes logged on file yet.'}
                     </Paper>
@@ -1202,7 +1227,8 @@ export const SuperAdminLeadDetails = () => {
                           mb: 2,
                           border: '1px solid',
                           borderColor: 'divider',
-                          boxShadow: 'none' }}
+                          boxShadow: 'none'
+                        }}
                       >
                         <Box sx={{ mb: 2 }}>
                           <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
@@ -1280,8 +1306,8 @@ export const SuperAdminLeadDetails = () => {
             />
           )}
 
-          <Button 
-            size="small" 
+          <Button
+            size="small"
             onClick={() => setIsCustomStatus(!isCustomStatus)}
             sx={{ alignSelf: 'flex-start', textTransform: 'none' }}
           >
