@@ -832,8 +832,8 @@ export const OperationsSocialInbox = () => {
                                 borderRadius: 3,
                                 borderBottomRightRadius: isAgent ? 0 : 3,
                                 borderBottomLeftRadius: !isAgent ? 0 : 3,
-                                bgcolor: isAgent ? 'secondary.main' : 'background.paper',
-                                color: isAgent ? 'secondary.contrastText' : 'text.primary',
+                                bgcolor: isAgent ? '#DCF8C6' : 'background.paper',
+                                color: isAgent ? '#111827' : 'text.primary',
                                 border: isAgent ? 'none' : '1px solid',
                                 borderColor: 'divider',
                                 boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
