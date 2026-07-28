@@ -29,7 +29,11 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import CircularProgress from '@mui/material/CircularProgress';
-
+import Menu from '@mui/material/Menu';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 
 const getMediaUrl = (url) => {
   if (!url) return null;
@@ -68,6 +72,9 @@ import ChatIcon from '@mui/icons-material/Chat';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import DownloadIcon from '@mui/icons-material/Download';
+import DeleteIcon from '@mui/icons-material/Delete';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import AddIcon from '@mui/icons-material/Add';
 
 import PageHeader from '../../components/PageHeader';
 
@@ -162,6 +169,23 @@ export const SuperAdminSocialInbox = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['conversations'] })
   });
 
+  const deleteSocialMessageMutation = useMutation({
+    mutationFn: (messageId) => dbService.deleteSocialMessage(messageId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      // showAlert('Message deleted successfully', 'success');
+    }
+  });
+
+  const clearSocialChatMutation = useMutation({
+    mutationFn: (phone) => dbService.clearSocialChat(phone),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      setActiveConvId(null);
+      // showAlert('Chat cleared successfully', 'success');
+    }
+  });
+
   const uploadSocialMediaMutation = useMutation({
     mutationFn: (file) => dbService.uploadSocialMedia(file)
   });
@@ -172,6 +196,29 @@ export const SuperAdminSocialInbox = () => {
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const messageEndRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  const [newChatOpen, setNewChatOpen] = useState(false);
+  const [newChatPhone, setNewChatPhone] = useState('');
+  const [newChatMessage, setNewChatMessage] = useState('');
+  const [isSendingNewChat, setIsSendingNewChat] = useState(false);
+
+  const handleStartNewChat = async () => {
+    if (!newChatPhone.trim() || !newChatMessage.trim()) return;
+    setIsSendingNewChat(true);
+    try {
+      await sendSocialMessageMutation.mutateAsync({
+        phone: newChatPhone.trim(),
+        message: newChatMessage.trim()
+      });
+      setNewChatOpen(false);
+      setNewChatPhone('');
+      setNewChatMessage('');
+    } catch (err) {
+      console.error('Failed to send new chat message:', err);
+    } finally {
+      setIsSendingNewChat(false);
+    }
+  };
 
   // Connect to socket to handle real-time inbound/outbound WhatsApp updates
   useEffect(() => {
@@ -256,12 +303,39 @@ export const SuperAdminSocialInbox = () => {
     }
   }, [activeConv?.messages]);
 
-  // Mark active chat as read
+  const handleSelectConv = (conv) => {
+    setActiveConvId(conv.id);
+    if (conv.unreadCount > 0) {
+      markConversationReadMutation.mutate(conv.id);
+    }
+    if (isMobile) {
+      setShowChatOnMobile(true);
+    }
+  };
+
+  // Mark active chat as read automatically when opened or when new message arrives
   useEffect(() => {
     if (activeConv && activeConv.unreadCount > 0) {
       markConversationReadMutation.mutate(activeConvId);
     }
   }, [activeConvId, activeConv?.unreadCount]);
+
+  const [headerMenuAnchor, setHeaderMenuAnchor] = useState(null);
+  const handleHeaderMenuOpen = (event) => setHeaderMenuAnchor(event.currentTarget);
+  const handleHeaderMenuClose = () => setHeaderMenuAnchor(null);
+
+  const handleDeleteMessage = (messageId) => {
+    if (window.confirm('Are you sure you want to delete this message from the CRM?')) {
+      deleteSocialMessageMutation.mutate(messageId);
+    }
+  };
+
+  const handleClearChat = (phone) => {
+    if (window.confirm('Are you sure you want to completely clear this chat from the CRM? This cannot be undone.')) {
+      clearSocialChatMutation.mutate(phone);
+      handleHeaderMenuClose();
+    }
+  };
 
   const getPlatformIcon = (platform, color = 'inherit') => {
     switch (platform) {
@@ -459,6 +533,18 @@ export const SuperAdminSocialInbox = () => {
                       )
                     }}
                   />
+                  <Tooltip title="Start New WhatsApp Chat">
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      size="small"
+                      onClick={() => setNewChatOpen(true)}
+                      sx={{ minWidth: 'auto', px: 1.5, whiteSpace: 'nowrap', textTransform: 'none', fontWeight: 600 }}
+                      startIcon={<AddIcon />}
+                    >
+                      New
+                    </Button>
+                  </Tooltip>
                 </Box>
 
                 {!searchParams.get('channel') && (
@@ -507,10 +593,7 @@ export const SuperAdminSocialInbox = () => {
                         <React.Fragment key={conv.id}>
                           <ListItemButton
                             selected={isActive}
-                            onClick={() => {
-                              setActiveConvId(conv.id);
-                              setShowChatOnMobile(true);
-                            }}
+                            onClick={() => handleSelectConv(conv)}
                             sx={{
                               py: 2,
                               px: 2.5,
@@ -658,6 +741,18 @@ export const SuperAdminSocialInbox = () => {
                       <IconButton size="small" onClick={() => navigate(`/leads/details/${activeConv.leadId}`)}>
                         <OpenInNewIcon fontSize="small" />
                       </IconButton>
+                      <IconButton size="small" onClick={handleHeaderMenuOpen}>
+                        <MoreVertIcon fontSize="small" />
+                      </IconButton>
+                      <Menu
+                        anchorEl={headerMenuAnchor}
+                        open={Boolean(headerMenuAnchor)}
+                        onClose={handleHeaderMenuClose}
+                      >
+                        <MenuItem onClick={() => handleClearChat(activeConv.phone)} sx={{ color: 'error.main' }}>
+                          <DeleteIcon fontSize="small" sx={{ mr: 1 }} /> Clear Chat
+                        </MenuItem>
+                      </Menu>
                     </Box>
                   </Box>
 
@@ -701,17 +796,19 @@ export const SuperAdminSocialInbox = () => {
                               sx={{
                                 p: 2,
                                 borderRadius: 3,
-                                borderBottomRightRadius: isAgent ? 0 : 3,
-                                borderBottomLeftRadius: !isAgent ? 0 : 3,
-                                bgcolor: isAgent ? '#D9FDD3' : 'background.paper',
-                                color: isAgent ? '#051A3B' : 'text.primary',
-                                border: isAgent ? '1px solid #BCE5B4' : '1px solid',
+                                borderBottomRightRadius: isAgent ? 0 : 12,
+                                borderBottomLeftRadius: !isAgent ? 0 : 12,
+                                bgcolor: isAgent ? '#DCF8C6' : 'background.paper',
+                                color: isAgent ? '#111827' : 'text.primary',
+                                border: isAgent ? 'none' : '1px solid',
                                 borderColor: 'divider',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                                position: 'relative',
+                                '&:hover .msg-delete-btn': { opacity: 1 }
                               }}
                             >
                               {msg.isComment && (
-                                <Typography variant="caption" sx={{ display: 'block', mb: 0.5, color: isAgent ? 'rgba(255,255,255,0.7)' : 'primary.main', fontWeight: 600 }}>
+                                <Typography variant="caption" sx={{ display: 'block', mb: 0.5, color: isAgent ? '#047857' : 'primary.main', fontWeight: 600 }}>
                                   [Public Comment]
                                 </Typography>
                               )}
@@ -753,6 +850,27 @@ export const SuperAdminSocialInbox = () => {
                                   {renderWhatsAppText(msg.text, isAgent)}
                                 </Typography>
                               )}
+                              <IconButton
+                                className="msg-delete-btn"
+                                size="small"
+                                onClick={() => handleDeleteMessage(msg.id)}
+                                sx={{
+                                  position: 'absolute',
+                                  top: -10,
+                                  right: isAgent ? 'auto' : -30,
+                                  left: isAgent ? -30 : 'auto',
+                                  opacity: 0,
+                                  transition: 'opacity 0.2s',
+                                  color: 'error.main',
+                                  bgcolor: 'background.paper',
+                                  boxShadow: 1,
+                                  width: 24,
+                                  height: 24,
+                                  '&:hover': { bgcolor: 'error.lighter' }
+                                }}
+                              >
+                                <DeleteIcon sx={{ fontSize: 14 }} />
+                              </IconButton>
                             </Paper>
                             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, mx: 1, display: 'flex', gap: 0.8, alignItems: 'center' }}>
                               <span>{msg.timestamp}</span>
@@ -889,6 +1007,46 @@ export const SuperAdminSocialInbox = () => {
 
         </Box>
       </Box>
+      {/* Start New Chat Modal */}
+      <Dialog open={newChatOpen} onClose={() => setNewChatOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Start New WhatsApp Chat</DialogTitle>
+        <DialogContent>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+            Send an outbound WhatsApp message directly to a new phone number to start a conversation.
+          </Typography>
+          <TextField
+            fullWidth
+            label="Phone Number"
+            placeholder="+971501234567 or +917693091260"
+            value={newChatPhone}
+            onChange={(e) => setNewChatPhone(e.target.value)}
+            size="small"
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            label="Initial Message"
+            placeholder="Type your WhatsApp message..."
+            value={newChatMessage}
+            onChange={(e) => setNewChatMessage(e.target.value)}
+            size="small"
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2, pt: 0 }}>
+          <Button onClick={() => setNewChatOpen(false)} color="inherit">Cancel</Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleStartNewChat}
+            disabled={!newChatPhone.trim() || !newChatMessage.trim() || isSendingNewChat}
+            startIcon={isSendingNewChat ? <CircularProgress size={16} color="inherit" /> : <SendIcon />}
+          >
+            {isSendingNewChat ? 'Sending...' : 'Send Message'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

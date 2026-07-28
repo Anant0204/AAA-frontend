@@ -282,7 +282,7 @@ export const ConsultationDetails = () => {
                 </Box>
                 <Box className="col-span-6">
                   <Typography variant="caption" color="text.secondary">Date & Time</Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 600 }}>{cons.meetingDate} at {cons.meetingTime}</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 600 }}>{(cons.meetingDate || cons.date) ? `${dayjs(cons.meetingDate || cons.date).format('DD/MM/YYYY')} at ${cons.meetingTime || cons.timeSlot || ''}` : 'Pending Lead Submission'}</Typography>
                 </Box>
                 <Box className="col-span-6">
                   <Typography variant="caption" color="text.secondary">Duration</Typography>

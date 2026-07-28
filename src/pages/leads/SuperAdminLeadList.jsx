@@ -55,41 +55,34 @@ import { useAuth } from '../../hooks/useAuth';
 import { SERVICES } from '../../constants/mockData';
 
 const FollowUpDatePickerInput = ({ value, onChange, isDue, style = {} }) => {
-  const [val, setVal] = useState(() => value ? dayjs(value).format('YYYY-MM-DD') : '');
-
-  React.useEffect(() => {
-    setVal(value ? dayjs(value).format('YYYY-MM-DD') : '');
-  }, [value]);
+  const displayStr = value ? dayjs(value).format('DD/MM/YYYY') : 'dd/mm/yyyy';
+  const isoVal = value ? dayjs(value).format('YYYY-MM-DD') : '';
 
   return (
-    <input
-      type="date"
-      value={val}
-      onClick={(e) => e.stopPropagation()}
-      onChange={(evt) => {
-        evt.stopPropagation();
-        const newVal = evt.target.value;
-        setVal(newVal);
-        if (!newVal || /^\d{4}-\d{2}-\d{2}$/.test(newVal)) {
-          onChange(newVal);
-        }
-      }}
-      onBlur={() => {
-        if (val && /^\d{4}-\d{2}-\d{2}$/.test(val) && val !== (value ? dayjs(value).format('YYYY-MM-DD') : '')) {
-          onChange(val);
-        }
-      }}
-      style={{
-        border: 'none',
-        background: 'transparent',
-        fontSize: '0.75rem',
-        fontWeight: 700,
-        color: isDue ? '#B45309' : '#1E293B',
-        outline: 'none',
-        cursor: 'pointer',
-        ...style
-      }}
-    />
+    <Box sx={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'pointer', py: 0.25, px: 0.5, ...style }}>
+      <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.78rem', color: isDue ? '#B45309' : '#1E293B', pr: 0.5 }}>
+        {displayStr}
+      </Typography>
+      <span style={{ fontSize: '0.8rem', opacity: 0.65 }}>📅</span>
+      <input
+        type="date"
+        value={isoVal}
+        onClick={(e) => e.stopPropagation()}
+        onChange={(evt) => {
+          evt.stopPropagation();
+          onChange(evt.target.value);
+        }}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          opacity: 0,
+          cursor: 'pointer'
+        }}
+      />
+    </Box>
   );
 };
 
@@ -431,12 +424,16 @@ export const SuperAdminLeadList = () => {
 
   const columns = [
     { id: 'clientCode', label: 'Customer ID', render: (row) => row.clientCode || row.displayId || 'CID-12001' },
-    { id: 'id', label: 'Lead ID', minWidth: 90 },
     {
       id: 'name',
       label: 'Name',
       sortable: true,
       render: (row) => `${row.firstName} ${row.lastName}` },
+    {
+      id: 'createdDate',
+      label: 'Created Date',
+      sortable: true,
+      render: (row) => dayjs(row.createdDate || row.createdAt).format('DD/MM/YYYY') },
     { id: 'phone', label: 'Phone', sortable: false },
     { id: 'email', label: 'Email', sortable: false },
     { id: 'nationality', label: 'Nationality', sortable: true },
@@ -468,7 +465,7 @@ export const SuperAdminLeadList = () => {
       label: 'Agent',
       render: (row) => {
         const agent = agents.find((c) => c.id === row.assignedConsultantId);
-        const assignedDateStr = row.assignedAt ? dayjs(row.assignedAt).format('YYYY-MM-DD hh:mm A') : (row.createdDate ? dayjs(row.createdDate).format('YYYY-MM-DD') : null);
+        const assignedDateStr = row.assignedAt ? dayjs(row.assignedAt).format('DD/MM/YYYY hh:mm A') : (row.createdDate ? dayjs(row.createdDate).format('DD/MM/YYYY') : null);
         return (
           <Box>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -503,11 +500,6 @@ export const SuperAdminLeadList = () => {
       }
     },
     { id: 'source', label: 'Source', sortable: true },
-    {
-      id: 'createdDate',
-      label: 'Created Date',
-      sortable: true,
-      render: (row) => dayjs(row.createdDate).format('YYYY-MM-DD') },
   ];
 
   const leadStatuses = Array.from(new Set([...leadStages.map(s => s.name)]));
@@ -755,7 +747,7 @@ export const SuperAdminLeadList = () => {
                 </Tooltip>
               )}
 
-              {(!isViewOnly && (isSuperAdmin || leadsActions.canDelete !== false)) && (
+              {(!isViewOnly && (currentUser?.role === 'super_admin' || isSuperAdmin)) && (
                 <Tooltip title="Delete Lead">
                   <IconButton size="small" onClick={() => handleDeleteLead(row.id)} color="error">
                     <DeleteIcon fontSize="small" />

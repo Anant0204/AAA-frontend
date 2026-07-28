@@ -673,10 +673,10 @@ export const SocialInbox = () => {
                                 borderTopRightRadius: isAgent ? 0 : 12,
                                 borderTopLeftRadius: isAgent ? 12 : 0,
                                 bgcolor: isAgent
-                                  ? (activeConv.platform === 'whatsapp' ? '#D9FDD3' : 'secondary.main')
+                                  ? (activeConv.platform === 'whatsapp' ? '#DCF8C6' : '#DCF8C6')
                                   : '#FFFFFF',
                                 color: isAgent
-                                  ? (activeConv.platform === 'whatsapp' ? 'text.primary' : 'white')
+                                  ? (activeConv.platform === 'whatsapp' ? '#111827' : '#111827')
                                   : 'text.primary',
                                 boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.05)',
                                 border: isAgent ? 'none' : '1px solid',

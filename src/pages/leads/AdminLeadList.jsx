@@ -360,12 +360,16 @@ export const AdminLeadList = () => {
 
   const columns = [
     { id: 'clientCode', label: 'Customer ID', render: (row) => row.clientCode || row.displayId || 'CID-12001' },
-    { id: 'id', label: 'Lead ID', minWidth: 90 },
     {
       id: 'name',
       label: 'Name',
       sortable: true,
       render: (row) => `${row.firstName} ${row.lastName}` },
+    {
+      id: 'createdDate',
+      label: 'Created Date',
+      sortable: true,
+      render: (row) => dayjs(row.createdDate || row.createdAt).format('DD/MM/YYYY') },
     { id: 'phone', label: 'Phone', sortable: false },
     { id: 'email', label: 'Email', sortable: false },
     { id: 'nationality', label: 'Nationality', sortable: true },
@@ -400,11 +404,6 @@ export const AdminLeadList = () => {
         return agent ? agent.name : <Typography variant="caption" color="text.secondary">Unassigned</Typography>;
       } },
     { id: 'source', label: 'Source', sortable: true },
-    {
-      id: 'createdDate',
-      label: 'Created Date',
-      sortable: true,
-      render: (row) => dayjs(row.createdDate).format('YYYY-MM-DD') },
   ];
 
   const leadStatuses = Array.from(new Set([...leadStages.map(s => s.name)]));
@@ -653,7 +652,7 @@ export const AdminLeadList = () => {
                 </Tooltip>
               )}
 
-              {(!isViewOnly && (isAdmin || isOperations)) && (
+              {(!isViewOnly && currentUser?.role === 'super_admin') && (
                 <Tooltip title="Delete Lead">
                   <IconButton size="small" onClick={() => handleDeleteLead(row.id)} color="error">
                     <DeleteIcon fontSize="small" />

@@ -405,6 +405,30 @@ export const dbService = {
   addConversation: async (newConv) => {
     return newConv;
   },
+  sendSocialMessage: async ({ conversationId, phone, message }) => {
+    try {
+      let targetPhone = phone;
+      if (!targetPhone) {
+        const conv = await apiClient.get(`/social/conversations`);
+        const found = conv.data.find(c => c.id === conversationId);
+        targetPhone = found ? found.phone : null;
+      }
+      
+      const res = await apiClient.post('/social/messages/send', { phone: targetPhone, message });
+      return res.data;
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+  },
+  deleteSocialMessage: async (messageId) => {
+    const res = await apiClient.delete(`/social/messages/${messageId}`);
+    return res.data;
+  },
+  clearSocialChat: async (phone) => {
+    const res = await apiClient.delete(`/social/conversations/${encodeURIComponent(phone)}`);
+    return res.data;
+  },
   markConversationRead: async (conversationId) => {
     try {
       const res = await apiClient.get('/social/conversations');

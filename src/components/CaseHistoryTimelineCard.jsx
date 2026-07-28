@@ -161,7 +161,7 @@ export const CaseHistoryTimelineCard = ({
                   {cycle.refusalDate && (
                     <Box>
                       <Typography variant="caption" color="text.secondary">Refusal Date:</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{dayjs(cycle.refusalDate).format('DD MMM YYYY')}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{dayjs(cycle.refusalDate).format('DD/MM/YYYY')}</Typography>
                     </Box>
                   )}
                   {cycle.refusalReason && (
@@ -185,7 +185,7 @@ export const CaseHistoryTimelineCard = ({
                   {cycle.appealDeadline && (
                     <Box>
                       <Typography variant="caption" color="text.secondary">Appeal Deadline:</Typography>
-                      <Typography variant="body2" sx={{ color: '#dc2626', fontWeight: 600 }}>{dayjs(cycle.appealDeadline).format('DD MMM YYYY')}</Typography>
+                      <Typography variant="body2" sx={{ color: '#dc2626', fontWeight: 600 }}>{dayjs(cycle.appealDeadline).format('DD/MM/YYYY')}</Typography>
                     </Box>
                   )}
                   {cycle.governmentDecision && (

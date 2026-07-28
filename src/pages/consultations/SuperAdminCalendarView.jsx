@@ -516,7 +516,7 @@ const navigate = useNavigate();
           {/* Selected Date Meetings List */}
           <Paper sx={{ flexGrow: 1, p: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', display: 'flex', flexDirection: 'column' }}>
             <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
-              Schedule for {selectedDate}
+              Schedule for {dayjs(selectedDate).format('DD/MM/YYYY')}
             </Typography>
             <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
               {selectedDayMeetings.length} sessions booked
@@ -691,7 +691,7 @@ const navigate = useNavigate();
       <AppModal
         open={scheduleModalOpen}
         onClose={() => setScheduleModalOpen(false)}
-        title={`Book Assessment Consultation for ${selectedDate}`}
+        title={`Book Assessment Consultation for ${dayjs(selectedDate).format('DD/MM/YYYY')}`}
         actions={
           <>
             <Button onClick={() => setScheduleModalOpen(false)} variant="outlined">
@@ -806,7 +806,7 @@ const navigate = useNavigate();
                 {selectedMeetingForReassign.clientName}
               </Typography>
               <Typography variant="caption" color="text.secondary" display="block">
-                Date: <strong>{selectedMeetingForReassign.date || selectedDate}</strong> | Time: <strong>{selectedMeetingForReassign.meetingTime}</strong>
+                Date: <strong>{dayjs(selectedMeetingForReassign.date || selectedDate).format('DD/MM/YYYY')}</strong> | Time: <strong>{selectedMeetingForReassign.meetingTime}</strong>
               </Typography>
               <Typography variant="caption" color="text.secondary" display="block">
                 Current Host: <strong>{agents.find(a => a.id === selectedMeetingForReassign.assignedConsultantId)?.name || 'Unassigned'}</strong>

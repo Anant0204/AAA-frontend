@@ -48,7 +48,7 @@ function parseLineTokens(line, isAgent) {
           target="_blank"
           rel="noopener noreferrer"
           style={{
-            color: isAgent ? '#A5F3FC' : '#0284C7',
+            color: '#0284C7',
             fontWeight: 600,
             textDecoration: 'underline',
             wordBreak: 'break-all'

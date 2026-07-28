@@ -340,7 +340,7 @@ export const LeadSelfFillForm = () => {
   const [lookupEmail, setLookupEmail] = useState("");
   const [isExistingLead, setIsExistingLead] = useState(false);
   const [customizationSettings, setCustomizationSettings] = useState(null);
-
+  const [companySettings, setCompanySettings] = useState(null);
   const [countryCode, setCountryCode] = useState("+971");
   const [localNumber, setLocalNumber] = useState("");
 
@@ -350,6 +350,12 @@ export const LeadSelfFillForm = () => {
         setCustomizationSettings(res.data);
       })
       .catch(err => console.error("Failed to load customization settings:", err));
+
+    axios.get(`${API_URL}/settings/company`)
+      .then(res => {
+        setCompanySettings(res.data);
+      })
+      .catch(err => console.error("Failed to load company settings:", err));
   }, []);
 
   const [serviceCategory, setServiceCategory] = useState("visa"); // visa, case_assessment, property, translation
@@ -1375,14 +1381,31 @@ export const LeadSelfFillForm = () => {
                   <div
                     style={{
                       background: "rgba(255, 255, 255, 0.04)",
-                      border: "1px solid rgba(255, 255, 255, 0.08)",
+                      border: "1px solid rgba(139, 92, 246, 0.3)",
                       borderRadius: "14px",
                       padding: "20px",
                       marginBottom: "24px",
                       textAlign: "center",
                     }}
                   >
-                    <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "14px", margin: "0 0 10px", lineHeight: 1.6 }}>
+                    <div style={{ color: "#a78bfa", fontWeight: 700, fontSize: "15px", marginBottom: "12px" }}>
+                      🌐 Official Spanish Sworn Translation Rates
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "10px", marginBottom: "14px" }}>
+                      {((companySettings?.swornTranslationRates && Array.isArray(companySettings.swornTranslationRates) && companySettings.swornTranslationRates.length > 0)
+                        ? companySettings.swornTranslationRates
+                        : [
+                            { name: "English to Spanish", rate: 0.15 },
+                            { name: "Arabic to Spanish", rate: 0.25 },
+                            { name: "Urdu to Spanish", rate: 0.40 }
+                          ]
+                      ).map((r, idx) => (
+                        <div key={idx} style={{ background: "rgba(139, 92, 246, 0.15)", border: "1px solid rgba(139, 92, 246, 0.4)", padding: "6px 14px", borderRadius: "20px", color: "#fff", fontSize: "13px", fontWeight: 600 }}>
+                          {r.name}: <span style={{ color: "#facc15", fontWeight: 800 }}>€{r.rate} / word</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "13px", margin: 0, lineHeight: 1.6 }}>
                       For Spanish Sworn Translation services, you will be redirected to our translation quote tool where you can upload your PDF document for an instant word count and price estimation.
                     </p>
                   </div>
@@ -1566,9 +1589,9 @@ export const LeadSelfFillForm = () => {
               >
                 {actionDoneMsg || (
                   <>
-                    Thank you! Your details and meeting preferences have been saved.
+                    🎉 Your assessment is confirmed for <strong>{form.meetingPreferredDate || 'your selected date'}</strong> at <strong>{form.meetingPreferredTime || 'your selected time'}</strong>!
                     <br />
-                    Our team will contact you shortly with a confirmed meeting time.
+                    <span style={{ color: '#a78bfa', fontWeight: 600 }}>Your Zoom Meeting link has been sent immediately to your WhatsApp number ({form.phone}).</span>
                   </>
                 )}
               </p>
@@ -1588,7 +1611,7 @@ export const LeadSelfFillForm = () => {
                     margin: "0 0 4px",
                   }}
                 >
-                  What happens next:
+                  Confirmation Details:
                 </p>
                 <ul
                   style={{
@@ -1599,15 +1622,13 @@ export const LeadSelfFillForm = () => {
                     lineHeight: 2,
                   }}
                 >
-                  <li>Our team reviews your preferred time</li>
+                  <li>✅ Zoom Join Link dispatched to your WhatsApp & Email</li>
                   <li>
                     {serviceCategory === "property"
-                      ? "A property investment expert is assigned to your case"
-                      : "A Spain Visa expert is assigned to your case"}
+                      ? "✅ A property investment expert has been assigned to your case"
+                      : "✅ A Spain Visa expert has been assigned to your consultation"}
                   </li>
-                  <li>
-                    You receive a WhatsApp/Email confirmation with meeting link
-                  </li>
+                  <li>✅ Automated 24h and 1h reminders will be sent prior to the call</li>
                 </ul>
               </div>
             </div>
