@@ -166,7 +166,7 @@ const DEFAULT_COLUMNS = {
 
 const DEFAULT_CUSTOMIZATION = {
   admin: {
-    menus: ['Dashboard', 'Agents', 'Active Cases', 'Doc Verification', 'Finance', 'Refunds & Commissions', 'Closed Cases', 'Clients', 'Leads', 'Social Inbox', 'Marketing', 'Calendar', 'Customization'],
+    menus: ['Dashboard', 'Agents', 'Active Cases', 'Doc Verification', 'Finance', 'Refunds & Commissions', 'Closed Cases', 'Clients', 'Leads', 'Social Inbox', 'Marketing', 'Calendar', 'Customization', 'General Settings'],
     cards: ['Total Consultations', 'Today\'s Consultations', 'Pending Payments', 'Revenue Closed'],
     viewOnlyMenus: [],
     features: ['canEditTranslationRates', 'canManagePaymentSettings'],
@@ -174,7 +174,7 @@ const DEFAULT_CUSTOMIZATION = {
     columns: JSON.parse(JSON.stringify(DEFAULT_COLUMNS))
   },
   operations: {
-    menus: ['Dashboard', 'Active Cases', 'Doc Verification', 'Closed Cases', 'Clients', 'Calendar'],
+    menus: ['Dashboard', 'Active Cases', 'Doc Verification', 'Closed Cases', 'Clients', 'Calendar', 'General Settings'],
     cards: ['Active Cases', 'Closed Cases'],
     viewOnlyMenus: [],
     features: [],
@@ -182,7 +182,7 @@ const DEFAULT_CUSTOMIZATION = {
     columns: JSON.parse(JSON.stringify(DEFAULT_COLUMNS))
   },
   finance: {
-    menus: ['Dashboard', 'Finance', 'Refunds & Commissions'],
+    menus: ['Dashboard', 'Finance', 'Refunds & Commissions', 'General Settings'],
     cards: ['Pending Payments', 'Revenue Closed'],
     viewOnlyMenus: [],
     features: [],
@@ -198,7 +198,7 @@ const DEFAULT_CUSTOMIZATION = {
     columns: JSON.parse(JSON.stringify(DEFAULT_COLUMNS))
   },
   marketing: {
-    menus: ['Dashboard', 'Leads', 'Marketing'],
+    menus: ['Dashboard', 'Leads', 'Marketing', 'General Settings'],
     cards: ['Total Consultations', 'Today\'s Consultations'],
     viewOnlyMenus: [],
     features: [],

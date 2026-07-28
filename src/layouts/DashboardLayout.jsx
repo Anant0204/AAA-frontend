@@ -35,6 +35,7 @@ import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
 import DescriptionIcon from '@mui/icons-material/Description';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import SettingsIcon from '@mui/icons-material/Settings';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
@@ -411,8 +412,9 @@ export const DashboardLayout = () => {
       if (currentUser.role === 'marketing') return '/marketing-manager/dashboard';
     }
 
-    // Special override: Integrations is a shared page — do not prefix it
+    // Special override: Integrations and Settings are shared pages — do not prefix them
     if (item.path === '/integrations') return '/integrations';
+    if (item.path === '/settings') return '/settings';
 
     if (item.path.startsWith(`/${prefix}`)) return item.path;
 
@@ -537,6 +539,12 @@ export const DashboardLayout = () => {
       icon: <SettingsIcon />,
       path: '/super_admin/customization',
       roles: ['super_admin'],
+    },
+    {
+      label: 'General Settings',
+      icon: <AdminPanelSettingsIcon />,
+      path: '/settings',
+      roles: ['admin', 'operations', 'finance', 'super_admin', 'marketing'],
     },
   ];
 
