@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import dayjs from 'dayjs';
 import Box from '@mui/material/Box';
 
 import Paper from '@mui/material/Paper';
@@ -46,7 +47,7 @@ export const SuperAdminConsultationDetails = () => {
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
 
   const claimMutation = useMutation({
-    mutationFn: () => dbService.assignConsultation(cons.id, currentUser?.id || 'c1'),
+    mutationFn: () => dbService.assignConsultation(id, currentUser?.id || 'c1'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['consultations'] });
       showAlert('Consultation claimed successfully!', 'success');
@@ -215,6 +216,27 @@ export const SuperAdminConsultationDetails = () => {
       recommendedPackageId: eligibilityStatus === 'Eligible' ? recommendedPackage : null
     });
   };
+
+  if (isLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '300px' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!cons) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Button startIcon={<KeyboardArrowLeftIcon />} onClick={() => navigate(-1)} sx={{ mb: 2 }}>
+          Back to Calendar
+        </Button>
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="h6" color="text.secondary">Consultation not found.</Typography>
+        </Paper>
+      </Box>
+    );
+  }
 
   return (
     <Box>
