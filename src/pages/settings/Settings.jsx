@@ -1801,7 +1801,7 @@ export const Settings = () => {
             )
           }
         >
-          <Box sx={{ maxWidth: 700, mx: 'auto', mt: 1 }}>
+          <Box sx={{ width: '100%', mt: 1 }}>
             {!canEditRates() && (
               <Paper sx={{ p: 2.5, mb: 3.5, bgcolor: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <span style={{ fontSize: '1.25rem' }}>⚠️</span>
