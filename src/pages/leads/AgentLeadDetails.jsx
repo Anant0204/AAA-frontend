@@ -438,7 +438,7 @@ export const AgentLeadDetails = () => {
 
       <PageHeader
         title={`${lead.firstName} ${lead.lastName}`}
-        subtitle={`Lead ID: ${lead.id} | Nationality: ${lead.nationality}`}
+        subtitle={`Customer ID: ${lead.clientCode || lead.clientId || lead.client?.clientCode || lead.displayId || lead.id} | Nationality: ${lead.nationality}`}
         action={
           <Stack direction="row" spacing={1.5}>
             <Button 
@@ -486,10 +486,19 @@ export const AgentLeadDetails = () => {
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
                 {lead.firstName} {lead.lastName}
               </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 1.5, display: 'block', wordBreak: 'break-all' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block', wordBreak: 'break-all' }}>
                 {getMaskedEmail(lead.email)}
               </Typography>
-              <StatusBadge status={lead.status} />
+              <Chip
+                label={`Customer ID: ${lead.clientCode || lead.clientId || lead.client?.clientCode || lead.displayId || 'CID-12001'}`}
+                size="small"
+                color="primary"
+                variant="outlined"
+                sx={{ mb: 1, fontWeight: 700, fontSize: '11px' }}
+              />
+              <Box sx={{ mt: 0.5 }}>
+                <StatusBadge status={lead.status} />
+              </Box>
             </Box>
 
             <Box>
