@@ -8,8 +8,7 @@ export const ALL_VISA_SERVICES = [
   { id: 'nlv', name: 'Spain Non-Lucrative Visa (NLV)', category: 'residency' },
   { id: 'study', name: 'Spain Study Visa', category: 'study' },
   { id: 'business', name: 'Spain Self-Employed / Business Visa', category: 'business' },
-  { id: 'tourist', name: 'Spain Tourist Visa (Schengen)', category: 'tourist' },
-  { id: 'golden', name: 'Spain Golden Visa / Property', category: 'investment' }
+  { id: 'tourist', name: 'Spain Tourist Visa (Schengen)', category: 'tourist' }
 ];
 
 export const ALL_COUNTRIES = [

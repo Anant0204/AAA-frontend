@@ -703,9 +703,9 @@ export const SuperAdminSocialInbox = () => {
                                 borderRadius: 3,
                                 borderBottomRightRadius: isAgent ? 0 : 3,
                                 borderBottomLeftRadius: !isAgent ? 0 : 3,
-                                bgcolor: isAgent ? 'secondary.main' : 'background.paper',
-                                color: isAgent ? 'secondary.contrastText' : 'text.primary',
-                                border: isAgent ? 'none' : '1px solid',
+                                bgcolor: isAgent ? '#D9FDD3' : 'background.paper',
+                                color: isAgent ? '#051A3B' : 'text.primary',
+                                border: isAgent ? '1px solid #BCE5B4' : '1px solid',
                                 borderColor: 'divider',
                                 boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                               }}
