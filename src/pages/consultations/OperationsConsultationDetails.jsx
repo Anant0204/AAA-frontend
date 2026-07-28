@@ -562,10 +562,11 @@ export const OperationsConsultationDetails = () => {
                 fullWidth
                 sx={{ mb: 2 }}
               >
-                <MenuItem value="Option B">Option B: Full Processing</MenuItem>
-                <MenuItem value="Option C">Option C: Premium Relocation</MenuItem>
-                <MenuItem value="Option D">Option D: Administrative Relocation</MenuItem>
-                <MenuItem value="Tourist Visa">Option A: Schengen Tourist Visa</MenuItem>
+                <MenuItem value="OPTION_A">Option A: Professional Case Assessment (€250)</MenuItem>
+                <MenuItem value="OPTION_B">Option B: Full Processing Package (€3,500)</MenuItem>
+                <MenuItem value="OPTION_C">Option C: Administrative Relocation Package (€1,750)</MenuItem>
+                <MenuItem value="OPTION_D">Option D: Premium Package (€4,750)</MenuItem>
+                <MenuItem value="Tourist Visa">Schengen Tourist Visa (€500)</MenuItem>
               </TextField>
             </>
           )}

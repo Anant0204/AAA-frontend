@@ -478,7 +478,15 @@ export const dbService = {
     return res.data;
   },
   getPackages: async () => {
-    const res = await apiClient.get('/settings/packages');
+    const res = await apiClient.get(`/settings/packages?t=${Date.now()}`);
+    return res.data;
+  },
+  getClientPackages: async () => {
+    const res = await apiClient.get('/payments/packages');
+    return res.data;
+  },
+  createPackageCheckout: async ({ packageId, additionalApplicants }) => {
+    const res = await apiClient.post('/payments/package-checkout', { packageId, additionalApplicants });
     return res.data;
   },
   updatePackages: async (data) => {
