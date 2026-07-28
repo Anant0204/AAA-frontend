@@ -95,6 +95,149 @@ const parsePhone = (rawPhone) => {
   };
 };
 
+const SearchableCountrySelect = ({ label, value, onChange, options, placeholder, disabled, labelStyle, inputStyle }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const containerRef = React.useRef(null);
+
+  const getOptValue = (opt) => (typeof opt === "object" && opt !== null ? opt.value : opt);
+  const getOptLabel = (opt) => (typeof opt === "object" && opt !== null ? opt.label : opt);
+
+  const selectedItem = options.find(opt => getOptValue(opt) === value);
+  const selectedDisplay = selectedItem ? getOptLabel(selectedItem) : (value || placeholder);
+
+  const filteredOptions = options.filter(opt => {
+    const labelText = getOptLabel(opt);
+    return String(labelText).toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
+  React.useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={containerRef} style={{ position: "relative" }}>
+      {label && <label style={labelStyle}>{label}</label>}
+      <div
+        onClick={() => {
+          if (!disabled) setIsOpen(!isOpen);
+        }}
+        style={{
+          ...inputStyle,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          cursor: disabled ? "not-allowed" : "pointer",
+          background: disabled ? "rgba(255, 255, 255, 0.03)" : "rgba(255, 255, 255, 0.07)",
+          color: value ? "#fff" : "rgba(255, 255, 255, 0.4)",
+          border: disabled ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(255, 255, 255, 0.15)"
+        }}
+      >
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {selectedDisplay}
+        </span>
+        <span style={{ fontSize: "10px", opacity: 0.6, transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▼</span>
+      </div>
+
+      {isOpen && !disabled && (
+        <div
+          style={{
+            position: "absolute",
+            top: "100%",
+            left: 0,
+            right: 0,
+            zIndex: 9999,
+            marginTop: "4px",
+            background: "#1E1B3A",
+            border: "1px solid rgba(255, 255, 255, 0.2)",
+            borderRadius: "10px",
+            boxShadow: "0 10px 25px rgba(0, 0, 0, 0.5)",
+            padding: "8px",
+            maxHeight: "260px",
+            display: "flex",
+            flexDirection: "column"
+          }}
+        >
+          <input
+            type="text"
+            autoFocus
+            placeholder="🔍 Type to search..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "8px 12px",
+              background: "rgba(255, 255, 255, 0.08)",
+              border: "1px solid rgba(255, 255, 255, 0.15)",
+              borderRadius: "6px",
+              color: "#fff",
+              fontSize: "13px",
+              marginBottom: "6px",
+              outline: "none"
+            }}
+          />
+
+          <div
+            style={{
+              overflowY: "auto",
+              maxHeight: "200px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "2px"
+            }}
+          >
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((opt) => {
+                const optVal = getOptValue(opt);
+                const optLabel = getOptLabel(opt);
+                const isSelected = optVal === value;
+                return (
+                  <div
+                    key={optVal}
+                    onClick={() => {
+                      onChange(optVal);
+                      setIsOpen(false);
+                      setSearchQuery("");
+                    }}
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      fontSize: "13px",
+                      color: isSelected ? "#667eea" : "#fff",
+                      background: isSelected ? "rgba(102, 126, 234, 0.2)" : "transparent",
+                      fontWeight: isSelected ? 600 : 400,
+                      transition: "background 0.15s"
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected) e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected) e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    {optLabel}
+                  </div>
+                );
+              })
+            ) : (
+              <div style={{ padding: "12px", textAlign: "center", color: "rgba(255, 255, 255, 0.5)", fontSize: "13px" }}>
+                No match found
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const SwornTranslationForm = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -112,6 +255,20 @@ const SwornTranslationForm = () => {
 
   const [countryCode, setCountryCode] = useState("+971");
   const [localNumber, setLocalNumber] = useState("");
+
+  React.useEffect(() => {
+    if (location.state?.prefilledLead) {
+      const pf = location.state.prefilledLead;
+      setFormData((prev) => ({
+        ...prev,
+        firstName: pf.firstName || prev.firstName,
+        lastName: pf.lastName || prev.lastName,
+        email: pf.email || prev.email,
+        phone: pf.phone || prev.phone,
+        nationality: pf.nationality || prev.nationality
+      }));
+    }
+  }, [location.state]);
 
   React.useEffect(() => {
     if (formData.phone) {
@@ -421,21 +578,20 @@ const SwornTranslationForm = () => {
             {/* Grid: Nationality & Source Language */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               <div>
-                <label style={labelStyle}>Nationality *</label>
-                <select
-                  name="nationality"
-                  required
+                <SearchableCountrySelect
+                  label="Nationality *"
                   value={formData.nationality}
-                  onChange={handleInputChange}
-                  style={{ ...inputStyle, color: '#fff' }}
-                >
-                  <option value="" style={{ background: '#24243e' }}>Select Nationality</option>
-                  {NATIONALITIES.map((n) => (
-                    <option key={n} value={n} style={{ background: '#24243e', color: '#fff' }}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setFormData((prev) => ({ ...prev, nationality: val }))}
+                  options={
+                    formData.nationality && !NATIONALITIES.includes(formData.nationality)
+                      ? [formData.nationality, ...NATIONALITIES]
+                      : NATIONALITIES
+                  }
+                  placeholder="Select Nationality"
+                  disabled={false}
+                  labelStyle={labelStyle}
+                  inputStyle={inputStyle}
+                />
               </div>
               <div>
                 <label style={labelStyle}>Source Language *</label>
@@ -478,8 +634,7 @@ const SwornTranslationForm = () => {
                   {[
                     { value: 'English', label: 'English 🇺🇸' },
                     { value: 'Arabic', label: 'Arabic 🇦🇪' },
-                    { value: 'Urdu', label: 'Urdu 🇵🇰' },
-                    { value: 'Other', label: 'Other Language' }
+                    { value: 'Urdu', label: 'Urdu 🇵🇰' }
                   ].map((lang) => {
                     const isSelected = selectedMultiLangs.includes(lang.value);
                     return (
@@ -517,22 +672,6 @@ const SwornTranslationForm = () => {
                     );
                   })}
                 </div>
-                {selectedMultiLangs.includes('Other') && (
-                  <div style={{ marginTop: '10px' }}>
-                    <input
-                      type="text"
-                      placeholder="Specify other language (e.g. French, Tagalog)..."
-                      value={otherLangInput}
-                      onChange={(e) => setOtherLangInput(e.target.value)}
-                      style={{
-                        ...inputStyle,
-                        background: 'rgba(255,255,255,0.08)',
-                        fontSize: '13px',
-                        padding: '10px 12px'
-                      }}
-                    />
-                  </div>
-                )}
               </div>
             )}
 

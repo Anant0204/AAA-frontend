@@ -12,7 +12,67 @@ const LANGUAGES = [
   { value: "English", label: "English 🇺🇸" },
   { value: "Arabic", label: "Arabic 🇦🇪" },
   { value: "Urdu", label: "Urdu 🇵🇰" },
-  { value: "Multi-Language", label: "Multi-Language / Custom 🌐" }
+  { value: "Hindi", label: "Hindi 🇮🇳" },
+  { value: "Spanish", label: "Spanish 🇪🇸" },
+  { value: "French", label: "French 🇫🇷" },
+  { value: "German", label: "German 🇩🇪" },
+  { value: "Russian", label: "Russian 🇷🇺" },
+  { value: "Chinese (Mandarin)", label: "Chinese (Mandarin) 🇨🇳" },
+  { value: "Chinese (Cantonese)", label: "Chinese (Cantonese) 🇭🇰" },
+  { value: "Tagalog", label: "Tagalog / Filipino 🇵🇭" },
+  { value: "Turkish", label: "Turkish 🇹🇷" },
+  { value: "Bengali", label: "Bengali 🇧🇩" },
+  { value: "Persian", label: "Persian / Farsi 🇮🇷" },
+  { value: "Pashto", label: "Pashto 🇦🇫" },
+  { value: "Italian", label: "Italian 🇮🇹" },
+  { value: "Portuguese", label: "Portuguese 🇵🇹" },
+  { value: "Dutch", label: "Dutch 🇳🇱" },
+  { value: "Polish", label: "Polish 🇵🇱" },
+  { value: "Ukrainian", label: "Ukrainian 🇺🇦" },
+  { value: "Japanese", label: "Japanese 🇯🇵" },
+  { value: "Korean", label: "Korean 🇰🇷" },
+  { value: "Vietnamese", label: "Vietnamese 🇻🇳" },
+  { value: "Thai", label: "Thai 🇹🇭" },
+  { value: "Indonesian", label: "Indonesian / Malay 🇮🇩" },
+  { value: "Swahili", label: "Swahili 🇰🇪" },
+  { value: "Punjabi", label: "Punjabi 🇮🇳" },
+  { value: "Tamil", label: "Tamil 🇮🇳" },
+  { value: "Telugu", label: "Telugu 🇮🇳" },
+  { value: "Marathi", label: "Marathi 🇮🇳" },
+  { value: "Gujarati", label: "Gujarati 🇮🇳" },
+  { value: "Malayalam", label: "Malayalam 🇮🇳" },
+  { value: "Kannada", label: "Kannada 🇮🇳" },
+  { value: "Sinhala", label: "Sinhala 🇱🇰" },
+  { value: "Nepali", label: "Nepali 🇳🇵" },
+  { value: "Hebrew", label: "Hebrew 🇮🇱" },
+  { value: "Greek", label: "Greek 🇬🇷" },
+  { value: "Swedish", label: "Swedish 🇸🇪" },
+  { value: "Norwegian", label: "Norwegian 🇳🇴" },
+  { value: "Danish", label: "Danish 🇩🇰" },
+  { value: "Finnish", label: "Finnish 🇫🇮" },
+  { value: "Romanian", label: "Romanian 🇷🇴" },
+  { value: "Hungarian", label: "Hungarian 🇭🇺" },
+  { value: "Czech", label: "Czech 🇨🇿" },
+  { value: "Slovak", label: "Slovak 🇸🇰" },
+  { value: "Bulgarian", label: "Bulgarian 🇧🇬" },
+  { value: "Serbian / Croatian / Bosnian", label: "Serbian / Croatian / Bosnian 🇷🇸" },
+  { value: "Albanian", label: "Albanian 🇦🇱" },
+  { value: "Georgian", label: "Georgian 🇬🇪" },
+  { value: "Armenian", label: "Armenian 🇦🇲" },
+  { value: "Azerbaijani", label: "Azerbaijani 🇦🇿" },
+  { value: "Kazakh", label: "Kazakh 🇰🇿" },
+  { value: "Uzbek", label: "Uzbek 🇺🇿" },
+  { value: "Turkmen", label: "Turkmen 🇹🇲" },
+  { value: "Amharic", label: "Amharic 🇪🇹" },
+  { value: "Somali", label: "Somali 🇸🇴" },
+  { value: "Hausa", label: "Hausa 🇳🇬" },
+  { value: "Yoruba", label: "Yoruba 🇳🇬" },
+  { value: "Igbo", label: "Igbo 🇳🇬" },
+  { value: "Afrikaans", label: "Afrikaans 🇿🇦" },
+  { value: "Catalan", label: "Catalan 🇪🇸" },
+  { value: "Basque", label: "Basque 🇪🇸" },
+  { value: "Galician", label: "Galician 🇪🇸" },
+  { value: "Other", label: "Other Language 🌐" }
 ];
 
 const NATIONALITIES = [
@@ -126,9 +186,16 @@ const SearchableCountrySelect = ({ label, value, onChange, options, placeholder,
   const [searchQuery, setSearchQuery] = useState("");
   const containerRef = React.useRef(null);
 
-  const filteredOptions = options.filter(opt =>
-    opt.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const getOptValue = (opt) => (typeof opt === "object" && opt !== null ? opt.value : opt);
+  const getOptLabel = (opt) => (typeof opt === "object" && opt !== null ? opt.label : opt);
+
+  const selectedItem = options.find(opt => getOptValue(opt) === value);
+  const selectedDisplay = selectedItem ? getOptLabel(selectedItem) : (value || placeholder);
+
+  const filteredOptions = options.filter(opt => {
+    const labelText = getOptLabel(opt);
+    return String(labelText).toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -142,7 +209,7 @@ const SearchableCountrySelect = ({ label, value, onChange, options, placeholder,
 
   return (
     <div ref={containerRef} style={{ position: "relative" }}>
-      <label style={labelStyle}>{label}</label>
+      {label && <label style={labelStyle}>{label}</label>}
       <div
         onClick={() => {
           if (!disabled) setIsOpen(!isOpen);
@@ -159,7 +226,7 @@ const SearchableCountrySelect = ({ label, value, onChange, options, placeholder,
         }}
       >
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {value || placeholder}
+          {selectedDisplay}
         </span>
         <span style={{ fontSize: "10px", opacity: 0.6, transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▼</span>
       </div>
@@ -186,7 +253,7 @@ const SearchableCountrySelect = ({ label, value, onChange, options, placeholder,
           <input
             type="text"
             autoFocus
-            placeholder="🔍 Type to filter..."
+            placeholder="🔍 Type to search..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
@@ -212,34 +279,39 @@ const SearchableCountrySelect = ({ label, value, onChange, options, placeholder,
             }}
           >
             {filteredOptions.length > 0 ? (
-              filteredOptions.map((opt) => (
-                <div
-                  key={opt}
-                  onClick={() => {
-                    onChange(opt);
-                    setIsOpen(false);
-                    setSearchQuery("");
-                  }}
-                  style={{
-                    padding: "8px 12px",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    fontSize: "13px",
-                    color: opt === value ? "#667eea" : "#fff",
-                    background: opt === value ? "rgba(102, 126, 234, 0.2)" : "transparent",
-                    fontWeight: opt === value ? 600 : 400,
-                    transition: "background 0.15s"
-                  }}
-                  onMouseEnter={(e) => {
-                    if (opt !== value) e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (opt !== value) e.currentTarget.style.background = "transparent";
-                  }}
-                >
-                  {opt}
-                </div>
-              ))
+              filteredOptions.map((opt) => {
+                const optVal = getOptValue(opt);
+                const optLabel = getOptLabel(opt);
+                const isSelected = optVal === value;
+                return (
+                  <div
+                    key={optVal}
+                    onClick={() => {
+                      onChange(optVal);
+                      setIsOpen(false);
+                      setSearchQuery("");
+                    }}
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      fontSize: "13px",
+                      color: isSelected ? "#667eea" : "#fff",
+                      background: isSelected ? "rgba(102, 126, 234, 0.2)" : "transparent",
+                      fontWeight: isSelected ? 600 : 400,
+                      transition: "background 0.15s"
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected) e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected) e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    {optLabel}
+                  </div>
+                );
+              })
             ) : (
               <div style={{ padding: "12px", textAlign: "center", color: "rgba(255, 255, 255, 0.5)", fontSize: "13px" }}>
                 No match found
@@ -335,6 +407,7 @@ export const LeadSelfFillForm = () => {
   // Multi-Language sub-selection state
   const [selectedMultiLangs, setSelectedMultiLangs] = useState(['English', 'Urdu']);
   const [otherLangInput, setOtherLangInput] = useState('');
+  const [totalApplicantsDisplay, setTotalApplicantsDisplay] = useState('1');
 
   const getFinalLanguage = (langVal) => {
     if (langVal !== 'Multi-Language') {
@@ -1096,8 +1169,6 @@ export const LeadSelfFillForm = () => {
                 </div>
 
                 {/* Section: Personal Details */}
-                <div style={sectionHeaderStyle}>📋 Your Details</div>
-
                 <div
                   style={{
                     display: "grid",
@@ -1273,111 +1344,24 @@ export const LeadSelfFillForm = () => {
                   }}
                 >
                   <div>
-                    <label style={labelStyle}>Your Language</label>
-                    <select
+                    <SearchableCountrySelect
+                      label="YOUR LANGUAGE"
                       value={form.preferredLanguage}
-                      onChange={(e) =>
-                        handleChange("preferredLanguage", e.target.value)
-                      }
-                      style={{ ...inputStyle, color: "#fff" }}
-                    >
-                      {LANGUAGES.map((l) => (
-                        <option key={l.value} value={l.value} style={{ background: "#24243e", color: "#fff" }}>
-                          {l.label}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(val) => handleChange("preferredLanguage", val)}
+                      options={LANGUAGES}
+                      placeholder="Select Language"
+                      disabled={false}
+                      labelStyle={labelStyle}
+                      inputStyle={inputStyle}
+                    />
                   </div>
                 </div>
 
-                {/* Sub-selection for Multi-Language */}
-                {form.preferredLanguage === 'Multi-Language' && (
-                  <div
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.04)',
-                      border: '1px solid rgba(118, 75, 162, 0.4)',
-                      borderRadius: '12px',
-                      padding: '14px 16px',
-                      marginTop: '-16px',
-                      marginBottom: '24px',
-                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <label style={{ ...labelStyle, color: '#a78bfa', margin: 0, fontSize: '13px', fontWeight: 600 }}>
-                        Select Languages (Choose multiple) *
-                      </label>
-                      <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
-                        {selectedMultiLangs.length} selected
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
-                      {[
-                        { value: 'English', label: 'English 🇺🇸' },
-                        { value: 'Arabic', label: 'Arabic 🇦🇪' },
-                        { value: 'Urdu', label: 'Urdu 🇵🇰' },
-                        { value: 'Other', label: 'Other Language' }
-                      ].map((lang) => {
-                        const isSelected = selectedMultiLangs.includes(lang.value);
-                        return (
-                          <button
-                            key={lang.value}
-                            type="button"
-                            onClick={() => {
-                              if (isSelected) {
-                                if (selectedMultiLangs.length > 1) {
-                                  setSelectedMultiLangs(selectedMultiLangs.filter((l) => l !== lang.value));
-                                }
-                              } else {
-                                setSelectedMultiLangs([...selectedMultiLangs, lang.value]);
-                              }
-                            }}
-                            style={{
-                              padding: '7px 14px',
-                              borderRadius: '20px',
-                              border: isSelected ? '1px solid #8b5cf6' : '1px solid rgba(255,255,255,0.15)',
-                              background: isSelected ? 'linear-gradient(135deg, #667eea, #764ba2)' : 'rgba(255,255,255,0.06)',
-                              color: '#fff',
-                              fontSize: '13px',
-                              fontWeight: 500,
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              transition: 'all 0.2s ease',
-                              boxShadow: isSelected ? '0 2px 8px rgba(118, 75, 162, 0.4)' : 'none'
-                            }}
-                          >
-                            <span style={{ fontWeight: 'bold' }}>{isSelected ? '✓' : '+'}</span>
-                            <span>{lang.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {selectedMultiLangs.includes('Other') && (
-                      <div style={{ marginTop: '10px' }}>
-                        <input
-                          type="text"
-                          placeholder="Specify other language (e.g. French, Tagalog)..."
-                          value={otherLangInput}
-                          onChange={(e) => setOtherLangInput(e.target.value)}
-                          style={{
-                            ...inputStyle,
-                            background: 'rgba(255,255,255,0.08)',
-                            fontSize: '13px',
-                            padding: '10px 12px'
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
+
 
                 {/* Section: Visa Program (only for visa category) */}
                 {serviceCategory === 'visa' && (
                   <>
-                    <div style={sectionHeaderStyle}>✈️ Relocation Details</div>
-
                     <div
                       style={{
                         display: "grid",
@@ -1403,20 +1387,45 @@ export const LeadSelfFillForm = () => {
                         </select>
                       </div>
                       <div>
-                        <label style={labelStyle}>Total Applicants</label>
-                        <select
-                          value={form.applicantsCount}
-                          onChange={(e) =>
-                            handleChange("applicantsCount", e.target.value)
-                          }
+                        <label style={labelStyle}>TOTAL APPLICANTS</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="50"
+                          value={totalApplicantsDisplay}
+                          onFocus={(e) => e.target.select()}
+                          onClick={(e) => e.target.select()}
+                          onChange={(e) => {
+                            let raw = e.target.value;
+                            if (raw.length > 1 && raw.startsWith("0")) {
+                              raw = raw.replace(/^0+/, "");
+                            }
+                            if (raw === "") {
+                              setTotalApplicantsDisplay("");
+                              handleChange("applicantsCount", "Main Only");
+                              return;
+                            }
+                            let num = parseInt(raw, 10);
+                            if (isNaN(num)) {
+                              setTotalApplicantsDisplay("1");
+                              handleChange("applicantsCount", "Main Only");
+                              return;
+                            }
+                            if (num > 50) num = 50;
+                            if (num < 1) num = 1;
+                            setTotalApplicantsDisplay(String(num));
+                            const valStr = num === 1 ? "Main Only" : `Main + ${num - 1}`;
+                            handleChange("applicantsCount", valStr);
+                          }}
+                          onBlur={() => {
+                            if (!totalApplicantsDisplay || parseInt(totalApplicantsDisplay, 10) < 1) {
+                              setTotalApplicantsDisplay("1");
+                              handleChange("applicantsCount", "Main Only");
+                            }
+                          }}
+                          placeholder="1"
                           style={{ ...inputStyle, color: "#fff" }}
-                        >
-                          {APPLICANTS.map((a) => (
-                            <option key={a.value} value={a.value} style={{ background: "#24243e", color: "#fff" }}>
-                              {a.label}
-                            </option>
-                          ))}
-                        </select>
+                        />
                       </div>
                     </div>
                   </>
@@ -1425,7 +1434,6 @@ export const LeadSelfFillForm = () => {
                 {/* Section: Property Preferences (only for property category) */}
                 {serviceCategory === 'property' && (
                   <>
-                    <div style={sectionHeaderStyle}>🏠 Property Preferences</div>
                     <div
                       style={{
                         display: "grid",
@@ -1509,20 +1517,57 @@ export const LeadSelfFillForm = () => {
                 {/* Section: Meeting Preferences */}
                 {serviceCategory !== "translation" && (
                   <>
-                    <div style={sectionHeaderStyle}>📅 Meeting Preferences</div>
 
                     <div style={{ marginBottom: "14px" }}>
                       <label style={labelStyle}>Preferred Meeting Date *</label>
-                      <input
-                        type="date"
-                        required={serviceCategory !== "translation"}
-                        min={minBookingDate}
-                        value={form.meetingPreferredDate}
-                        onChange={(e) =>
-                          handleChange("meetingPreferredDate", e.target.value)
-                        }
-                        style={inputStyle}
-                      />
+                      <div style={{ position: "relative" }}>
+                        <div
+                          style={{
+                            ...inputStyle,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            cursor: "pointer",
+                            background: "rgba(255, 255, 255, 0.07)",
+                            color: form.meetingPreferredDate ? "#fff" : "rgba(255, 255, 255, 0.4)",
+                            border: "1px solid rgba(255, 255, 255, 0.15)"
+                          }}
+                        >
+                          <span>
+                            {form.meetingPreferredDate
+                              ? (() => {
+                                  const parts = form.meetingPreferredDate.split("-");
+                                  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : form.meetingPreferredDate;
+                                })()
+                              : "dd/mm/yyyy"}
+                          </span>
+                          <span style={{ fontSize: "14px", opacity: 0.8 }}>📅</span>
+                        </div>
+                        <input
+                          type="date"
+                          required={serviceCategory !== "translation"}
+                          min={minBookingDate}
+                          value={form.meetingPreferredDate}
+                          onKeyDown={(e) => e.preventDefault()}
+                          onClick={(e) => {
+                            if (e.target.showPicker) {
+                              try { e.target.showPicker(); } catch (err) {}
+                            }
+                          }}
+                          onChange={(e) =>
+                            handleChange("meetingPreferredDate", e.target.value)
+                          }
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            height: "100%",
+                            opacity: 0,
+                            cursor: "pointer"
+                          }}
+                        />
+                      </div>
                     </div>
 
                     <div style={{ marginBottom: "14px" }}>
@@ -1535,10 +1580,10 @@ export const LeadSelfFillForm = () => {
                         }
                         style={{ ...inputStyle, color: "#fff" }}
                       >
-                        <option value="" disabled style={{ background: "#24243e" }}>Select Preferred Time Slot ({bookingAllowedStart} - {bookingAllowedEnd} UTC)</option>
+                        <option value="" disabled style={{ background: "#24243e" }}>Select Preferred Time Slot ({bookingAllowedStart} - {bookingAllowedEnd} GST)</option>
                         {availableTimeSlots.map((slot) => (
                           <option key={slot} value={slot} style={{ background: "#24243e" }}>
-                            ⏰ {slot} (UTC)
+                            ⏰ {slot} (GST)
                           </option>
                         ))}
                       </select>
@@ -1546,34 +1591,35 @@ export const LeadSelfFillForm = () => {
 
                     {serviceCategory === "visa" && (
                       <div style={{
-                        background: "rgba(239, 68, 68, 0.1)",
-                        border: "1px solid rgba(239, 68, 68, 0.2)",
-                        borderRadius: "8px",
-                        padding: "12px",
-                        marginBottom: "14px",
+                        background: "rgba(245, 158, 11, 0.08)",
+                        border: "1px solid rgba(245, 158, 11, 0.25)",
+                        borderRadius: "10px",
+                        padding: "14px 16px",
+                        marginBottom: "18px",
                         fontSize: "12px",
-                        lineHeight: "1.5",
-                        color: "#fca5a5"
+                        lineHeight: "1.6",
+                        color: "rgba(255, 255, 255, 0.85)"
                       }}>
-                        ⚠️ <strong>Important:</strong> If you do not join your scheduled Free Eligibility Assessment within 10 minutes of the appointment time, your booking will be automatically cancelled. Due to high demand, missed appointments are not eligible for rescheduling. This policy helps us provide fair access to all applicants.
+                        <span style={{ color: "#FCD34D", fontWeight: "700" }}>ℹ️ Booking Policy Notice:</span> If you do not join your scheduled Free Eligibility Assessment within 10 minutes of the appointment time, your booking will be automatically cancelled. Due to high demand, missed appointments are not eligible for rescheduling.
                       </div>
                     )}
 
                     <div style={{ marginBottom: "14px" }}>
-                      <label style={labelStyle}>Consultation Language</label>
-                      <select
-                        value={form.meetingPreferredLanguage}
-                        onChange={(e) =>
-                          handleChange("meetingPreferredLanguage", e.target.value)
-                        }
-                        style={{ ...inputStyle, color: "#fff" }}
-                      >
-                        {LANGUAGES.map((l) => (
-                          <option key={l.value} value={l.value} style={{ background: "#24243e", color: "#fff" }}>
-                            {l.label}
-                          </option>
-                        ))}
-                      </select>
+                      <label style={labelStyle}>CONSULTATION LANGUAGE</label>
+                      <input
+                        type="text"
+                        value="English 🇺🇸"
+                        readOnly
+                        disabled
+                        style={{
+                          ...inputStyle,
+                          background: "rgba(255, 255, 255, 0.05)",
+                          color: "#fff",
+                          border: "1px solid rgba(255, 255, 255, 0.15)",
+                          cursor: "not-allowed",
+                          fontWeight: 600
+                        }}
+                      />
                     </div>
 
                     <div style={{ marginBottom: "28px" }}>

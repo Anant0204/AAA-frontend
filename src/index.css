@@ -53,8 +53,19 @@ body,
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(197, 155, 39, 0.5);
 }
+
+/* Remove ugly white background spin buttons from number inputs on dark theme */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
 
 /* Dark mode scrollbars */
 .dark-mode ::-webkit-scrollbar-thumb {
