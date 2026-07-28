@@ -243,7 +243,10 @@ export const Settings = () => {
   // Mutations
   const updateGeneralSettingsMutation = useMutation({
     mutationFn: dbService.updateSettings,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings-general'] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings-general'] });
+      queryClient.invalidateQueries({ queryKey: ['companySettings'] });
+    }
   });
 
   const updateServicesMutation = useMutation({
