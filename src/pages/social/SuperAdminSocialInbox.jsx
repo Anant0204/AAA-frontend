@@ -1017,7 +1017,7 @@ export const SuperAdminSocialInbox = () => {
           <TextField
             fullWidth
             label="Phone Number"
-            placeholder="+971501234567 or +917693091260"
+            placeholder="e.g. +971501234567"
             value={newChatPhone}
             onChange={(e) => setNewChatPhone(e.target.value)}
             size="small"

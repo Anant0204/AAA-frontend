@@ -293,6 +293,8 @@ export const AppRoutes = () => {
       <Route path="/public/intake" element={<Navigate to="/public/lead-form" replace />} />
       <Route path="/public/booking" element={<Navigate to="/public/lead-form" replace />} />
       <Route path="/public/eligibility-booking" element={<Navigate to="/public/lead-form" replace />} />
+      <Route path="/reschedule-meeting/:token" element={<LeadSelfFillForm />} />
+      <Route path="/cancel-meeting/:token" element={<LeadSelfFillForm />} />
       <Route path="/public/intake/client/:clientId" element={<ClientIntakeForm />} />
       <Route path="/public/translation" element={<SwornTranslationForm />} />
       <Route path="/public/payment-success" element={<PaymentSuccess />} />
