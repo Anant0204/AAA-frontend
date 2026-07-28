@@ -424,7 +424,7 @@ const navigate = useNavigate();
           {/* Selected Date Meetings List */}
           <Paper sx={{ flexGrow: 1, p: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', display: 'flex', flexDirection: 'column' }}>
             <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
-              Schedule for {selectedDate}
+              Schedule for {dayjs(selectedDate).format('DD/MM/YYYY')}
             </Typography>
             <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
               {selectedDayMeetings.length} sessions booked
@@ -586,7 +586,7 @@ const navigate = useNavigate();
       <AppModal
         open={scheduleModalOpen}
         onClose={() => setScheduleModalOpen(false)}
-        title={`Book Assessment Consultation for ${selectedDate}`}
+        title={`Book Assessment Consultation for ${dayjs(selectedDate).format('DD/MM/YYYY')}`}
         actions={
           <>
             <Button onClick={() => setScheduleModalOpen(false)} variant="outlined">

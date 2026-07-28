@@ -58,41 +58,34 @@ const clientSchema = yup.object().shape({
 });
 
 const FollowUpDatePickerInput = ({ value, onChange, isDue, style = {} }) => {
-  const [val, setVal] = useState(() => value ? dayjs(value).format('YYYY-MM-DD') : '');
-
-  React.useEffect(() => {
-    setVal(value ? dayjs(value).format('YYYY-MM-DD') : '');
-  }, [value]);
+  const displayStr = value ? dayjs(value).format('DD/MM/YYYY') : 'dd/mm/yyyy';
+  const isoVal = value ? dayjs(value).format('YYYY-MM-DD') : '';
 
   return (
-    <input
-      type="date"
-      value={val}
-      onClick={(e) => e.stopPropagation()}
-      onChange={(evt) => {
-        evt.stopPropagation();
-        const newVal = evt.target.value;
-        setVal(newVal);
-        if (!newVal || /^\d{4}-\d{2}-\d{2}$/.test(newVal)) {
-          onChange(newVal);
-        }
-      }}
-      onBlur={() => {
-        if (val && /^\d{4}-\d{2}-\d{2}$/.test(val) && val !== (value ? dayjs(value).format('YYYY-MM-DD') : '')) {
-          onChange(val);
-        }
-      }}
-      style={{
-        border: 'none',
-        background: 'transparent',
-        fontSize: '0.75rem',
-        fontWeight: 700,
-        color: isDue ? '#B45309' : '#1E293B',
-        outline: 'none',
-        cursor: 'pointer',
-        ...style
-      }}
-    />
+    <Box sx={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'pointer', py: 0.25, px: 0.5, ...style }}>
+      <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.78rem', color: isDue ? '#B45309' : '#1E293B', pr: 0.5 }}>
+        {displayStr}
+      </Typography>
+      <span style={{ fontSize: '0.8rem', opacity: 0.65 }}>📅</span>
+      <input
+        type="date"
+        value={isoVal}
+        onClick={(e) => e.stopPropagation()}
+        onChange={(evt) => {
+          evt.stopPropagation();
+          onChange(evt.target.value);
+        }}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          opacity: 0,
+          cursor: 'pointer'
+        }}
+      />
+    </Box>
   );
 };
 
@@ -246,7 +239,7 @@ export const SuperAdminClientList = () => {
 
   const roleConfig = (customizationSettings?.[currentUser?.id] || customizationSettings?.[currentUser?.role]) || {};
   const isViewOnly = isViewOnlyMenu(customizationSettings, 'Clients');
-  const baseActions = roleConfig.actions?.clients || { canChangeVisaStatus: true, canVerifyDocs: true, canDelete: true };
+  const baseActions = roleConfig.actions?.clients || { canChangeVisaStatus: true, canVerifyDocs: true, canDelete: currentUser?.role === 'super_admin' };
   const clientsActions = isViewOnly ? { canChangeVisaStatus: false, canVerifyDocs: false, canDelete: false } : baseActions;
 
   const clientStatuses = leadStages.map(s => s.name);

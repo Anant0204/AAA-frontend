@@ -369,7 +369,7 @@ export const AdminLeadList = () => {
       id: 'createdDate',
       label: 'Created Date',
       sortable: true,
-      render: (row) => dayjs(row.createdDate || row.createdAt).format('YYYY-MM-DD') },
+      render: (row) => dayjs(row.createdDate || row.createdAt).format('DD/MM/YYYY') },
     { id: 'phone', label: 'Phone', sortable: false },
     { id: 'email', label: 'Email', sortable: false },
     { id: 'nationality', label: 'Nationality', sortable: true },
@@ -652,7 +652,7 @@ export const AdminLeadList = () => {
                 </Tooltip>
               )}
 
-              {(!isViewOnly && (isAdmin || isOperations)) && (
+              {(!isViewOnly && currentUser?.role === 'super_admin') && (
                 <Tooltip title="Delete Lead">
                   <IconButton size="small" onClick={() => handleDeleteLead(row.id)} color="error">
                     <DeleteIcon fontSize="small" />

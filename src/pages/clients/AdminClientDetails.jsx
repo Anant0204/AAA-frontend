@@ -75,7 +75,7 @@ export const AdminClientDetails = () => {
   const clientsActions = roleConfig.actions?.clients || { 
     canChangeVisaStatus: true, 
     canVerifyDocs: true, 
-    canDelete: true,
+    canDelete: currentUser?.role === 'super_admin',
     canManageCredentials: true,
     canManageDependents: true,
     canAssignCaseManager: true,

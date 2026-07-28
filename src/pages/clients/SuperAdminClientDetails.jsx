@@ -44,43 +44,34 @@ import { CommunicationHistoryTab } from '../../components/CommunicationHistoryTa
 import dayjs from 'dayjs';
 
 const FollowUpDatePickerInput = ({ value, onChange, style = {} }) => {
-  const [val, setVal] = useState(() => value ? dayjs(value).format('YYYY-MM-DD') : '');
-
-  React.useEffect(() => {
-    setVal(value ? dayjs(value).format('YYYY-MM-DD') : '');
-  }, [value]);
+  const displayStr = value ? dayjs(value).format('DD/MM/YYYY') : 'dd/mm/yyyy';
+  const isoVal = value ? dayjs(value).format('YYYY-MM-DD') : '';
 
   return (
-    <input
-      type="date"
-      value={val}
-      onClick={(e) => e.stopPropagation()}
-      onChange={(evt) => {
-        evt.stopPropagation();
-        const newVal = evt.target.value;
-        setVal(newVal);
-        if (!newVal || /^\d{4}-\d{2}-\d{2}$/.test(newVal)) {
-          onChange(newVal);
-        }
-      }}
-      onBlur={() => {
-        if (val && /^\d{4}-\d{2}-\d{2}$/.test(val) && val !== (value ? dayjs(value).format('YYYY-MM-DD') : '')) {
-          onChange(val);
-        }
-      }}
-      style={{
-        padding: '6px 10px',
-        borderRadius: '6px',
-        border: '1px solid #CBD5E1',
-        fontSize: '0.8rem',
-        fontFamily: 'inherit',
-        backgroundColor: '#FFFFFF',
-        color: '#1E293B',
-        cursor: 'pointer',
-        outline: 'none',
-        ...style
-      }}
-    />
+    <Box sx={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'pointer', padding: '6px 10px', borderRadius: '6px', border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', marginTop: '4px', width: '100%', boxSizing: 'border-box', ...style }}>
+      <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.8rem', color: '#1E293B', flexGrow: 1 }}>
+        {displayStr}
+      </Typography>
+      <span style={{ fontSize: '0.85rem', opacity: 0.65 }}>📅</span>
+      <input
+        type="date"
+        value={isoVal}
+        onClick={(e) => e.stopPropagation()}
+        onChange={(evt) => {
+          evt.stopPropagation();
+          onChange(evt.target.value);
+        }}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          opacity: 0,
+          cursor: 'pointer'
+        }}
+      />
+    </Box>
   );
 };
 
@@ -116,7 +107,7 @@ export const SuperAdminClientDetails = () => {
   const canViewDeps = hasFeature(customizationSettings, 'canViewDependents');
 
   const roleConfig = (customizationSettings?.[currentUser?.id] || customizationSettings?.[currentUser?.role]) || {};
-  const clientsActions = roleConfig.actions?.clients || { canChangeVisaStatus: true, canVerifyDocs: true, canDelete: true };
+  const clientsActions = roleConfig.actions?.clients || { canChangeVisaStatus: true, canVerifyDocs: true, canDelete: currentUser?.role === 'super_admin' };
 
   const queryParams = new URLSearchParams(location.search);
   const tabParam = queryParams.get('tab');

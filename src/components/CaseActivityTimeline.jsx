@@ -159,7 +159,7 @@ export const CaseActivityTimeline = ({ clientId, leadId, applicationId }) => {
                     )}
                   </Box>
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                    {dayjs(item.timestamp).format('DD MMM YYYY, hh:mm A')}
+                    {dayjs(item.timestamp).format('DD/MM/YYYY, hh:mm A')}
                   </Typography>
                 </Box>
 

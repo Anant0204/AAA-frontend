@@ -57,7 +57,7 @@ export const ConsultationList = () => {
       id: 'meetingDate',
       label: 'Date & Time',
       sortable: true,
-      render: (row) => `${row.meetingDate} at ${row.meetingTime} (${row.durationMinutes} min)` },
+      render: (row) => `${(row.meetingDate || row.date) ? dayjs(row.meetingDate || row.date).format('DD/MM/YYYY') : 'TBD'} at ${row.meetingTime || row.timeSlot || ''} (${row.durationMinutes || 30} min)` },
     {
       id: 'consultant',
       label: 'Assigned Agent',

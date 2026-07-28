@@ -264,7 +264,7 @@ export const LeadDetails = () => {
     if (!noteText.trim()) return;
     const updatedLead = {
       ...lead,
-      notes: lead.notes ? `${lead.notes}\n\n[${currentUser.name} - ${dayjs().format('YYYY-MM-DD HH:mm')}]: ${noteText}` : `[${currentUser.name} - ${dayjs().format('YYYY-MM-DD HH:mm')}]: ${noteText}`,
+      notes: lead.notes ? `${lead.notes}\n\n[${currentUser.name} - ${dayjs().format('DD/MM/YYYY HH:mm')}]: ${noteText}` : `[${currentUser.name} - ${dayjs().format('DD/MM/YYYY HH:mm')}]: ${noteText}`,
       timeline: [
         { date: new Date().toISOString(), event: 'Added a note to case file', user: currentUser.name },
         ...lead.timeline,
@@ -615,7 +615,9 @@ export const LeadDetails = () => {
                         <Box className="grid grid-cols-12 gap-2" alignItems="center">
                           <Box className="col-span-12 sm:col-span-4">
                             <Typography variant="subtitle2" color="text.secondary">Meeting Date/Time</Typography>
-                            <Typography variant="body1" sx={{ fontWeight: 600 }}>{cons.meetingDate} at {cons.meetingTime}</Typography>
+                            <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                              {(cons.meetingDate || cons.date) ? `${dayjs(cons.meetingDate || cons.date).format('DD/MM/YYYY')} at ${cons.meetingTime || cons.timeSlot || ''}` : 'Pending Lead Submission'}
+                            </Typography>
                           </Box>
                           <Box className="col-span-12 sm:col-span-4">
                             <Typography variant="subtitle2" color="text.secondary">Meeting Status</Typography>

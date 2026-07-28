@@ -52,42 +52,34 @@ import UploadedDocumentsCard from '../../components/UploadedDocumentsCard';
 import CaseHistoryTimelineCard from '../../components/CaseHistoryTimelineCard';
 
 const FollowUpDatePickerInput = ({ value, onChange, style = {} }) => {
-  const [val, setVal] = useState(() => value ? dayjs(value).format('YYYY-MM-DD') : '');
-
-  React.useEffect(() => {
-    setVal(value ? dayjs(value).format('YYYY-MM-DD') : '');
-  }, [value]);
+  const displayStr = value ? dayjs(value).format('DD/MM/YYYY') : 'dd/mm/yyyy';
+  const isoVal = value ? dayjs(value).format('YYYY-MM-DD') : '';
 
   return (
-    <input
-      type="date"
-      value={val}
-      onClick={(e) => e.stopPropagation()}
-      onChange={(evt) => {
-        evt.stopPropagation();
-        const newVal = evt.target.value;
-        setVal(newVal);
-        if (!newVal || /^\d{4}-\d{2}-\d{2}$/.test(newVal)) {
-          onChange(newVal);
-        }
-      }}
-      onBlur={() => {
-        if (val && /^\d{4}-\d{2}-\d{2}$/.test(val) && val !== (value ? dayjs(value).format('YYYY-MM-DD') : '')) {
-          onChange(val);
-        }
-      }}
-      style={{
-        padding: '6px 10px',
-        borderRadius: '6px',
-        border: '1px solid #CBD5E1',
-        fontSize: '0.8rem',
-        fontWeight: 600,
-        marginTop: '4px',
-        width: '100%',
-        boxSizing: 'border-box',
-        ...style
-      }}
-    />
+    <Box sx={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'pointer', padding: '6px 10px', borderRadius: '6px', border: '1px solid #CBD5E1', marginTop: '4px', width: '100%', boxSizing: 'border-box', ...style }}>
+      <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.8rem', color: '#1E293B', flexGrow: 1 }}>
+        {displayStr}
+      </Typography>
+      <span style={{ fontSize: '0.85rem', opacity: 0.65 }}>📅</span>
+      <input
+        type="date"
+        value={isoVal}
+        onClick={(e) => e.stopPropagation()}
+        onChange={(evt) => {
+          evt.stopPropagation();
+          onChange(evt.target.value);
+        }}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          opacity: 0,
+          cursor: 'pointer'
+        }}
+      />
+    </Box>
   );
 };
 
@@ -226,7 +218,7 @@ export const SuperAdminLeadDetails = () => {
     queryFn: dbService.getCustomizationSettings
   });
   const roleConfig = (customizationSettings?.[currentUser?.id] || customizationSettings?.[currentUser?.role]) || {};
-  const leadsActions = roleConfig.actions?.leads || { canCreate: true, canAssignAgent: true, canDelete: true, canChangeVisaStatus: true };
+  const leadsActions = roleConfig.actions?.clients || { canCreate: true, canAssignAgent: true, canDelete: currentUser?.role === 'super_admin', canChangeVisaStatus: true };
 
   const hasCompletedConsultation = lead ? consultations.some(c => c.leadId === lead.id && c.status === 'Completed') : false;
 
@@ -383,7 +375,7 @@ export const SuperAdminLeadDetails = () => {
     if (!noteText.trim()) return;
     const updatedLead = {
       ...lead,
-      notes: lead.notes ? `${lead.notes}\n\n[${currentUser.name} - ${dayjs().format('YYYY-MM-DD HH:mm')}]: ${noteText}` : `[${currentUser.name} - ${dayjs().format('YYYY-MM-DD HH:mm')}]: ${noteText}`,
+      notes: lead.notes ? `${lead.notes}\n\n[${currentUser.name} - ${dayjs().format('DD/MM/YYYY HH:mm')}]: ${noteText}` : `[${currentUser.name} - ${dayjs().format('DD/MM/YYYY HH:mm')}]: ${noteText}`,
       timeline: [
         { date: new Date().toISOString(), event: 'Added a note to case file', user: currentUser.name },
         ...lead.timeline,
@@ -619,7 +611,7 @@ export const SuperAdminLeadDetails = () => {
                   )}
                   {lead.assignedConsultantId && (
                     <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5, fontStyle: 'italic', fontSize: '0.725rem' }}>
-                      📅 Assigned Date: {dayjs(lead.assignedAt || lead.createdAt).format('DD MMM YYYY, hh:mm A')}
+                      📅 Assigned Date: {dayjs(lead.assignedAt || lead.createdAt).format('DD/MM/YYYY, hh:mm A')}
                     </Typography>
                   )}
                 </Box>
@@ -789,7 +781,7 @@ export const SuperAdminLeadDetails = () => {
                         {lead.formSubmittedAt ? (
                           <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.8, px: 1.5, py: 0.5, borderRadius: 2, background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)' }}>
                             <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} />
-                            <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600 }}>Form Submitted — {dayjs(lead.formSubmittedAt).format('DD MMM YYYY')}</Typography>
+                            <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600 }}>Form Submitted — {dayjs(lead.formSubmittedAt).format('DD/MM/YYYY')}</Typography>
                           </Box>
                         ) : (
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
@@ -911,7 +903,7 @@ export const SuperAdminLeadDetails = () => {
                           <Box className="col-span-12 sm:col-span-4">
                             <Typography variant="subtitle2" color="text.secondary">Meeting Date/Time</Typography>
                             <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                              {cons.meetingDate ? `${cons.meetingDate} at ${cons.meetingTime}` : 'Pending Lead Submission'}
+                              {(cons.meetingDate || cons.date) ? `${dayjs(cons.meetingDate || cons.date).format('DD/MM/YYYY')} at ${cons.meetingTime || cons.timeSlot || ''}` : 'Pending Lead Submission'}
                             </Typography>
                           </Box>
                           <Box className="col-span-12 sm:col-span-4">

@@ -58,7 +58,7 @@ export const Timeline = ({ items = [] }) => {
               {item.event}
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
-              {dayjs(item.date).format('MMM DD, YYYY HH:mm')}
+              {dayjs(item.date).format('DD/MM/YYYY HH:mm')}
             </Typography>
           </Box>
 
