@@ -768,7 +768,7 @@ export const SuperAdminSocialInbox = () => {
                               }}
                             >
                               {msg.isComment && (
-                                <Typography variant="caption" sx={{ display: 'block', mb: 0.5, color: isAgent ? 'rgba(255,255,255,0.7)' : 'primary.main', fontWeight: 600 }}>
+                                <Typography variant="caption" sx={{ display: 'block', mb: 0.5, color: isAgent ? '#047857' : 'primary.main', fontWeight: 600 }}>
                                   [Public Comment]
                                 </Typography>
                               )}
