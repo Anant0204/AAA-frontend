@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import dayjs from 'dayjs';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -199,12 +200,12 @@ export const CommunicationHistoryTab = ({ clientId, leadId }) => {
                     )}
                   </Box>
                   <Typography variant="caption" color="text.secondary">
-                    {new Date(log.createdAt).toLocaleString()}
+                    {dayjs(log.createdAt).format('DD/MM/YYYY, hh:mm:ss A')}
                   </Typography>
                 </Box>
 
                 <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', color: 'text.primary', mt: 0.5 }}>
-                  {log.content}
+                  {(log.content || '').replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, '$3/$2/$1')}
                 </Typography>
 
                 {log.meetingLink && (

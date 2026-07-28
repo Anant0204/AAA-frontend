@@ -514,7 +514,7 @@ export const SuperAdminLeadDetails = () => {
 
       <PageHeader
         title={`${lead.firstName} ${lead.lastName}`}
-        subtitle={`Lead ID: ${lead.id} | Nationality: ${lead.nationality}`}
+        subtitle={`Customer ID: ${lead.clientCode || lead.clientId || lead.client?.clientCode || lead.displayId || lead.id} | Nationality: ${lead.nationality}`}
         action={
           <Stack direction="row" spacing={1.5}>
             <Button
@@ -566,7 +566,7 @@ export const SuperAdminLeadDetails = () => {
                 {lead.email}
               </Typography>
               <Chip
-                label={`Customer ID: ${lead.clientCode || lead.displayId || 'CID-12001'}`}
+                label={`Customer ID: ${lead.clientCode || lead.clientId || lead.client?.clientCode || lead.displayId || 'CID-12001'}`}
                 size="small"
                 color="primary"
                 variant="outlined"
@@ -806,7 +806,7 @@ export const SuperAdminLeadDetails = () => {
                       </Box>
                       {lead.meetingPreferredDate ? (
                         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5, p: 2, borderRadius: 2, background: 'rgba(102,126,234,0.06)', border: '1px solid rgba(102,126,234,0.2)' }}>
-                          <Box><Typography variant="caption" color="text.secondary">Preferred Date</Typography><Typography variant="body2" sx={{ fontWeight: 600 }}>📅 {lead.meetingPreferredDate}</Typography></Box>
+                          <Box><Typography variant="caption" color="text.secondary">Preferred Date</Typography><Typography variant="body2" sx={{ fontWeight: 600 }}>📅 {lead.meetingPreferredDate ? dayjs(lead.meetingPreferredDate).format('DD/MM/YYYY') : 'Not specified'}</Typography></Box>
                           <Box><Typography variant="caption" color="text.secondary">Preferred Time Slot</Typography><Typography variant="body2" sx={{ fontWeight: 600 }}>🕐 {lead.meetingPreferredTime ? lead.meetingPreferredTime.charAt(0).toUpperCase() + lead.meetingPreferredTime.slice(1) : 'Not specified'}</Typography></Box>
                           <Box><Typography variant="caption" color="text.secondary">Preferred Language</Typography><Typography variant="body2" sx={{ fontWeight: 600 }}>🌐 {lead.meetingPreferredLanguage || lead.preferredLanguage}</Typography></Box>
                           {lead.meetingNotes && <Box className="col-span-2"><Typography variant="caption" color="text.secondary">Lead's Notes / Questions</Typography><Typography variant="body2" sx={{ fontWeight: 500, mt: 0.5, p: 1.5, background: 'rgba(0,0,0,0.04)', borderRadius: 1 }}>{lead.meetingNotes}</Typography></Box>}
