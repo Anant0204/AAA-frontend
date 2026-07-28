@@ -29,7 +29,7 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import CircularProgress from '@mui/material/CircularProgress';
-
+import Menu from '@mui/material/Menu';
 
 const getMediaUrl = (url) => {
   if (!url) return null;
@@ -68,6 +68,8 @@ import ChatIcon from '@mui/icons-material/Chat';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import DownloadIcon from '@mui/icons-material/Download';
+import DeleteIcon from '@mui/icons-material/Delete';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 import PageHeader from '../../components/PageHeader';
 
@@ -160,6 +162,23 @@ export const SuperAdminSocialInbox = () => {
   const sendSocialMessageMutation = useMutation({
     mutationFn: (payload) => dbService.sendSocialMessage(payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['conversations'] })
+  });
+
+  const deleteSocialMessageMutation = useMutation({
+    mutationFn: (messageId) => dbService.deleteSocialMessage(messageId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      // showAlert('Message deleted successfully', 'success');
+    }
+  });
+
+  const clearSocialChatMutation = useMutation({
+    mutationFn: (phone) => dbService.clearSocialChat(phone),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      setActiveConvId(null);
+      // showAlert('Chat cleared successfully', 'success');
+    }
   });
 
   const uploadSocialMediaMutation = useMutation({
@@ -256,12 +275,39 @@ export const SuperAdminSocialInbox = () => {
     }
   }, [activeConv?.messages]);
 
-  // Mark active chat as read
+  const handleSelectConv = (conv) => {
+    setActiveConvId(conv.id);
+    if (conv.unreadCount > 0) {
+      markConversationReadMutation.mutate(conv.id);
+    }
+    if (isMobile) {
+      setShowChatOnMobile(true);
+    }
+  };
+
+  // Mark active chat as read automatically when opened or when new message arrives
   useEffect(() => {
     if (activeConv && activeConv.unreadCount > 0) {
       markConversationReadMutation.mutate(activeConvId);
     }
   }, [activeConvId, activeConv?.unreadCount]);
+
+  const [headerMenuAnchor, setHeaderMenuAnchor] = useState(null);
+  const handleHeaderMenuOpen = (event) => setHeaderMenuAnchor(event.currentTarget);
+  const handleHeaderMenuClose = () => setHeaderMenuAnchor(null);
+
+  const handleDeleteMessage = (messageId) => {
+    if (window.confirm('Are you sure you want to delete this message from the CRM?')) {
+      deleteSocialMessageMutation.mutate(messageId);
+    }
+  };
+
+  const handleClearChat = (phone) => {
+    if (window.confirm('Are you sure you want to completely clear this chat from the CRM? This cannot be undone.')) {
+      clearSocialChatMutation.mutate(phone);
+      handleHeaderMenuClose();
+    }
+  };
 
   const getPlatformIcon = (platform, color = 'inherit') => {
     switch (platform) {
@@ -507,10 +553,7 @@ export const SuperAdminSocialInbox = () => {
                         <React.Fragment key={conv.id}>
                           <ListItemButton
                             selected={isActive}
-                            onClick={() => {
-                              setActiveConvId(conv.id);
-                              setShowChatOnMobile(true);
-                            }}
+                            onClick={() => handleSelectConv(conv)}
                             sx={{
                               py: 2,
                               px: 2.5,
@@ -658,6 +701,18 @@ export const SuperAdminSocialInbox = () => {
                       <IconButton size="small" onClick={() => navigate(`/leads/details/${activeConv.leadId}`)}>
                         <OpenInNewIcon fontSize="small" />
                       </IconButton>
+                      <IconButton size="small" onClick={handleHeaderMenuOpen}>
+                        <MoreVertIcon fontSize="small" />
+                      </IconButton>
+                      <Menu
+                        anchorEl={headerMenuAnchor}
+                        open={Boolean(headerMenuAnchor)}
+                        onClose={handleHeaderMenuClose}
+                      >
+                        <MenuItem onClick={() => handleClearChat(activeConv.phone)} sx={{ color: 'error.main' }}>
+                          <DeleteIcon fontSize="small" sx={{ mr: 1 }} /> Clear Chat
+                        </MenuItem>
+                      </Menu>
                     </Box>
                   </Box>
 
@@ -701,13 +756,15 @@ export const SuperAdminSocialInbox = () => {
                               sx={{
                                 p: 2,
                                 borderRadius: 3,
-                                borderBottomRightRadius: isAgent ? 0 : 3,
-                                borderBottomLeftRadius: !isAgent ? 0 : 3,
+                                borderBottomRightRadius: isAgent ? 0 : 12,
+                                borderBottomLeftRadius: !isAgent ? 0 : 12,
                                 bgcolor: isAgent ? 'secondary.main' : 'background.paper',
                                 color: isAgent ? 'secondary.contrastText' : 'text.primary',
                                 border: isAgent ? 'none' : '1px solid',
                                 borderColor: 'divider',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                                position: 'relative',
+                                '&:hover .msg-delete-btn': { opacity: 1 }
                               }}
                             >
                               {msg.isComment && (
@@ -753,6 +810,27 @@ export const SuperAdminSocialInbox = () => {
                                   {renderWhatsAppText(msg.text, isAgent)}
                                 </Typography>
                               )}
+                              <IconButton
+                                className="msg-delete-btn"
+                                size="small"
+                                onClick={() => handleDeleteMessage(msg.id)}
+                                sx={{
+                                  position: 'absolute',
+                                  top: -10,
+                                  right: isAgent ? 'auto' : -30,
+                                  left: isAgent ? -30 : 'auto',
+                                  opacity: 0,
+                                  transition: 'opacity 0.2s',
+                                  color: 'error.main',
+                                  bgcolor: 'background.paper',
+                                  boxShadow: 1,
+                                  width: 24,
+                                  height: 24,
+                                  '&:hover': { bgcolor: 'error.lighter' }
+                                }}
+                              >
+                                <DeleteIcon sx={{ fontSize: 14 }} />
+                              </IconButton>
                             </Paper>
                             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, mx: 1, display: 'flex', gap: 0.8, alignItems: 'center' }}>
                               <span>{msg.timestamp}</span>
