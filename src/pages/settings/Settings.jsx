@@ -1115,33 +1115,43 @@ export const Settings = () => {
             {((packages && packages.length > 0) ? packages : [
               {
                 id: 'opt_a',
-                code: 'full_process',
-                name: 'OPTION A: FULL PROCESSING PACKAGE',
+                code: 'OPTION_A',
+                name: 'OPTION A: PROFESSIONAL CASE ASSESSMENT',
+                description: 'Dedicated One-to-One Case Review, Professional Case Evaluation, Eligibility Assessment & Personalized Action Plan.',
+                price: 250,
+                additionalApplicantPrice: 0,
+                isRecommended: false,
+                includes: ['Dedicated One-to-One Case Review', 'Professional Case Evaluation & Strategy', 'Comprehensive Eligibility Assessment', 'Personalized Document Checklist', '€250 fee deducted from Full/Premium Package within 14 days']
+              },
+              {
+                id: 'opt_b',
+                code: 'OPTION_B',
+                name: 'OPTION B: FULL PROCESSING PACKAGE – END-TO-END SERVICE',
                 description: 'Complete professional end-to-end support for Spain Residency applications from eligibility to submission.',
                 price: 3500,
                 additionalApplicantPrice: 500,
                 isRecommended: false,
-                includes: ['Eligibility & Document Auditing', 'Official Sworn Translation Management', 'Digital Nomad / NLV File Assembly', 'Consulate Appointment Assistance', 'Post-Submission Status Tracking']
-              },
-              {
-                id: 'opt_b',
-                code: 'premium',
-                name: 'OPTION B: PREMIUM PACKAGE',
-                description: 'Everything in Full Process + complete relocation administrative assistance (NIE/TIE fingerprint appointments, empadronamiento local registration, Social Security, Spanish Bank setup).',
-                price: 4750,
-                additionalApplicantPrice: 750,
-                isRecommended: true,
-                includes: ['Everything in Full Processing Package', 'Spanish Bank Account Opening Assistance', 'NIE / TIE Fingerprint Appointment Booking', 'Empadronamiento (Town Hall Registration)', 'Spanish Social Security Registration']
+                includes: ['Eligibility & Document Auditing', 'Official Sworn Translation Management', 'Digital Nomad / NLV File Assembly', 'Consulate Appointment Assistance', '50% Refundable if visa application is rejected (Subject to T&C)']
               },
               {
                 id: 'opt_c',
-                code: 'relocation',
-                name: 'OPTION C: ADMINISTRATIVE RELOCATION PACKAGE',
+                code: 'OPTION_C',
+                name: 'OPTION C: ADMINISTRATIVE RELOCATION PACKAGE – POST-APPROVAL ASSISTANCE IN SPAIN',
                 description: 'Post-approval administrative relocation support for clients who already have their visa approved and need settlement help in Spain.',
                 price: 1750,
                 additionalApplicantPrice: 500,
                 isRecommended: false,
                 includes: ['Post-Approval Residency Card (TIE) Processing', 'Town Hall Registration (Empadronamiento)', 'Spanish Health Card / Private Insurance Setup', 'Driver License Exchange Guidance']
+              },
+              {
+                id: 'opt_d',
+                code: 'OPTION_D',
+                name: 'OPTION D: PREMIUM PACKAGE – END-TO-END SERVICE + ADMINISTRATIVE RELOCATION PACKAGE',
+                description: 'Everything in Full Process + complete relocation administrative assistance in Spain.',
+                price: 4750,
+                additionalApplicantPrice: 750,
+                isRecommended: true,
+                includes: ['Everything in Full Processing Package (End-to-End Service)', 'Spanish Bank Account Opening Assistance', 'NIE / TIE Fingerprint Appointment Booking', 'Empadronamiento (Town Hall Registration)', 'Spanish Social Security Registration', '50% Refundable if visa application is rejected (Subject to T&C)']
               }
             ]).map((pkg) => (
               <Box className="col-span-12 md:col-span-6" key={pkg.id}>

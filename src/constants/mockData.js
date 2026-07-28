@@ -24,33 +24,71 @@ export const RELOCATION_SERVICES = [
 
 export const PACKAGES = [
   {
-    id: 'full_process',
-    name: 'Full Process Package',
+    id: 'OPTION_A',
+    code: 'OPTION_A',
+    name: 'Option A: Professional Case Assessment',
+    price: 250,
+    additionalApplicantPrice: 0,
+    refundable: 'Non-refundable (€250 fee deductible within 14 days if upgraded to Full or Premium Package)',
+    description: 'Dedicated One-to-One Case Review, Professional Case Evaluation, Comprehensive Eligibility Assessment & Action Plan.',
+    includes: [
+      'Dedicated One-to-One Case Review',
+      'Professional Case Evaluation & Strategy',
+      'Comprehensive Eligibility Assessment',
+      'Personalized Document Checklist',
+      'Application Readiness Report & Action Plan'
+    ]
+  },
+  {
+    id: 'OPTION_B',
+    code: 'OPTION_B',
+    name: 'Option B: Full Processing Package – End-to-End Service',
+    price: 3500,
+    additionalApplicantPrice: 500,
+    refundable: '50% refundable if visa is rejected (Subject to T&C)',
     description: 'Complete, Professional & End-to-End Support for Spain Residency Applications from eligibility to submission.',
     includes: [
       'Eligibility Verification & Initial Assessment',
       'Professional Case Evaluation & Strategy',
-      'Financial Profile Assessment',
-      'Risk & Weakness Analysis',
-      'Sworn Translation Support',
-      'Submission Coordination',
-      'Follow-Up Coordination',
-      'Support Until Final Decision',
+      'Sworn Translation Management',
+      'Digital Nomad / NLV File Assembly',
+      'Consulate & Embassy Appointment Booking',
+      '50% Refund Guarantee if visa is rejected (Subject to T&C)'
     ]
   },
   {
-    id: 'premium',
-    name: 'Premium Package',
-    description: 'Includes EVERYTHING in Full Process Package + Complete Relocation & Administrative Assistance.',
+    id: 'OPTION_C',
+    code: 'OPTION_C',
+    name: 'Option C: Administrative Relocation Package – Post-Approval Assistance',
+    price: 1750,
+    additionalApplicantPrice: 500,
+    refundable: 'Non-refundable',
+    description: 'Post-approval administrative relocation support for clients who already have their visa approved and need settlement help in Spain.',
     includes: [
-      'All Full Process features',
-      'NIE Assistance & Guidance',
-      'TIE & Fingerprint Appointment assistance',
-      'Empadronamiento local registration support',
-      'Digital Certificate & Cl@ve Registration',
-      'Spanish Bank Account opening assistance',
-      'Private/Public Health Card and Social Security help',
-      'Dedicated case manager and priority handling',
+      'Post-Approval Residency Card (TIE) Fingerprint Booking',
+      'Town Hall Registration (Empadronamiento)',
+      'Spanish Health Card / Private Insurance Setup',
+      'Spanish Bank Account & Social Security Setup Support',
+      'Driver License Exchange Guidance'
+    ]
+  },
+  {
+    id: 'OPTION_D',
+    code: 'OPTION_D',
+    name: 'Option D: Premium Package – End-to-End Service + Administrative Relocation Package',
+    price: 4750,
+    additionalApplicantPrice: 750,
+    refundable: '50% refundable if visa is rejected (Subject to T&C)',
+    isRecommended: true,
+    description: 'Includes EVERYTHING in Full Processing Package + Complete In-Spain Relocation & Administrative Assistance.',
+    includes: [
+      'Everything in Full Processing Package (End-to-End)',
+      'Everything in Administrative Relocation Package (In-Spain Setup)',
+      'Spanish Bank Account Opening Assistance',
+      'NIE / TIE Fingerprint Appointment Booking',
+      'Empadronamiento (Town Hall Registration)',
+      'Spanish Social Security Registration',
+      '50% Refund Guarantee if visa is rejected (Subject to T&C)'
     ]
   }
 ];
