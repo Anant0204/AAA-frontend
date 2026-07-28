@@ -2375,15 +2375,28 @@ export const ClientPortalDocs = () => {
                     {/* Package Options Cards */}
                     <Grid item xs={12} lg={8}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-                        {DEFAULT_PACKAGES.map((pkgItem) => {
-                          const pkgCode = pkgItem.code;
+                        {((dbPackages && dbPackages.length > 0)
+                          ? dbPackages.map(pkg => ({
+                              id: pkg.id,
+                              code: pkg.code || pkg.id,
+                              name: pkg.name,
+                              price: Number(pkg.price) || 0,
+                              additionalApplicantPrice: Number(pkg.additionalApplicantPrice) || 500,
+                              isRecommended: !!pkg.isRecommended,
+                              refundableText: pkg.refundableText || (pkg.isRecommended ? '50% refundable if visa is rejected (Subject to T&C)' : 'Standard Package'),
+                              description: pkg.description || '',
+                              includes: Array.isArray(pkg.includes) ? pkg.includes : []
+                            }))
+                          : DEFAULT_PACKAGES
+                        ).map((pkgItem) => {
+                          const pkgCode = pkgItem.code || pkgItem.id;
                           const isSelected = selectedPackage === pkgCode;
-                          const isOptA = pkgCode === 'OPTION_A';
+                          const isOptA = pkgCode === 'OPTION_A' || pkgCode === 'opt_a';
                           const effectiveAddCount = isOptA ? 0 : addApplicants;
-                          const basePrice = pkgItem.price;
-                          const addCost = effectiveAddCount * pkgItem.additionalApplicantPrice;
+                          const basePrice = pkgItem.price || 0;
+                          const addCost = effectiveAddCount * (pkgItem.additionalApplicantPrice || 500);
                           const totalBaseBeforeCredit = basePrice + addCost;
-                          const isCreditApplicable = (pkgCode === 'OPTION_B' || pkgCode === 'OPTION_D') && assessmentCredit > 0;
+                          const isCreditApplicable = (pkgCode === 'OPTION_B' || pkgCode === 'OPTION_D' || pkgCode === 'premium' || pkgCode === 'full_process') && assessmentCredit > 0;
                           const finalCardPrice = isCreditApplicable ? Math.max(0, totalBaseBeforeCredit - assessmentCredit) : totalBaseBeforeCredit;
 
                           return (
@@ -2507,13 +2520,25 @@ export const ClientPortalDocs = () => {
                         <Divider sx={{ my: 1.5 }} />
 
                         {(() => {
-                          const activePkg = DEFAULT_PACKAGES.find(p => p.code === selectedPackage) || DEFAULT_PACKAGES[1];
-                          const isOptA = activePkg.code === 'OPTION_A';
+                          const packagesList = (dbPackages && dbPackages.length > 0)
+                            ? dbPackages.map(pkg => ({
+                                id: pkg.id,
+                                code: pkg.code || pkg.id,
+                                name: pkg.name,
+                                price: Number(pkg.price) || 0,
+                                additionalApplicantPrice: Number(pkg.additionalApplicantPrice) || 500,
+                                isRecommended: !!pkg.isRecommended,
+                                includes: Array.isArray(pkg.includes) ? pkg.includes : []
+                              }))
+                            : DEFAULT_PACKAGES;
+                          const activePkg = packagesList.find(p => p.code === selectedPackage || p.id === selectedPackage) || packagesList[0];
+                          const activePkgCode = activePkg.code || activePkg.id;
+                          const isOptA = activePkgCode === 'OPTION_A' || activePkgCode === 'opt_a';
                           const effectiveAddCount = isOptA ? 0 : addApplicants;
-                          const baseFee = activePkg.price;
-                          const addFee = effectiveAddCount * activePkg.additionalApplicantPrice;
+                          const baseFee = activePkg.price || 0;
+                          const addFee = effectiveAddCount * (activePkg.additionalApplicantPrice || 500);
                           const totalBase = baseFee + addFee;
-                          const creditEligible = (activePkg.code === 'OPTION_B' || activePkg.code === 'OPTION_D') && assessmentCredit > 0;
+                          const creditEligible = (activePkgCode === 'OPTION_B' || activePkgCode === 'OPTION_D' || activePkgCode === 'premium' || activePkgCode === 'full_process') && assessmentCredit > 0;
                           const creditDeduction = creditEligible ? 250 : 0;
                           const subtotalExclVat = Math.max(0, totalBase - creditDeduction);
                           const vat5 = subtotalExclVat * 0.05;
