@@ -408,6 +408,7 @@ export const LeadSelfFillForm = () => {
   const [selectedMultiLangs, setSelectedMultiLangs] = useState(['English', 'Urdu']);
   const [otherLangInput, setOtherLangInput] = useState('');
   const [totalApplicantsDisplay, setTotalApplicantsDisplay] = useState('1');
+  const [confirmedMeetingLink, setConfirmedMeetingLink] = useState('');
 
   const getFinalLanguage = (langVal) => {
     if (langVal !== 'Multi-Language') {
@@ -437,7 +438,7 @@ export const LeadSelfFillForm = () => {
     const isCancel = params.get("cancel") === "true" || isRouteCancel;
     const cId = params.get("consultationId");
 
-    const activeTokenOrId = tokenParam || cId || idParam;
+    const activeTokenOrId = cId || tokenParam || idParam;
 
     const loadData = async () => {
       if (!activeTokenOrId) return;
@@ -499,18 +500,9 @@ export const LeadSelfFillForm = () => {
           setIsExistingLead(true);
 
           if (data.phone) {
-            let p = String(data.phone).trim();
-            let code = "+971";
-            let num = p;
-            if (p.startsWith("+")) {
-              const match = p.match(/^(\+\d{1,4})(.*)$/);
-              if (match) {
-                code = match[1];
-                num = match[2].trim();
-              }
-            }
-            setCountryCode(code);
-            setLocalNumber(num);
+            const parsed = parsePhone(data.phone);
+            setCountryCode(parsed.countryCode);
+            setLocalNumber(parsed.localNumber);
           }
 
           setForm((prev) => ({
@@ -907,10 +899,17 @@ export const LeadSelfFillForm = () => {
     }
 
     try {
+      let resData = null;
       if (isExistingLead && form.id) {
-        await axios.patch(`${API_URL}/leads/${form.id}/meeting-preference`, payload);
+        const res = await axios.patch(`${API_URL}/leads/${form.id}/meeting-preference`, payload);
+        resData = res.data;
       } else {
-        await axios.post(`${API_URL}/leads`, payload);
+        const res = await axios.post(`${API_URL}/leads`, payload);
+        resData = res.data;
+      }
+      const mLink = resData?.meetingLink || resData?.consultation?.meetingLink || resData?.data?.consultation?.meetingLink;
+      if (mLink) {
+        setConfirmedMeetingLink(mLink);
       }
       setStep(2);
     } catch (err) {
@@ -1692,12 +1691,48 @@ export const LeadSelfFillForm = () => {
               >
                 {actionDoneMsg || (
                   <>
-                    🎉 Your assessment is confirmed for <strong>{form.meetingPreferredDate ? dayjs(form.meetingPreferredDate).format('DD/MM/YYYY') : 'your selected date'}</strong> at <strong>{form.meetingPreferredTime || 'your selected time'}</strong>!
+                    🎉 Your assessment is confirmed for <strong>{form.meetingPreferredDate ? dayjs(form.meetingPreferredDate).format('DD/MM/YYYY') : 'your selected date'}</strong> at <strong>{form.meetingPreferredTime || 'your selected time'} (GST)</strong>!
                     <br />
-                    <span style={{ color: '#a78bfa', fontWeight: 600 }}>Your Zoom Meeting link has been sent immediately to your WhatsApp number ({form.phone}).</span>
+                    <span style={{ color: '#a78bfa', fontWeight: 600 }}>Your Zoom Meeting link has been dispatched immediately to your WhatsApp number ({form.phone}).</span>
                   </>
                 )}
               </p>
+
+              {confirmedMeetingLink && (
+                <div
+                  style={{
+                    background: "rgba(37, 211, 102, 0.12)",
+                    border: "1px solid rgba(37, 211, 102, 0.4)",
+                    borderRadius: "14px",
+                    padding: "18px 20px",
+                    marginBottom: "24px",
+                    textAlign: "center"
+                  }}
+                >
+                  <div style={{ fontSize: "14px", fontWeight: 700, color: "#25D366", marginBottom: "8px" }}>
+                    🎥 Instant Zoom Meeting Join Link:
+                  </div>
+                  <a
+                    href={confirmedMeetingLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "inline-block",
+                      fontSize: "14px",
+                      fontWeight: 700,
+                      color: "#60A5FA",
+                      wordBreak: "break-all",
+                      textDecoration: "underline",
+                      padding: "10px 16px",
+                      background: "rgba(0, 0, 0, 0.35)",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(96, 165, 250, 0.3)"
+                    }}
+                  >
+                    🔗 {confirmedMeetingLink}
+                  </a>
+                </div>
+              )}
               <div
                 style={{
                   background: "rgba(102,126,234,0.15)",
