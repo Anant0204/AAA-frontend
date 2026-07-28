@@ -366,7 +366,9 @@ export const DashboardLayout = () => {
       sessionStorage.removeItem('invoiceList_cardInfo');
     }
 
-    navigate(path, { state: { resetFilters: true } });
+    React.startTransition(() => {
+      navigate(path, { state: { resetFilters: true } });
+    });
     setMobileOpen(false);
   };
 

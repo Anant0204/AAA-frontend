@@ -321,7 +321,7 @@ export const SuperAdminSocialInbox = () => {
         const autoReplyMsg = {
           sender: 'system',
           text: 'Auto-reply sent: "Please message us on WhatsApp for free consultation."',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          timestamp: new Date().toISOString()
         };
         sendSocialMessageMutation.mutate({ conversationId: activeConv.id, message: autoReplyMsg });
       }, 1000);
@@ -358,7 +358,7 @@ export const SuperAdminSocialInbox = () => {
           sender: 'agent',
           text: '',
           mediaUrl: res.mediaUrl,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          timestamp: new Date().toISOString()
         };
         sendSocialMessageMutation.mutate({
           conversationId: activeConvId,
@@ -552,17 +552,24 @@ export const SuperAdminSocialInbox = () => {
                               }}
                               primary={
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-                                  <Typography variant="subtitle2" sx={{ fontWeight: conv.unreadCount > 0 ? 700 : 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    {displayName(conv.name, conv.phone)}
-                                    {conv.messages.some(m => m.isComment) && (
-                                      <Chip label="Comment" size="small" color="primary" sx={{ height: 16, fontSize: '0.6rem' }} />
+                                  <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: conv.unreadCount > 0 ? 700 : 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                      {displayName(conv.name, conv.phone)}
+                                      {conv.messages.some(m => m.isComment) && (
+                                        <Chip label="Comment" size="small" color="primary" sx={{ height: 16, fontSize: '0.6rem' }} />
+                                      )}
+                                      {!conv.messages.some(m => m.isComment) && (
+                                        <Chip label="DM" size="small" variant="outlined" sx={{ height: 16, fontSize: '0.6rem' }} />
+                                      )}
+                                    </Typography>
+                                    {displayName(conv.name, conv.phone) !== conv.phone && (
+                                      <Typography variant="caption" color="text.secondary" sx={{ mt: -0.2 }}>
+                                        {conv.phone}
+                                      </Typography>
                                     )}
-                                    {!conv.messages.some(m => m.isComment) && (
-                                      <Chip label="DM" size="small" variant="outlined" sx={{ height: 16, fontSize: '0.6rem' }} />
-                                    )}
-                                  </Typography>
+                                  </Box>
                                   <Typography variant="caption" color="text.secondary">
-                                    {lastMsg ? lastMsg.timestamp : ''}
+                                    {lastMsg ? (lastMsg.rawTimestamp ? new Date(lastMsg.rawTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : lastMsg.timestamp) : ''}
                                   </Typography>
                                 </Box>
                               }
@@ -622,7 +629,12 @@ export const SuperAdminSocialInbox = () => {
                       )}
                       <Avatar src={activeConv.avatar} alt={displayName(activeConv.name, activeConv.phone)} />
                       <Box>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{displayName(activeConv.name, activeConv.phone)}</Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{displayName(activeConv.name, activeConv.phone)}</Typography>
+                          {displayName(activeConv.name, activeConv.phone) !== activeConv.phone && (
+                            <Typography variant="caption" color="text.secondary">{activeConv.phone}</Typography>
+                          )}
+                        </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                           {getPlatformIcon(activeConv.platform)}
                           <Typography variant="caption" sx={{ textTransform: 'capitalize', color: 'text.secondary' }}>
