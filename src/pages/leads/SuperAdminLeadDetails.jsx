@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CaseActivityTimeline } from '../../components/CaseActivityTimeline';
 import Box from '@mui/material/Box';
+import Grid from '@mui/material/Grid';
 import Chip from '@mui/material/Chip';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';

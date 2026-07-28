@@ -181,19 +181,11 @@ export const ClientList = () => {
   };
 
   const columns = [
-<<<<<<< HEAD
-    {
-      id: 'clientCode',
-      label: 'Client ID',
-      minWidth: 100,
-      render: (row) => row.clientCode || row.id
-=======
     { 
       id: 'clientCode', 
       label: 'Client ID', 
       minWidth: 110, 
       render: (row) => <strong>{row.clientCode || row.displayId || row.id.substring(0, 8)}</strong> 
->>>>>>> 2a431a221c06a10972d8e66127b60cfc37e3d675
     },
     {
       id: 'name',
