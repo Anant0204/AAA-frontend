@@ -30,6 +30,10 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import CircularProgress from '@mui/material/CircularProgress';
 import Menu from '@mui/material/Menu';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 
 const getMediaUrl = (url) => {
   if (!url) return null;
@@ -70,6 +74,7 @@ import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import DownloadIcon from '@mui/icons-material/Download';
 import DeleteIcon from '@mui/icons-material/Delete';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import AddIcon from '@mui/icons-material/Add';
 
 import PageHeader from '../../components/PageHeader';
 
@@ -191,6 +196,29 @@ export const SuperAdminSocialInbox = () => {
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const messageEndRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  const [newChatOpen, setNewChatOpen] = useState(false);
+  const [newChatPhone, setNewChatPhone] = useState('');
+  const [newChatMessage, setNewChatMessage] = useState('');
+  const [isSendingNewChat, setIsSendingNewChat] = useState(false);
+
+  const handleStartNewChat = async () => {
+    if (!newChatPhone.trim() || !newChatMessage.trim()) return;
+    setIsSendingNewChat(true);
+    try {
+      await sendSocialMessageMutation.mutateAsync({
+        phone: newChatPhone.trim(),
+        message: newChatMessage.trim()
+      });
+      setNewChatOpen(false);
+      setNewChatPhone('');
+      setNewChatMessage('');
+    } catch (err) {
+      console.error('Failed to send new chat message:', err);
+    } finally {
+      setIsSendingNewChat(false);
+    }
+  };
 
   // Connect to socket to handle real-time inbound/outbound WhatsApp updates
   useEffect(() => {
@@ -505,6 +533,18 @@ export const SuperAdminSocialInbox = () => {
                       )
                     }}
                   />
+                  <Tooltip title="Start New WhatsApp Chat">
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      size="small"
+                      onClick={() => setNewChatOpen(true)}
+                      sx={{ minWidth: 'auto', px: 1.5, whiteSpace: 'nowrap', textTransform: 'none', fontWeight: 600 }}
+                      startIcon={<AddIcon />}
+                    >
+                      New
+                    </Button>
+                  </Tooltip>
                 </Box>
 
                 {!searchParams.get('channel') && (
@@ -967,6 +1007,46 @@ export const SuperAdminSocialInbox = () => {
 
         </Box>
       </Box>
+      {/* Start New Chat Modal */}
+      <Dialog open={newChatOpen} onClose={() => setNewChatOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Start New WhatsApp Chat</DialogTitle>
+        <DialogContent>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+            Send an outbound WhatsApp message directly to a new phone number to start a conversation.
+          </Typography>
+          <TextField
+            fullWidth
+            label="Phone Number"
+            placeholder="+971501234567 or +917693091260"
+            value={newChatPhone}
+            onChange={(e) => setNewChatPhone(e.target.value)}
+            size="small"
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            label="Initial Message"
+            placeholder="Type your WhatsApp message..."
+            value={newChatMessage}
+            onChange={(e) => setNewChatMessage(e.target.value)}
+            size="small"
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2, pt: 0 }}>
+          <Button onClick={() => setNewChatOpen(false)} color="inherit">Cancel</Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleStartNewChat}
+            disabled={!newChatPhone.trim() || !newChatMessage.trim() || isSendingNewChat}
+            startIcon={isSendingNewChat ? <CircularProgress size={16} color="inherit" /> : <SendIcon />}
+          >
+            {isSendingNewChat ? 'Sending...' : 'Send Message'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
