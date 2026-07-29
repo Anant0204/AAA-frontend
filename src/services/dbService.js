@@ -509,8 +509,8 @@ export const dbService = {
     const res = await apiClient.get('/payments/packages');
     return res.data;
   },
-  createPackageCheckout: async ({ packageId, additionalApplicants }) => {
-    const res = await apiClient.post('/payments/package-checkout', { packageId, additionalApplicants });
+  createPackageCheckout: async ({ packageId, additionalApplicants, clientId }) => {
+    const res = await apiClient.post('/payments/package-checkout', { packageId, additionalApplicants, clientId });
     return res.data;
   },
   updatePackages: async (data) => {
