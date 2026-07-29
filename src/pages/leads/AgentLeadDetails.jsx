@@ -453,20 +453,16 @@ export const AgentLeadDetails = () => {
             <Button variant="outlined" onClick={handleOpenStatusModal}>
               Change Status
             </Button>
-            {lead.status !== 'Completed' && lead.status !== 'Converted' && (isAdmin || isOperations) && (
-              <Tooltip title={!hasCompletedConsultation ? "A consultation must be 'Completed' before conversion." : ""} arrow placement="bottom">
-                <span style={{ display: 'inline-block' }}>
-                  <Button 
-                    variant="contained" 
-                    color="secondary" 
-                    onClick={handleConvertLead} 
-                    disabled={!hasCompletedConsultation}
-                    startIcon={<CheckCircleIcon />}
-                  >
-                    Convert to Client
-                  </Button>
-                </span>
-              </Tooltip>
+            {(lead.clientId || lead.status === 'Eligible' || lead.status === 'Converted' || lead.status === 'Completed') && (
+              <Button
+                variant="contained"
+                color="success"
+                onClick={() => navigate('/agent/clients')}
+                startIcon={<CheckCircleIcon />}
+                sx={{ background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)', color: '#fff', fontWeight: 600 }}
+              >
+                Converted Client ({lead.clientCode || lead.displayId || 'Profile'})
+              </Button>
             )}
           </Stack>
         }
@@ -729,23 +725,16 @@ export const AgentLeadDetails = () => {
                   <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
                     Billing & Retainers
                   </Typography>
-                  {lead.status === 'Completed' || lead.status === 'Converted' ? (
-                    <Typography variant="body2" color="success.main" sx={{ fontWeight: 600 }}>Already Converted</Typography>
-                  ) : (
-                    <Tooltip title={!hasCompletedConsultation ? "A consultation must be 'Completed' before conversion." : ""} arrow placement="top">
-                      <span style={{ display: 'inline-block' }}>
-                        <Button
-                          variant="contained"
-                          color="secondary"
-                          onClick={() => setConvertModalOpen(true)}
-                          disabled={!hasCompletedConsultation}
-                          sx={{ textTransform: 'none', fontWeight: 600, boxShadow: 'none', mb: 2 }}
-                        >
-                          <CheckCircleIcon sx={{ mr: 1, fontSize: 18 }} />
-                          Convert to Client
-                        </Button>
-                      </span>
-                    </Tooltip>
+                  {(lead.clientId || lead.status === 'Eligible' || lead.status === 'Converted' || lead.status === 'Completed') && (
+                    <Button
+                      variant="outlined"
+                      color="success"
+                      onClick={() => navigate('/agent/clients')}
+                      startIcon={<CheckCircleIcon />}
+                      sx={{ textTransform: 'none', fontWeight: 600, mb: 2 }}
+                    >
+                      Converted Client ({lead.clientCode || lead.displayId || 'Profile'})
+                    </Button>
                   )}
                   {leadPayments.length === 0 ? (
                     <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>

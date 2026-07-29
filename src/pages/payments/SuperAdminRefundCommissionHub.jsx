@@ -39,6 +39,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import PersonIcon from '@mui/icons-material/Person';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
 // Components
 import PageHeader from '../../components/PageHeader';

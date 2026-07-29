@@ -431,9 +431,15 @@ export const AdminLeadDetails = () => {
             <Button variant="outlined" onClick={handleOpenStatusModal}>
               Change Status
             </Button>
-            {lead.status !== 'Completed' && (isAdmin || isOperations) && (
-              <Button variant="contained" color="secondary" onClick={handleConvertLead} startIcon={<CheckCircleIcon />}>
-                Convert to Client
+            {(lead.clientId || lead.status === 'Eligible' || lead.status === 'Converted' || lead.status === 'Completed') && (
+              <Button
+                variant="contained"
+                color="success"
+                onClick={() => navigate('/admin/clients')}
+                startIcon={<CheckCircleIcon />}
+                sx={{ background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)', color: '#fff', fontWeight: 600 }}
+              >
+                Converted Client ({lead.clientCode || lead.displayId || 'Profile'})
               </Button>
             )}
           </Stack>
