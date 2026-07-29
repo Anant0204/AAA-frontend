@@ -467,7 +467,8 @@ export const ClientPortalDocs = () => {
   const [wizardDeps, setWizardDeps] = useState([]);
 
   // Fetch client details
-  const isClientRole = localStorage.getItem('clientToken') !== null;
+  // If clientId is provided in the URL, it's an Admin testing the portal, so they shouldn't fetch the /me profile
+  const isClientRole = !clientId && localStorage.getItem('clientToken') !== null;
 
   const { data: clientProfile, isLoading: isProfileLoading } = useQuery({
     queryKey: ['clientProfile', clientId],

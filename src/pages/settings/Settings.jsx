@@ -1115,7 +1115,7 @@ export const Settings = () => {
           }
         >
           <Box className="grid grid-cols-12 gap-7" sx={{ mt: 0.5 }}>
-            {((packages && packages.length > 0) ? packages : [
+            {[...((packages && packages.length > 0) ? packages : [
               {
                 id: 'opt_a',
                 code: 'OPTION_A',
@@ -1156,7 +1156,7 @@ export const Settings = () => {
                 isRecommended: true,
                 includes: ['Everything in Full Processing Package (End-to-End Service)', 'Spanish Bank Account Opening Assistance', 'NIE / TIE Fingerprint Appointment Booking', 'Empadronamiento (Town Hall Registration)', 'Spanish Social Security Registration', '50% Refundable if visa application is rejected (Subject to T&C)']
               }
-            ]).map((pkg) => (
+            ])].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map((pkg) => (
               <Box className="col-span-12 md:col-span-6" key={pkg.id}>
                 <Paper sx={{
                   p: 4,
