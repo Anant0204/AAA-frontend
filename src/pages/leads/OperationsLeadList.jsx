@@ -701,20 +701,14 @@ export const OperationsLeadList = () => {
                     />
                   )}
                 />
-                <Controller
-                  control={control}
-                  name="preferredLanguage"
-                  render={({ field: { onChange, value } }) => (
-                    <SearchableDropdown
-                      value={value}
-                      onChange={onChange}
-                      error={!!errors.preferredLanguage}
-                      helperText={errors.preferredLanguage?.message}
-                      label="Preferred Language"
-                      options={LANGUAGES}
-                      sx={{ flex: 1 }}
-                    />
-                  )}
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Preferred Language"
+                  value="English"
+                  disabled
+                  InputProps={{ readOnly: true }}
+                  sx={{ flex: 1 }}
                 />
               </Box>
             </Box>
