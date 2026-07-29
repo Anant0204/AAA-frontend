@@ -17,6 +17,10 @@ apiClient.interceptors.request.use((config) => {
 
 export const dbService = {
   // LEADS
+  purgeAllData: async () => {
+    const res = await apiClient.delete('/settings/purge-all-data');
+    return res.data;
+  },
   getLeads: async () => {
     const res = await apiClient.get('/leads');
     return res.data;
