@@ -362,8 +362,9 @@ export const ClientPortalDocs = () => {
       return await dbService.createPackageCheckout({ packageId, additionalApplicants, clientId });
     },
     onSuccess: (res) => {
-      if (res?.url) {
-        window.location.href = res.url;
+      const redirectUrl = res?.stripeUrl || res?.url;
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
       } else {
         showAlert('Package selection initialized. Proceeding to checkout.', 'success');
         queryClient.invalidateQueries({ queryKey: ['clientProfile'] });
