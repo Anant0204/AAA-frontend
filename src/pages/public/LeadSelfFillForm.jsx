@@ -925,14 +925,14 @@ export const LeadSelfFillForm = () => {
       const errData = err.response?.data || {};
       if (errData.code === 'BLACKLISTED') {
         setWarningPopup({
-          title: "⚠️ Assessment Limit Reached (No-Show)",
-          message: "Our system detected a previous missed free appointment associated with this profile. Under our policy, you are not eligible for another free assessment. Please check your WhatsApp/Email for the €250 Case Review payment link to proceed, or contact support.",
+          title: "⚠️ Not Eligible",
+          message: "Our system detected a previous missed free appointment associated with this profile. Under our policy, you are not eligible for another free assessment. Please check your WhatsApp/Email for the €250 Case Review payment link to proceed, or contact customer support.",
           code: 'BLACKLISTED'
         });
       } else if (errData.code === 'DUPLICATE_LEAD') {
         setWarningPopup({
           title: "🗓️ Active Booking Exists",
-          message: "You already have an active eligibility assessment booked or under review. Please check your email for your confirmation details or contact support to reschedule.",
+          message: "You already have an active eligibility assessment booked or under review. Please check your email for your confirmation details or contact customer support team to reschedule.",
           code: 'DUPLICATE_LEAD'
         });
       } else if (errData.code === 'BLOCKED') {
