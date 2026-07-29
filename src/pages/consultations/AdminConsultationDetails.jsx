@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import dayjs from 'dayjs';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import dayjs from 'dayjs';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Box from '@mui/material/Box';
 
 import Paper from '@mui/material/Paper';
@@ -62,7 +61,7 @@ export const AdminConsultationDetails = () => {
   // Interactive Audio Player States (for legacy S3 playback)
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0); 
+  const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(80);
   const audioRef = useRef(null);
 
@@ -134,7 +133,8 @@ export const AdminConsultationDetails = () => {
   const { data: consultations = [], isLoading } = useQuery({
     queryKey: ['consultations'],
     queryFn: dbService.getConsultations,
-    refetchInterval: 5000 });
+    refetchInterval: 5000
+  });
 
   // Fetch consultants dynamically
   const { data: consultants = [] } = useQuery({
@@ -369,15 +369,15 @@ export const AdminConsultationDetails = () => {
                         onEnded={handleAudioEnded}
                       />
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
-                        <IconButton 
-                          onClick={handlePlayPause} 
-                          color="secondary" 
-                          sx={{ 
-                            width: 48, 
-                            height: 48, 
-                            bgcolor: 'secondary.main', 
+                        <IconButton
+                          onClick={handlePlayPause}
+                          color="secondary"
+                          sx={{
+                            width: 48,
+                            height: 48,
+                            bgcolor: 'secondary.main',
                             color: 'white',
-                            '&:hover': { bgcolor: 'secondary.dark' } 
+                            '&:hover': { bgcolor: 'secondary.dark' }
                           }}
                         >
                           {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
