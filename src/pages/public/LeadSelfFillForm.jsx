@@ -514,7 +514,7 @@ export const LeadSelfFillForm = () => {
             nationality: data.nationality || prev.nationality,
             countryOfResidence: data.countryOfResidence || prev.countryOfResidence,
             meetingPreferredDate: data.currentDate || prev.meetingPreferredDate,
-            meetingPreferredTime: data.currentTime || prev.meetingPreferredTime
+            meetingPreferredTime: (data.currentTime && !data.currentTime.toLowerCase().includes("tbd") && !data.currentTime.toLowerCase().includes("flexible")) ? data.currentTime : ""
           }));
         } else {
           setCancelConsultationId(data.consultationId || activeTokenOrId);
@@ -647,7 +647,7 @@ export const LeadSelfFillForm = () => {
               applicantsCount: applicantsVal,
               dependentsDetails: initialDeps,
               meetingPreferredDate: data.meetingPreferredDate || "",
-              meetingPreferredTime: data.meetingPreferredTime || "",
+              meetingPreferredTime: (data.meetingPreferredTime && !data.meetingPreferredTime.toLowerCase().includes("tbd") && !data.meetingPreferredTime.toLowerCase().includes("flexible")) ? data.meetingPreferredTime : "",
               meetingPreferredLanguage: data.meetingPreferredLanguage || data.preferredLanguage || "English",
               meetingNotes: data.meetingNotes || "",
               preferableAreaInSpain: qData.preferableAreaInSpain || "",
@@ -729,7 +729,7 @@ export const LeadSelfFillForm = () => {
         preferredLanguage: data.preferredLanguage || prev.preferredLanguage,
         serviceId: data.serviceType || prev.serviceId,
         meetingPreferredDate: data.meetingPreferredDate || prev.meetingPreferredDate,
-        meetingPreferredTime: data.meetingPreferredTime || prev.meetingPreferredTime,
+        meetingPreferredTime: (data.meetingPreferredTime && !data.meetingPreferredTime.toLowerCase().includes("tbd") && !data.meetingPreferredTime.toLowerCase().includes("flexible")) ? data.meetingPreferredTime : (prev.meetingPreferredTime && !prev.meetingPreferredTime.toLowerCase().includes("tbd") && !prev.meetingPreferredTime.toLowerCase().includes("flexible") ? prev.meetingPreferredTime : ""),
         meetingPreferredLanguage:
           data.meetingPreferredLanguage || data.preferredLanguage || prev.meetingPreferredLanguage,
         meetingNotes: data.meetingNotes || prev.meetingNotes,
@@ -1580,20 +1580,20 @@ export const LeadSelfFillForm = () => {
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "space-between",
-                            color: form.meetingPreferredTime ? "#fff" : "rgba(255, 255, 255, 0.4)",
+                            color: (form.meetingPreferredTime && !form.meetingPreferredTime.toLowerCase().includes("tbd") && !form.meetingPreferredTime.toLowerCase().includes("flexible")) ? "#fff" : "rgba(255, 255, 255, 0.4)",
                             pointerEvents: "none"
                           }}
                         >
                           <span>
-                            {form.meetingPreferredTime
-                              ? `⏰ ${form.meetingPreferredTime} UAE`
+                            {(form.meetingPreferredTime && !form.meetingPreferredTime.toLowerCase().includes("tbd") && !form.meetingPreferredTime.toLowerCase().includes("flexible"))
+                              ? `⏰ ${form.meetingPreferredTime} (UAE)`
                               : "Select Time Slot (UAE)"}
                           </span>
                           <span style={{ fontSize: "10px", opacity: 0.6 }}>▼</span>
                         </div>
                         <select
                           required={serviceCategory !== "translation"}
-                          value={form.meetingPreferredTime}
+                          value={(form.meetingPreferredTime && !form.meetingPreferredTime.toLowerCase().includes("tbd") && !form.meetingPreferredTime.toLowerCase().includes("flexible")) ? form.meetingPreferredTime : ""}
                           onChange={(e) =>
                             handleChange("meetingPreferredTime", e.target.value)
                           }
