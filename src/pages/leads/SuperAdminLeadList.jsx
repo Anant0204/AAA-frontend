@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
@@ -518,16 +519,39 @@ export const SuperAdminLeadList = () => {
         title={(currentUser?.role === 'consultant' || currentUser?.role === 'agent') ? "Consultation Center" : "Lead Center"}
         subtitle={(currentUser?.role === 'consultant' || currentUser?.role === 'agent') ? "Manage your inbound consultation inquiries and qualification data." : "Manage inbound inquiries, lead qualification data, and consultant routing rules."}
         action={
-          (!isViewOnly && (isSuperAdmin || leadsActions.canCreate !== false)) && (
-            <Button
-              variant="contained"
-              color="secondary"
-              startIcon={<AddIcon />}
-              onClick={() => setAddModalOpen(true)}
-            >
-              Add New Lead
-            </Button>
-          )
+          <Stack direction="row" spacing={1.5}>
+            {isSuperAdmin && (
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={async () => {
+                  if (window.confirm("⚠️ WARNING: This will permanently delete ALL test leads, clients, consultations, and payment records from the database and reset CID sequence to CID-12001. Proceed?")) {
+                    try {
+                      await dbService.purgeAllData();
+                      queryClient.invalidateQueries({ queryKey: ['leads'] });
+                      queryClient.invalidateQueries({ queryKey: ['clients'] });
+                      showAlert('Database cleaned successfully! CID sequence reset to CID-12001.', 'success');
+                    } catch (err) {
+                      showAlert(err.response?.data?.message || 'Purge failed', 'error');
+                    }
+                  }
+                }}
+                sx={{ textTransform: 'none', fontWeight: 600 }}
+              >
+                Clean DB & Reset CID
+              </Button>
+            )}
+            {(!isViewOnly && (isSuperAdmin || leadsActions.canCreate !== false)) && (
+              <Button
+                variant="contained"
+                color="secondary"
+                startIcon={<AddIcon />}
+                onClick={() => setAddModalOpen(true)}
+              >
+                Add New Lead
+              </Button>
+            )}
+          </Stack>
         }
       />
 

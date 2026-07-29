@@ -902,36 +902,15 @@ export const LeadSelfFillForm = () => {
       let resData = null;
       let success = false;
 
-      // 1. Try Primary API
-      try {
-        if (isExistingLead && form.id) {
-          const res = await axios.patch(`${API_URL}/leads/${form.id}/meeting-preference`, payload);
-          resData = res.data;
-        } else {
-          const res = await axios.post(`${API_URL}/leads`, payload);
-          resData = res.data;
-        }
-        success = true;
-      } catch (err1) {
-        console.warn("[SUBMIT FETCH] Primary API failed, trying local fallback:", err1.message);
-        // 2. Try Local API fallback
-        try {
-          if (isExistingLead && form.id) {
-            const resLocal = await axios.patch(`http://localhost:5000/api/v1/leads/${form.id}/meeting-preference`, payload);
-            resData = resLocal.data;
-          } else {
-            const resLocal = await axios.post(`http://localhost:5000/api/v1/leads`, payload);
-            resData = resLocal.data;
-          }
-          success = true;
-        } catch (err2) {
-          if (err1.response?.data || err2.response?.data) {
-            throw (err1.response?.data ? err1 : err2);
-          }
-          // Default fallback success if network offline
-          success = true;
-        }
+      // Submit lead to primary API endpoint
+      if (isExistingLead && form.id) {
+        const res = await axios.patch(`${API_URL}/leads/${form.id}/meeting-preference`, payload);
+        resData = res.data;
+      } else {
+        const res = await axios.post(`${API_URL}/leads`, payload);
+        resData = res.data;
       }
+      success = true;
 
       if (success) {
         const mLink = resData?.meetingLink || resData?.consultation?.meetingLink || resData?.data?.consultation?.meetingLink;
