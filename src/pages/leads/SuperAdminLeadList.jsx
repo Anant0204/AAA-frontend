@@ -333,6 +333,7 @@ export const SuperAdminLeadList = () => {
   const watchServiceId = watch('serviceId');
   const watchSource = watch('source');
   const watchMeetingPreferredTime = watch('meetingPreferredTime');
+  const watchMeetingPreferredDate = watch('meetingPreferredDate');
 
   // Handle forms
   const handleCreateLead = (data) => {
@@ -935,19 +936,33 @@ export const SuperAdminLeadList = () => {
               </Box>
 
               <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
-                <TextField
-                  {...register('meetingPreferredDate')}
-                  type="date"
-                  label="Meeting Date (Optional)"
-                  InputLabelProps={{ shrink: true }}
-                  slotProps={{
-                    inputLabel: {
-                      shrink: true,
-                    },
-                  }}
-                  fullWidth
-                  size="small"
-                />
+                <Box sx={{ position: 'relative', width: '100%' }}>
+                  <TextField
+                    label="Meeting Date (Optional)"
+                    value={watchMeetingPreferredDate ? (() => {
+                      const parts = watchMeetingPreferredDate.split('-');
+                      return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : watchMeetingPreferredDate;
+                    })() : ''}
+                    placeholder="dd/mm/yyyy"
+                    InputLabelProps={{ shrink: true }}
+                    fullWidth
+                    size="small"
+                  />
+                  <input
+                    type="date"
+                    {...register('meetingPreferredDate')}
+                    onClick={(e) => { try { if (e.target.showPicker) e.target.showPicker(); } catch (err) {} }}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      opacity: 0,
+                      cursor: 'pointer'
+                    }}
+                  />
+                </Box>
                 <FormControl fullWidth size="small">
                   <InputLabel id="meeting-time-label" shrink>Meeting Time Slot (Optional)</InputLabel>
                   <Select

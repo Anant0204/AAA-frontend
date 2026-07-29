@@ -358,12 +358,13 @@ export const ClientPortalDocs = () => {
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
   const selectAndPayPackageMutation = useMutation({
-    mutationFn: async ({ packageId, additionalApplicants }) => {
-      return await dbService.createPackageCheckout({ packageId, additionalApplicants });
+    mutationFn: async ({ packageId, additionalApplicants, clientId }) => {
+      return await dbService.createPackageCheckout({ packageId, additionalApplicants, clientId });
     },
     onSuccess: (res) => {
-      if (res?.url) {
-        window.location.href = res.url;
+      const redirectUrl = res?.stripeUrl || res?.url;
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
       } else {
         showAlert('Package selection initialized. Proceeding to checkout.', 'success');
         queryClient.invalidateQueries({ queryKey: ['clientProfile'] });
@@ -467,7 +468,8 @@ export const ClientPortalDocs = () => {
   const [wizardDeps, setWizardDeps] = useState([]);
 
   // Fetch client details
-  const isClientRole = localStorage.getItem('clientToken') !== null;
+  // If clientId is provided in the URL, it's an Admin testing the portal, so they shouldn't fetch the /me profile
+  const isClientRole = !clientId && localStorage.getItem('clientToken') !== null;
 
   const { data: clientProfile, isLoading: isProfileLoading } = useQuery({
     queryKey: ['clientProfile', clientId],
@@ -2375,7 +2377,7 @@ export const ClientPortalDocs = () => {
                     {/* Package Options Cards */}
                     <Grid item xs={12} lg={8}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-                        {((dbPackages && dbPackages.length > 0)
+                        {[...((dbPackages && dbPackages.length > 0)
                           ? dbPackages.map(pkg => ({
                               id: pkg.id,
                               code: pkg.code || pkg.id,
@@ -2388,7 +2390,7 @@ export const ClientPortalDocs = () => {
                               includes: Array.isArray(pkg.includes) ? pkg.includes : []
                             }))
                           : DEFAULT_PACKAGES
-                        ).map((pkgItem) => {
+                        )].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map((pkgItem) => {
                           const pkgCode = pkgItem.code || pkgItem.id;
                           const isSelected = selectedPackage === pkgCode;
                           const isOptA = pkgCode === 'OPTION_A' || pkgCode === 'opt_a';
@@ -2415,23 +2417,7 @@ export const ClientPortalDocs = () => {
                               }}
                             >
                               <CardContent sx={{ p: 3 }}>
-                                {pkgItem.isRecommended && (
-                                  <Chip
-                                    label="✨ RECOMMENDED PACKAGE"
-                                    size="small"
-                                    sx={{
-                                      position: 'absolute',
-                                      top: 14,
-                                      right: 14,
-                                      bgcolor: '#C59B27',
-                                      color: '#051A3B',
-                                      fontWeight: 900,
-                                      fontSize: '0.65rem'
-                                    }}
-                                  />
-                                )}
-
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1, pr: pkgItem.isRecommended ? 18 : 0 }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                                   <Box>
                                     <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#051A3B', fontFamily: 'Outfit, sans-serif' }}>
                                       {pkgItem.name}
@@ -2440,7 +2426,19 @@ export const ClientPortalDocs = () => {
                                       ● {pkgItem.refundableText}
                                     </Typography>
                                   </Box>
-                                  <Box sx={{ textAlign: 'right' }}>
+                                  <Box sx={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
+                                    {pkgItem.isRecommended && (
+                                      <Chip
+                                        label="✨ RECOMMENDED PACKAGE"
+                                        size="small"
+                                        sx={{
+                                          bgcolor: '#C59B27',
+                                          color: '#051A3B',
+                                          fontWeight: 900,
+                                          fontSize: '0.65rem'
+                                        }}
+                                      />
+                                    )}
                                     {isCreditApplicable && (
                                       <Typography variant="caption" sx={{ textDecoration: 'line-through', color: 'text.secondary', display: 'block', fontWeight: 600 }}>
                                         €{totalBaseBeforeCredit}
@@ -3024,9 +3022,12 @@ export const ClientPortalDocs = () => {
                 premium: { name: 'OPTION B: PREMIUM PACKAGE', price: 4750, additionalApplicantPrice: 750 },
                 relocation: { name: 'OPTION C: ADMINISTRATIVE RELOCATION PACKAGE', price: 1750, additionalApplicantPrice: 500 }
               }[selectedPackage] || { name: 'OPTION A: FULL PROCESSING PACKAGE', price: 3500, additionalApplicantPrice: 500 };
+            
+            const isOptA = selectedPackage === 'OPTION_A' || selectedPackage === 'opt_a' || currentPkg?.code === 'OPTION_A' || currentPkg?.code === 'opt_a';
+            const effectiveAddCount = isOptA ? 0 : addApplicants;
 
             const basePrice = currentPkg?.price || (selectedPackage === 'premium' ? 4750 : (selectedPackage === 'relocation' ? 1750 : 3500));
-            const addPrice = (addApplicants * (currentPkg?.additionalApplicantPrice || 500));
+            const addPrice = (effectiveAddCount * (currentPkg?.additionalApplicantPrice || 500));
             const subTotal = Math.max(0, basePrice + addPrice - assessmentCredit);
             const vat5 = subTotal * 0.05;
             const grandTotal = subTotal * 1.05;
@@ -3078,10 +3079,10 @@ export const ClientPortalDocs = () => {
                         <TableCell align="right" sx={{ fontWeight: 700 }}>€{basePrice.toFixed(2)}</TableCell>
                       </TableRow>
 
-                      {addApplicants > 0 && (
+                      {effectiveAddCount > 0 && (
                         <TableRow>
                           <TableCell sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                            Co-Applicants Relocation Support ({addApplicants} person(s))
+                            Co-Applicants Relocation Support ({effectiveAddCount} person(s))
                           </TableCell>
                           <TableCell align="right" sx={{ fontWeight: 700 }}>+€{addPrice.toFixed(2)}</TableCell>
                         </TableRow>
@@ -3156,12 +3157,16 @@ export const ClientPortalDocs = () => {
               const currentPkg = (dbPackages && dbPackages.length > 0)
                 ? (dbPackages.find(p => (p.code || p.id) === selectedPackage) || dbPackages[0])
                 : null;
+              const isOptA = selectedPackage === 'OPTION_A' || selectedPackage === 'opt_a' || currentPkg?.code === 'OPTION_A' || currentPkg?.code === 'opt_a';
+              const effectiveAddCount = isOptA ? 0 : addApplicants;
               const baseFee = currentPkg?.price || (selectedPackage === 'premium' ? 4750 : (selectedPackage === 'relocation' ? 1750 : 3500));
-              const addPrice = (addApplicants * (currentPkg?.additionalApplicantPrice || 500));
+              const addPrice = (effectiveAddCount * (currentPkg?.additionalApplicantPrice || 500));
               const subTotal = Math.max(0, baseFee + addPrice - assessmentCredit);
 
               selectAndPayPackageMutation.mutate({
                 packageId: selectedPackage,
+                additionalApplicants: effectiveAddCount,
+                clientId: client?.id || clientId,
                 amount: Math.max(0, subTotal),
                 discount: 0
               });
