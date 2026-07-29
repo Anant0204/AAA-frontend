@@ -519,39 +519,16 @@ export const SuperAdminLeadList = () => {
         title={(currentUser?.role === 'consultant' || currentUser?.role === 'agent') ? "Consultation Center" : "Lead Center"}
         subtitle={(currentUser?.role === 'consultant' || currentUser?.role === 'agent') ? "Manage your inbound consultation inquiries and qualification data." : "Manage inbound inquiries, lead qualification data, and consultant routing rules."}
         action={
-          <Stack direction="row" spacing={1.5}>
-            {isSuperAdmin && (
-              <Button
-                variant="outlined"
-                color="error"
-                onClick={async () => {
-                  if (window.confirm("⚠️ WARNING: This will permanently delete ALL test leads, clients, consultations, and payment records from the database and reset CID sequence to CID-12001. Proceed?")) {
-                    try {
-                      await dbService.purgeAllData();
-                      queryClient.invalidateQueries({ queryKey: ['leads'] });
-                      queryClient.invalidateQueries({ queryKey: ['clients'] });
-                      showAlert('Database cleaned successfully! CID sequence reset to CID-12001.', 'success');
-                    } catch (err) {
-                      showAlert(err.response?.data?.message || 'Purge failed', 'error');
-                    }
-                  }
-                }}
-                sx={{ textTransform: 'none', fontWeight: 600 }}
-              >
-                Clean DB & Reset CID
-              </Button>
-            )}
-            {(!isViewOnly && (isSuperAdmin || leadsActions.canCreate !== false)) && (
-              <Button
-                variant="contained"
-                color="secondary"
-                startIcon={<AddIcon />}
-                onClick={() => setAddModalOpen(true)}
-              >
-                Add New Lead
-              </Button>
-            )}
-          </Stack>
+          (!isViewOnly && (isSuperAdmin || leadsActions.canCreate !== false)) && (
+            <Button
+              variant="contained"
+              color="secondary"
+              startIcon={<AddIcon />}
+              onClick={() => setAddModalOpen(true)}
+            >
+              Add New Lead
+            </Button>
+          )
         }
       />
 
