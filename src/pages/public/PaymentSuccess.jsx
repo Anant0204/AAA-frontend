@@ -10,7 +10,14 @@ const PaymentSuccess = () => {
 
   const { data: verifyData, isLoading, error } = useQuery({
     queryKey: ['paymentSession', sessionId],
-    queryFn: () => dbService.getPaymentBySessionId(sessionId),
+    queryFn: async () => {
+      try {
+        await dbService.verifyCheckoutSession(sessionId);
+      } catch (err) {
+        console.error("Failed to verify session, fetching anyway", err);
+      }
+      return dbService.getPaymentBySessionId(sessionId);
+    },
     enabled: !!sessionId
   });
 
