@@ -806,7 +806,7 @@ export const LeadSelfFillForm = () => {
         setLoading(true);
         setError("");
         let success = false;
-        let msg = `Your consultation has been rescheduled to ${dayjs(form.meetingPreferredDate).format('DD/MM/YYYY')} at ${form.meetingPreferredTime} (GST).`;
+        let msg = `Your consultation has been rescheduled to ${dayjs(form.meetingPreferredDate).format('DD/MM/YYYY')} at ${form.meetingPreferredTime} (UAE).`;
 
         try {
           const res = await axios.patch(`${API_URL}/consultations/public/reschedule`, {
@@ -971,9 +971,6 @@ export const LeadSelfFillForm = () => {
 
   const countryFilteredServices = getServicesForCountry(form.countryOfResidence);
   const SERVICES = countryFilteredServices.map(s => ({ id: s.id, name: s.name }));
-  if (!SERVICES.some(s => s.id === 'sworn_translation')) {
-    SERVICES.push({ id: "sworn_translation", name: "Spanish Sworn Translation" });
-  }
 
   const APPLICANTS = [
     { value: "Main Only", label: "Main Applicant Only" },
@@ -1333,31 +1330,6 @@ export const LeadSelfFillForm = () => {
                     inputStyle={inputStyle}
                   />
                 </div>
-
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr",
-                    gap: "14px",
-                    marginBottom: "28px",
-                  }}
-                >
-                  <div>
-                    <SearchableCountrySelect
-                      label="YOUR LANGUAGE"
-                      value={form.preferredLanguage}
-                      onChange={(val) => handleChange("preferredLanguage", val)}
-                      options={LANGUAGES}
-                      placeholder="Select Language"
-                      disabled={false}
-                      labelStyle={labelStyle}
-                      inputStyle={inputStyle}
-                    />
-                  </div>
-                </div>
-
-
-
                 {/* Section: Visa Program (only for visa category) */}
                 {serviceCategory === 'visa' && (
                   <>
@@ -1386,45 +1358,65 @@ export const LeadSelfFillForm = () => {
                         </select>
                       </div>
                       <div>
-                        <label style={labelStyle}>TOTAL APPLICANTS</label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="50"
-                          value={totalApplicantsDisplay}
-                          onFocus={(e) => e.target.select()}
-                          onClick={(e) => e.target.select()}
-                          onChange={(e) => {
-                            let raw = e.target.value;
-                            if (raw.length > 1 && raw.startsWith("0")) {
-                              raw = raw.replace(/^0+/, "");
-                            }
-                            if (raw === "") {
-                              setTotalApplicantsDisplay("");
-                              handleChange("applicantsCount", "Main Only");
-                              return;
-                            }
-                            let num = parseInt(raw, 10);
-                            if (isNaN(num)) {
-                              setTotalApplicantsDisplay("1");
-                              handleChange("applicantsCount", "Main Only");
-                              return;
-                            }
-                            if (num > 50) num = 50;
-                            if (num < 1) num = 1;
-                            setTotalApplicantsDisplay(String(num));
-                            const valStr = num === 1 ? "Main Only" : `Main + ${num - 1}`;
-                            handleChange("applicantsCount", valStr);
-                          }}
-                          onBlur={() => {
-                            if (!totalApplicantsDisplay || parseInt(totalApplicantsDisplay, 10) < 1) {
-                              setTotalApplicantsDisplay("1");
-                              handleChange("applicantsCount", "Main Only");
-                            }
-                          }}
-                          placeholder="1"
-                          style={{ ...inputStyle, color: "#fff" }}
-                        />
+                        <label style={labelStyle}>MAIN APPLICANT + DEPENDENTS</label>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <div
+                            style={{
+                              ...inputStyle,
+                              width: "auto",
+                              padding: "10px 14px",
+                              background: "rgba(139, 92, 246, 0.18)",
+                              color: "#c4b5fd",
+                              fontWeight: 700,
+                              fontSize: "14px",
+                              whiteSpace: "nowrap",
+                              border: "1px solid rgba(139, 92, 246, 0.4)",
+                              userSelect: "none",
+                              borderRadius: "10px"
+                            }}
+                          >
+                            👤 1 Main +
+                          </div>
+                          <div style={{ flex: 1, position: "relative" }}>
+                            <input
+                              type="number"
+                              min="0"
+                              max="49"
+                              value={totalApplicantsDisplay === "" ? "" : Math.max(0, (parseInt(totalApplicantsDisplay, 10) || 1) - 1)}
+                              onFocus={(e) => e.target.select()}
+                              onClick={(e) => e.target.select()}
+                              onChange={(e) => {
+                                let raw = e.target.value;
+                                if (raw.length > 1 && raw.startsWith("0")) {
+                                  raw = raw.replace(/^0+/, "");
+                                }
+                                if (raw === "") {
+                                  setTotalApplicantsDisplay("");
+                                  handleChange("applicantsCount", "Main Only");
+                                  return;
+                                }
+                                let deps = parseInt(raw, 10);
+                                if (isNaN(deps) || deps < 0) deps = 0;
+                                if (deps > 49) deps = 49;
+                                const total = deps + 1;
+                                setTotalApplicantsDisplay(String(total));
+                                const valStr = deps === 0 ? "Main Only" : `Main + ${deps}`;
+                                handleChange("applicantsCount", valStr);
+                              }}
+                              onBlur={() => {
+                                if (!totalApplicantsDisplay || parseInt(totalApplicantsDisplay, 10) < 1) {
+                                  setTotalApplicantsDisplay("1");
+                                  handleChange("applicantsCount", "Main Only");
+                                }
+                              }}
+                              placeholder="0"
+                              style={{ ...inputStyle, color: "#fff", paddingRight: "90px" }}
+                            />
+                            <span style={{ position: "absolute", right: "14px", top: "50%", transform: "translateY(-50%)", fontSize: "13px", color: "rgba(255,255,255,0.6)", pointerEvents: "none", fontWeight: 600 }}>
+                              Dependents
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </>
@@ -1518,7 +1510,7 @@ export const LeadSelfFillForm = () => {
                   <>
 
                     <div style={{ marginBottom: "14px" }}>
-                      <label style={labelStyle}>Preferred Meeting Date *</label>
+                      <label style={labelStyle}>MEETING DATE *</label>
                       <div style={{ position: "relative" }}>
                         <div
                           style={{
@@ -1570,36 +1562,64 @@ export const LeadSelfFillForm = () => {
                     </div>
 
                     <div style={{ marginBottom: "14px" }}>
-                      <label style={labelStyle}>Preferred Time Slot *</label>
-                      <select
-                        required={serviceCategory !== "translation"}
-                        value={form.meetingPreferredTime}
-                        onChange={(e) =>
-                          handleChange("meetingPreferredTime", e.target.value)
-                        }
-                        style={{ ...inputStyle, color: "#fff" }}
-                      >
-                        <option value="" disabled style={{ background: "#24243e" }}>Select Preferred Time Slot ({bookingAllowedStart} - {bookingAllowedEnd} GST)</option>
-                        {availableTimeSlots.map((slot) => (
-                          <option key={slot} value={slot} style={{ background: "#24243e" }}>
-                            ⏰ {slot} (GST)
-                          </option>
-                        ))}
-                      </select>
+                      <label style={labelStyle}>TIME SLOT *</label>
+                      <div style={{ position: "relative", width: "100%" }}>
+                        <div
+                          style={{
+                            ...inputStyle,
+                            width: "100%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            color: form.meetingPreferredTime ? "#fff" : "rgba(255, 255, 255, 0.4)",
+                            pointerEvents: "none"
+                          }}
+                        >
+                          <span>
+                            {form.meetingPreferredTime
+                              ? `⏰ ${form.meetingPreferredTime} UAE`
+                              : "Select Time Slot (UAE)"}
+                          </span>
+                          <span style={{ fontSize: "10px", opacity: 0.6 }}>▼</span>
+                        </div>
+                        <select
+                          required={serviceCategory !== "translation"}
+                          value={form.meetingPreferredTime}
+                          onChange={(e) =>
+                            handleChange("meetingPreferredTime", e.target.value)
+                          }
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            height: "100%",
+                            opacity: 0,
+                            cursor: "pointer"
+                          }}
+                        >
+                          <option value="" disabled style={{ background: "#24243e" }}>Select Time Slot (UAE)</option>
+                          {availableTimeSlots.map((slot) => (
+                            <option key={slot} value={slot} style={{ background: "#24243e", color: "#fff" }}>
+                              ⏰ {slot}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
 
                     {serviceCategory === "visa" && (
                       <div style={{
-                        background: "rgba(245, 158, 11, 0.08)",
-                        border: "1px solid rgba(245, 158, 11, 0.25)",
+                        background: "rgba(239, 68, 68, 0.12)",
+                        border: "1px solid rgba(239, 68, 68, 0.35)",
                         borderRadius: "10px",
                         padding: "14px 16px",
                         marginBottom: "18px",
                         fontSize: "12px",
                         lineHeight: "1.6",
-                        color: "rgba(255, 255, 255, 0.85)"
+                        color: "rgba(255, 255, 255, 0.9)"
                       }}>
-                        <span style={{ color: "#FCD34D", fontWeight: "700" }}>ℹ️ Booking Policy Notice:</span> If you do not join your scheduled Free Eligibility Assessment within 10 minutes of the appointment time, your booking will be automatically cancelled. Due to high demand, missed appointments are not eligible for rescheduling.
+                        <span style={{ color: "#F87171", fontWeight: "700" }}>⚠️ Booking Policy Notice:</span> If you do not join your scheduled Free Eligibility Assessment within 10 minutes of the appointment time, your booking will be automatically cancelled. Due to high demand, missed appointments are not eligible for rescheduling.
                       </div>
                     )}
 
@@ -1623,7 +1643,7 @@ export const LeadSelfFillForm = () => {
 
                     <div style={{ marginBottom: "28px" }}>
                       <label style={labelStyle}>
-                        Your Questions / Goals (optional)
+                        YOUR QUESTIONS/MESSAGES
                       </label>
                       <textarea
                         value={form.meetingNotes}
@@ -1691,7 +1711,7 @@ export const LeadSelfFillForm = () => {
               >
                 {actionDoneMsg || (
                   <>
-                    🎉 Your assessment is confirmed for <strong>{form.meetingPreferredDate ? dayjs(form.meetingPreferredDate).format('DD/MM/YYYY') : 'your selected date'}</strong> at <strong>{form.meetingPreferredTime || 'your selected time'} (GST)</strong>!
+                    🎉 Your assessment is confirmed for <strong>{form.meetingPreferredDate ? dayjs(form.meetingPreferredDate).format('DD/MM/YYYY') : 'your selected date'}</strong> at <strong>{form.meetingPreferredTime || 'your selected time'} (UAE)</strong>!
                     <br />
                     <span style={{ color: '#a78bfa', fontWeight: 600 }}>Your Zoom Meeting link has been dispatched immediately to your WhatsApp number ({form.phone}).</span>
                   </>
