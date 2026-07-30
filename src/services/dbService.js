@@ -78,6 +78,10 @@ export const dbService = {
     const res = await apiClient.patch(`/consultations/${consultationId}/reassign`, { consultantId, reason, allowConflict });
     return res.data;
   },
+  assignAgentToConsultation: async (consultationId, consultantId) => {
+    const res = await apiClient.patch(`/consultations/${consultationId}/reassign`, { consultantId });
+    return res.data;
+  },
 
   // CLIENTS & CASES
   getClients: async () => {
