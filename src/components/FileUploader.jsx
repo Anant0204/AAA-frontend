@@ -9,6 +9,7 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import TextField from '@mui/material/TextField';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useAlert } from '../contexts/AlertContext';
 
@@ -18,14 +19,21 @@ const CATEGORIES = [
   'Employment Letter',
   'Marriage Certificate',
   'Education Documents',
-  'Others',
+  'Other (Specify Custom Document)',
 ];
 
 export const FileUploader = ({ onUpload, clientId, clientName, categories, isLoading = false }) => {
-  const selectCategories = Array.isArray(categories) && categories.length > 0 ? categories : CATEGORIES;
+  const baseCategories = Array.isArray(categories) && categories.length > 0 ? categories : CATEGORIES;
+  const selectCategories = baseCategories.includes('Other (Specify Custom Document)')
+    ? baseCategories
+    : [...baseCategories, 'Other (Specify Custom Document)'];
+
   const [file, setFile] = useState(null);
   const [category, setCategory] = useState(selectCategories[0] || 'Passport');
+  const [customCategory, setCustomCategory] = useState('');
   const { showAlert } = useAlert();
+
+  const isCustom = category === 'Other (Specify Custom Document)' || category === 'Others' || category === 'Other';
 
   React.useEffect(() => {
     if (selectCategories.length > 0) {
@@ -38,6 +46,7 @@ export const FileUploader = ({ onUpload, clientId, clientName, categories, isLoa
   React.useEffect(() => {
     if (prevIsLoading.current && !isLoading) {
       setFile(null);
+      setCustomCategory('');
     }
     prevIsLoading.current = isLoading;
   }, [isLoading]);
@@ -54,7 +63,7 @@ export const FileUploader = ({ onUpload, clientId, clientName, categories, isLoa
       setFile(selectedFile);
       // Try to match file name to one of selectCategories
       const lowerFile = selectedFile.name.toLowerCase();
-      const matched = selectCategories.find(c => lowerFile.includes(c.toLowerCase().split(' ')[0]));
+      const matched = selectCategories.find(c => c !== 'Other (Specify Custom Document)' && lowerFile.includes(c.toLowerCase().split(' ')[0]));
       const detected = matched || selectCategories[0] || 'Passport';
       setCategory(detected);
       showAlert(`File "${selectedFile.name}" selected. Category set to "${detected}". Click Upload to submit.`, 'info');
@@ -81,11 +90,13 @@ export const FileUploader = ({ onUpload, clientId, clientName, categories, isLoa
       return;
     }
 
+    const finalCategory = isCustom ? (customCategory.trim() || 'Other Custom Document') : category;
+
     const docData = {
       file,          // actual File object for FormData upload
       clientId,
       clientName,
-      category,
+      category: finalCategory,
       fileName: file.name,
       fileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
     };
@@ -110,6 +121,23 @@ export const FileUploader = ({ onUpload, clientId, clientName, categories, isLoa
           ))}
         </Select>
       </FormControl>
+
+      {isCustom && (
+        <TextField
+          fullWidth
+          size="small"
+          label="Specify Document Name *"
+          value={customCategory}
+          onChange={(e) => setCustomCategory(e.target.value)}
+          placeholder="e.g. Tax Return 2025, Lease Agreement, Birth Certificate..."
+          disabled={isLoading}
+          required
+          sx={{
+            bgcolor: 'background.paper',
+            borderRadius: 1
+          }}
+        />
+      )}
 
       <Box
         {...getRootProps()}
