@@ -40,6 +40,7 @@ import SmartToyIcon from '@mui/icons-material/SmartToy';
 import AiSummaryModal from '../../components/AiSummaryModal';
 import CredentialsModal from '../../components/CredentialsModal';
 import { CommunicationHistoryTab } from '../../components/CommunicationHistoryTab';
+import CaseHistoryTimelineCard from '../../components/CaseHistoryTimelineCard';
 
 import dayjs from 'dayjs';
 
@@ -267,6 +268,17 @@ export const SuperAdminClientDetails = () => {
       refetchDocs();
       showAlert('Document uploaded and queued for review', 'success');
     } });
+
+  const updateCycleMutation = useMutation({
+    mutationFn: ({ id, data }) => dbService.updateApplicationCycle(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      showAlert('Application cycle status updated', 'success');
+    },
+    onError: (err) => {
+      showAlert(err.response?.data?.message || 'Failed to update cycle status', 'error');
+    }
+  });
 
   if (isLoading) {
     return (
@@ -536,68 +548,13 @@ export const SuperAdminClientDetails = () => {
                   </Box>
 
                   <Box sx={{ mt: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-                      <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                        Application History & Cycles
-                      </Typography>
-                      <Stack direction="row" spacing={1}>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="warning"
-                          onClick={() => {
-                            setCycleType('resubmission');
-                            setCycleModalOpen(true);
-                          }}
-                        >
-                          🔄 New Resubmission
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="contained"
-                          color="error"
-                          onClick={() => {
-                            setCycleType('appeal');
-                            setCycleModalOpen(true);
-                          }}
-                        >
-                          ⚖️ File Appeal
-                        </Button>
-                      </Stack>
-                    </Box>
-                    <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, boxShadow: 'none' }}>
-                      {client.applicationCycles && client.applicationCycles.length > 0 ? (
-                        <List disablePadding>
-                          {client.applicationCycles.map((cycle, index) => (
-                            <Paper key={cycle.id || index} sx={{ p: 2, mb: 2, bgcolor: 'background.neutral', boxShadow: 'none', borderLeft: '4px solid', borderColor: cycle.type === 'appeal' ? '#EF4444' : '#F59E0B' }}>
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 700, textTransform: 'capitalize' }}>
-                                  Cycle #{index + 1}: {cycle.type === 'appeal' ? '⚖️ LEGAL APPEAL' : '🔄 RESUBMISSION'} ({cycle.serviceType || client.serviceType})
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  Started: {new Date(cycle.createdAt).toLocaleDateString()}
-                                </Typography>
-                              </Box>
-                              {cycle.refusalReason && (
-                                <Typography variant="body2" color="error.main" sx={{ mb: 1, p: 1, bgcolor: 'rgba(239,68,68,0.08)', borderRadius: 1.5 }}>
-                                  <strong>Refusal Reason:</strong> {cycle.refusalReason}
-                                </Typography>
-                              )}
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
-                                <Typography variant="body2" color="text.secondary">
-                                  {cycle.lawyerAssigned ? `Lawyer: ${cycle.lawyerAssigned}` : 'No lawyer assigned yet'}
-                                </Typography>
-                                <Chip label={cycle.status} color={cycle.type === 'appeal' ? 'error' : 'warning'} size="small" sx={{ fontWeight: 600 }} />
-                              </Box>
-                            </Paper>
-                          ))}
-                        </List>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">
-                          No active visa processing cycles registered for this client. Click button above to initiate a Resubmission or Appeal.
-                        </Typography>
-                      )}
-                    </Paper>
+                    <CaseHistoryTimelineCard
+                      cycles={client.applicationCycles || []}
+                      client={client}
+                      onRefresh={() => queryClient.invalidateQueries({ queryKey: ['clients'] })}
+                      onCreateCycle={(cycleData) => createCycleMutation.mutateAsync(cycleData)}
+                      onUpdateCycle={(id, cycleData) => updateCycleMutation.mutateAsync({ id, data: cycleData })}
+                    />
                   </Box>
 
                   {originalLead && (
