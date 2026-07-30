@@ -27,6 +27,7 @@ import Select from '@mui/material/Select';
 
 // Components & Services
 import { dbService } from '../../services/dbService';
+import dayjs from 'dayjs';
 import PageHeader from '../../components/PageHeader';
 import StatusBadge from '../../components/StatusBadge';
 import AppCard from '../../components/AppCard';
@@ -39,6 +40,7 @@ import { SERVICES, PACKAGES } from '../../constants/mockData';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import AiSummaryModal from '../../components/AiSummaryModal';
 import CredentialsModal from '../../components/CredentialsModal';
+import CaseHistoryTimelineCard from '../../components/CaseHistoryTimelineCard';
 
 export const AdminClientDetails = () => {
   const { id } = useParams();
@@ -155,10 +157,32 @@ export const AdminClientDetails = () => {
   const uploadDocMutation = useMutation({
     mutationFn: dbService.uploadDocument,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
       refetchDocs();
       showAlert('Document uploaded and queued for review', 'success');
     } });
+
+  const createCycleMutation = useMutation({
+    mutationFn: (data) => dbService.createApplicationCycle(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      showAlert('Application cycle initiated successfully', 'success');
+    },
+    onError: (err) => {
+      showAlert(err.response?.data?.message || 'Failed to initiate application cycle', 'error');
+    }
+  });
+
+  const updateCycleMutation = useMutation({
+    mutationFn: ({ id, data }) => dbService.updateApplicationCycle(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      showAlert('Application cycle status updated', 'success');
+    },
+    onError: (err) => {
+      showAlert(err.response?.data?.message || 'Failed to update cycle status', 'error');
+    }
+  });
 
   if (isLoading) {
     return (
@@ -414,32 +438,13 @@ export const AdminClientDetails = () => {
 
                   {/* Application Cycle History */}
                   <Box sx={{ mt: 1 }}>
-                    <Typography variant="h5" sx={{ fontWeight: 600, mb: 1.5 }}>
-                      Application Cycle History
-                    </Typography>
-                    <Paper sx={{ p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 3, boxShadow: 'none' }}>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        {client.applicationCycles && client.applicationCycles.length > 0 ? (
-                          client.applicationCycles.map((cycle, index) => (
-                            <Box key={cycle.id || index} sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', borderTop: index > 0 ? '1px solid' : 'none', borderColor: 'divider', pt: index > 0 ? 2 : 0 }}>
-                              <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: cycle.status.toLowerCase().includes('refused') || cycle.status.toLowerCase().includes('rejected') ? 'error.main' : 'primary.main', mt: 0.7 }} />
-                              <Box sx={{ width: '100%' }}>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 700, textTransform: 'capitalize' }}>
-                                  Cycle #{index + 1}: {cycle.serviceType.replace('_', ' ').toUpperCase()} ({cycle.status})
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  Started: {new Date(cycle.createdAt).toLocaleDateString()}
-                                </Typography>
-                              </Box>
-                            </Box>
-                          ))
-                        ) : (
-                          <Typography variant="body2" color="text.secondary">
-                            No active visa processing cycles registered for this client.
-                          </Typography>
-                        )}
-                      </Box>
-                    </Paper>
+                    <CaseHistoryTimelineCard
+                      cycles={client.applicationCycles || []}
+                      client={client}
+                      onRefresh={() => queryClient.invalidateQueries({ queryKey: ['clients'] })}
+                      onCreateCycle={(cycleData) => createCycleMutation.mutateAsync(cycleData)}
+                      onUpdateCycle={(id, cycleData) => updateCycleMutation.mutateAsync({ id, data: cycleData })}
+                    />
                   </Box>
 
                   <Box sx={{ mt: 2 }}>
@@ -893,15 +898,21 @@ export const AdminClientDetails = () => {
             <Button 
               variant="contained" 
               color="secondary"
-              onClick={() => {
-                if (refusalAction === 'Appeal') {
-                  client.visaStatus = 'Appeal in Progress';
-                  showAlert('Legal appeal workflow initialized successfully!', 'success');
-                } else {
-                  client.visaStatus = 'Resubmission in Progress';
-                  showAlert('Visa resubmission workflow initialized successfully!', 'success');
+              onClick={async () => {
+                try {
+                  await createCycleMutation.mutateAsync({
+                    clientId: client.id,
+                    type: refusalAction === 'Appeal' ? 'appeal' : 'resubmission',
+                    refusalReason,
+                    refusalDate: dayjs().format('YYYY-MM-DD'),
+                    lawyerAssigned: refusalAction === 'Appeal' ? assignedLawyer : undefined,
+                    appealDeadline: refusalAction === 'Appeal' ? appealDeadline : undefined,
+                    serviceType: client.serviceType || 'Visa Resubmission'
+                  });
+                  setRefusalModalOpen(false);
+                } catch (err) {
+                  console.error('Error creating cycle:', err);
                 }
-                setRefusalModalOpen(false);
               }}
             >
               Confirm & Launch
