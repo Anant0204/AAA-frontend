@@ -232,12 +232,12 @@ export const SuperAdminDocumentVerificationDashboard = () => {
         <body>
           <div class="header">
             <div>
-              <div class="company-name">AAA IMMIGRATION SERVICES LLC</div>
-              <div class="company-sub">Calle Gran Vía 28, Centro, 28013 Madrid, España</div>
+              <div class="company-name">AAA Business Consultancy LLC</div>
+              <div class="company-sub">Business Village, Block B, 4th Floor, Office F09, Deira, Dubai, UAE</div>
             </div>
             <div class="doc-meta">
               <div>Date: ${new Date(selectedClient.onboardingDate || selectedClient.createdDate || FALLBACK_DATE).toLocaleDateString()}</div>
-              <div style="margin-top: 3px;">ID: ${selectedClient.id}</div>
+              <div style="margin-top: 3px;">ID: ${selectedClient.clientCode || selectedClient.displayId || selectedClient.id}</div>
             </div>
           </div>
 
@@ -253,11 +253,11 @@ export const SuperAdminDocumentVerificationDashboard = () => {
             </div>
             <div class="info-box">
               <span class="field-label">Passport Number</span>
-              <span class="field-value">${selectedClient.passportNumber || 'G9023812'}</span>
+              <span class="field-value">${selectedClient.passportNumber || 'N/A'}</span>
             </div>
             <div class="info-box">
               <span class="field-label">Date of Birth & Nationality</span>
-              <span class="field-value">${selectedClient.dateOfBirth || '14 DEC 1988'} (${(selectedClient.nationality || 'INDIAN').toUpperCase()})</span>
+              <span class="field-value">${selectedClient.dateOfBirth || 'N/A'} (${(selectedClient.nationality || 'N/A').toUpperCase()})</span>
             </div>
             <div class="info-box">
               <span class="field-label">Primary Email</span>
@@ -273,7 +273,7 @@ export const SuperAdminDocumentVerificationDashboard = () => {
             </div>
             <div class="info-box full-width-box">
               <span class="field-label">Registered Living Address</span>
-              <span class="field-value">${selectedClient.address || 'Calle Gran Vía 28, Centro, 28013 Madrid, España'}</span>
+              <span class="field-value">${selectedClient.address || 'N/A'}</span>
             </div>
           </div>
 
@@ -613,7 +613,7 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                   />
                 </Box>
                 <Typography variant="body2" color="text.secondary">
-                  Client ID: <strong>{selectedClient.id}</strong> | Target Visa: <strong>{SERVICES.find(s => s.id === selectedClient.serviceId)?.name || selectedClient.serviceId || 'Visa'}</strong>
+                  Client ID: <strong>{selectedClient.clientCode || selectedClient.displayId || selectedClient.id}</strong> | Target Visa: <strong>{SERVICES.find(s => s.id === selectedClient.serviceId)?.name || selectedClient.serviceId || 'Visa'}</strong>
                 </Typography>
               </Box>
 
@@ -664,7 +664,7 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                       sx={{ fontWeight: 800, fontSize: '0.72rem' }}
                     />
                     <Chip
-                      label={`ID: ${selectedClient.id || 'N/A'}`}
+                      label={`ID: ${selectedClient.clientCode || selectedClient.displayId || selectedClient.id || 'N/A'}`}
                       variant="outlined"
                       size="small"
                       sx={{ fontSize: '0.68rem', fontWeight: 600, color: '#64748B' }}
@@ -690,7 +690,7 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                       PASSPORT NUMBER
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A', fontSize: '0.85rem' }}>
-                      {selectedClient.passportNumber || 'G9023812'}
+                      {selectedClient.passportNumber || 'N/A'}
                     </Typography>
                   </Box>
 
@@ -699,7 +699,7 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                       DOB & CITIZENSHIP
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A', fontSize: '0.85rem' }}>
-                      {selectedClient.dateOfBirth || '14 DEC 1988'} ({selectedClient.nationality?.toUpperCase() || 'BRITISH'})
+                      {selectedClient.dateOfBirth || 'N/A'} ({selectedClient.nationality?.toUpperCase() || 'N/A'})
                     </Typography>
                   </Box>
 
@@ -717,7 +717,7 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                       REGISTERED ADDRESS
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A', fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {selectedClient.address || 'Calle Gran Vía 28, Madrid, España'}
+                      {selectedClient.address || 'N/A'}
                     </Typography>
                   </Box>
                 </Box>
