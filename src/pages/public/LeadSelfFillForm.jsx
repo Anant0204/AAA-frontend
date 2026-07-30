@@ -1155,6 +1155,19 @@ export const LeadSelfFillForm = () => {
                 Please provide your details and choose a convenient date/time for your Free 20-Minute Eligibility Assessment.
               </p>
 
+              <style>{`
+                .lead-form-grid-2col {
+                  display: grid;
+                  grid-template-columns: 1fr 1fr;
+                  gap: 14px;
+                  margin-bottom: 14px;
+                }
+                @media (max-width: 640px) {
+                  .lead-form-grid-2col {
+                    grid-template-columns: 1fr !important;
+                  }
+                }
+              `}</style>
               <form onSubmit={handleSubmit}>
                 {/* Service Category Dropdown */}
                 <div style={{ marginBottom: "24px" }}>
@@ -1168,20 +1181,14 @@ export const LeadSelfFillForm = () => {
                     style={{ ...inputStyle, color: "#fff", border: "1px solid rgba(102, 126, 234, 0.4)" }}
                   >
                     <option value="visa" style={{ background: "#24243e" }}>✈️ Spain Visa & Residency Services</option>
-                    <option value="property" style={{ background: "#24243e" }}>🏠 Property Investment Guidance Service</option>
-                    <option value="translation" style={{ background: "#24243e" }}>📄 Spanish Sworn Translation Services</option>
+                    <option value="case_assessment" style={{ background: "#24243e" }}>⚖️ Free Case Assessment (Digital Nomad / Non-Lucrative)</option>
+                    <option value="property" style={{ background: "#24243e" }}>🏡 Property Investment & Golden Visa Guidance</option>
+                    <option value="translation" style={{ background: "#24243e" }}>📜 Spanish Sworn Translation Service</option>
                   </select>
                 </div>
 
                 {/* Section: Personal Details */}
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: "14px",
-                    marginBottom: "14px",
-                  }}
-                >
+                <div className="lead-form-grid-2col">
                   <div>
                     <label style={labelStyle}>First Name *</label>
                     <input
@@ -1220,14 +1227,7 @@ export const LeadSelfFillForm = () => {
                   </div>
                 </div>
 
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                    gap: "14px",
-                    marginBottom: "14px",
-                  }}
-                >
+                <div className="lead-form-grid-2col">
                   <div>
                     <label style={labelStyle}>Email Address *</label>
                     <input
@@ -1310,14 +1310,7 @@ export const LeadSelfFillForm = () => {
                   </div>
                 </div>
 
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: "14px",
-                    marginBottom: "14px",
-                  }}
-                >
+                <div className="lead-form-grid-2col">
                   <SearchableCountrySelect
                     label="Nationality *"
                     value={form.nationality}
@@ -1342,14 +1335,7 @@ export const LeadSelfFillForm = () => {
                 {/* Section: Visa Program (only for visa category) */}
                 {serviceCategory === 'visa' && (
                   <>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: "14px",
-                        marginBottom: "28px",
-                      }}
-                    >
+                    <div className="lead-form-grid-2col" style={{ marginBottom: "28px" }}>
                       <div>
                         <label style={labelStyle}>Visa Program of Interest</label>
                         <select
@@ -1434,14 +1420,7 @@ export const LeadSelfFillForm = () => {
                 {/* Section: Property Preferences (only for property category) */}
                 {serviceCategory === 'property' && (
                   <>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: "14px",
-                        marginBottom: "28px",
-                      }}
-                    >
+                    <div className="lead-form-grid-2col" style={{ marginBottom: "28px" }}>
                       <div>
                         <label style={labelStyle}>Preferable Area in Spain *</label>
                         <select
