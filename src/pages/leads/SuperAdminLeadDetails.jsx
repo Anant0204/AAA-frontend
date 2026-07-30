@@ -211,7 +211,7 @@ export const SuperAdminLeadDetails = () => {
     queryFn: dbService.getLeadStages
   });
 
-  const leadStatuses = leadStages.map(s => s.name);
+  const leadStatuses = Array.from(new Set([...leadStages.map(s => s.name), 'No Show']));
 
   const { data: customizationSettings } = useQuery({
     queryKey: ['customization-settings'],

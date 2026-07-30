@@ -407,7 +407,7 @@ export const OperationsLeadList = () => {
     { id: 'source', label: 'Source', sortable: true },
   ];
 
-  const leadStatuses = Array.from(new Set([...leadStages.map(s => s.name)]));
+  const leadStatuses = Array.from(new Set([...leadStages.map(s => s.name), 'No Show']));
 
   return (
     <Box>
