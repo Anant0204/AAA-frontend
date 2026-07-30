@@ -134,8 +134,9 @@ export const OperationsDocumentVerificationDashboard = () => {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>CLIENT_PROFILE_${selectedClient.id}</title>
+          <title>CLIENT_PROFILE_${selectedClient.clientCode || selectedClient.displayId || selectedClient.id}</title>
           <style>
+            @page { margin: 0; }
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
             body {
               font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -255,8 +256,8 @@ export const OperationsDocumentVerificationDashboard = () => {
               <span class="field-value">${selectedClient.passportNumber || 'N/A'}</span>
             </div>
             <div class="info-box">
-              <span class="field-label">Date of Birth & Nationality</span>
-              <span class="field-value">${selectedClient.dateOfBirth || 'N/A'} (${(selectedClient.nationality || 'N/A').toUpperCase()})</span>
+              <span class="field-label">Citizenship / Nationality</span>
+              <span class="field-value">${(selectedClient.nationality || 'N/A').toUpperCase()}</span>
             </div>
             <div class="info-box">
               <span class="field-label">Primary Email</span>
@@ -581,10 +582,10 @@ export const OperationsDocumentVerificationDashboard = () => {
 
                   <Box className="col-span-12 sm:col-span-4">
                     <Typography variant="caption" sx={{ color: '#64748B', display: 'block', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase' }}>
-                      DOB & CITIZENSHIP
+                      CITIZENSHIP
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A', fontSize: '0.85rem' }}>
-                      {selectedClient.dateOfBirth?.split('-').reverse().join('-') || 'N/A'} ({selectedClient.nationality?.toUpperCase() || 'N/A'})
+                      {selectedClient.nationality?.toUpperCase() || 'N/A'}
                     </Typography>
                   </Box>
 
