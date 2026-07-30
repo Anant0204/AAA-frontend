@@ -240,6 +240,14 @@ export const Settings = () => {
 
   const [recordingStorage, setRecordingStorage] = useState('cloud');
 
+  // Routing Rules State
+  const [ruleModalOpen, setRuleModalOpen] = useState(false);
+  const [ruleModalMode, setRuleModalMode] = useState('create');
+  const [editingRuleId, setEditingRuleId] = useState(null);
+  const [ruleNationality, setRuleNationality] = useState('');
+  const [ruleCountryCode, setRuleCountryCode] = useState('');
+  const [ruleConsultantId, setRuleConsultantId] = useState('');
+
   // Mutations
   const updateGeneralSettingsMutation = useMutation({
     mutationFn: dbService.updateSettings,
@@ -295,6 +303,72 @@ export const Settings = () => {
       showAlert(err?.message || 'Failed to delete package.', 'error');
     }
   });
+
+  // --- Routing Rules Handlers ---
+  const currentRoutingRules = generalSettings?.routingRules || [];
+
+  const handleOpenCreateRuleModal = () => {
+    setRuleModalMode('create');
+    setEditingRuleId(null);
+    setRuleNationality('');
+    setRuleCountryCode('');
+    setRuleConsultantId('');
+    setRuleModalOpen(true);
+  };
+
+  const handleOpenEditRuleModal = (rule) => {
+    setRuleModalMode('edit');
+    setEditingRuleId(rule.id);
+    setRuleNationality(rule.nationality || '');
+    setRuleCountryCode(rule.country || '');
+    setRuleConsultantId(rule.consultantId || '');
+    setRuleModalOpen(true);
+  };
+
+  const handleDeleteRule = (id) => {
+    const updatedRules = currentRoutingRules.filter(r => r.id !== id);
+    updateGeneralSettingsMutation.mutate({
+      ...generalSettings,
+      routingRules: updatedRules
+    }, {
+      onSuccess: () => showAlert('Routing rule deleted successfully.', 'success')
+    });
+  };
+
+  const handleSaveRuleForm = () => {
+    if (!ruleNationality.trim() || !ruleConsultantId) {
+      showAlert('Nationality and Consultant are required.', 'warning');
+      return;
+    }
+    const selectedConsultant = consultants.find(c => c.id === ruleConsultantId);
+    if (!selectedConsultant) return;
+
+    const payload = {
+      id: editingRuleId || `rule_${Date.now()}`,
+      nationality: ruleNationality.trim(),
+      country: ruleCountryCode.trim(),
+      consultant: selectedConsultant.name,
+      consultantId: selectedConsultant.id
+    };
+
+    let updatedRules = [...currentRoutingRules];
+    if (ruleModalMode === 'create') {
+      updatedRules.push(payload);
+    } else {
+      updatedRules = updatedRules.map(r => r.id === editingRuleId ? payload : r);
+    }
+
+    updateGeneralSettingsMutation.mutate({
+      ...generalSettings,
+      routingRules: updatedRules
+    }, {
+      onSuccess: () => {
+        showAlert(`Routing rule ${ruleModalMode === 'create' ? 'created' : 'updated'} successfully!`, 'success');
+        setRuleModalOpen(false);
+      }
+    });
+  };
+  // ------------------------------
 
   const handleOpenCreatePkgModal = () => {
     setPkgModalMode('create');
@@ -1742,13 +1816,15 @@ export const Settings = () => {
           { id: 6, nationality: 'Emirati', country: 'UAE', consultant: 'Wael Madi (CEO)', consultantId: 'c3' },
           { id: 7, nationality: 'Spanish-Speaking', country: 'LATAM', consultant: 'Sofia Rodriguez', consultantId: 'c1' },
         ];
+        const displayRules = currentRoutingRules.length > 0 ? currentRoutingRules : defaultRules;
+
         return (
           <AppCard title="Lead Auto-Routing Rules" subheader="Configure automatic consultant assignment based on client nationality or country of origin. When a new lead arrives, the system matches them to the appropriate consultant.">
             <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider', mt: 1, overflowX: 'auto' }}>
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Rule #</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Rule</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Client Nationality / Region</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Country Code</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Auto-Assigned Consultant</TableCell>
@@ -1757,9 +1833,9 @@ export const Settings = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {defaultRules.map((rule) => (
+                  {displayRules.map((rule, idx) => (
                     <TableRow key={rule.id} hover>
-                      <TableCell sx={{ fontWeight: 600 }}>#{rule.id}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>#{idx + 1}</TableCell>
                       <TableCell>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>{rule.nationality}</Typography>
                       </TableCell>
@@ -1769,7 +1845,7 @@ export const Settings = () => {
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Box sx={{ width: 28, height: 28, borderRadius: '50%', bgcolor: 'secondary.main', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.7rem', fontWeight: 700 }}>
-                            {rule.consultant.split(' ').map(w => w[0]).join('')}
+                            {rule.consultant ? rule.consultant.split(' ').map(w => w[0]).join('') : '?'}
                           </Box>
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>{rule.consultant}</Typography>
                         </Box>
@@ -1779,8 +1855,8 @@ export const Settings = () => {
                       </TableCell>
                       <TableCell align="right">
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
-                          <IconButton size="small" color="primary"><EditIcon fontSize="small" /></IconButton>
-                          <IconButton size="small" color="error"><DeleteOutlineIcon fontSize="small" /></IconButton>
+                          <IconButton size="small" color="primary" onClick={() => handleOpenEditRuleModal(rule)}><EditIcon fontSize="small" /></IconButton>
+                          <IconButton size="small" color="error" onClick={() => handleDeleteRule(rule.id)}><DeleteOutlineIcon fontSize="small" /></IconButton>
                         </Box>
                       </TableCell>
                     </TableRow>
@@ -1794,7 +1870,7 @@ export const Settings = () => {
                   <strong>How it works:</strong> When a new lead is created, the system checks nationality → matches against routing rules → auto-assigns the consultant. If no rule matches, the lead remains unassigned for manual assignment.
                 </Typography>
               </Paper>
-              <Button variant="contained" color="primary" startIcon={<AddIcon />} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, whiteSpace: 'nowrap' }}>
+              <Button onClick={handleOpenCreateRuleModal} variant="contained" color="primary" startIcon={<AddIcon />} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, whiteSpace: 'nowrap' }}>
                 Add Routing Rule
               </Button>
             </Box>
@@ -2593,6 +2669,50 @@ export const Settings = () => {
       </Dialog>
 
       {/* EDIT TEMPLATE MODAL */}
+
+      {/* ROUTING RULE MODAL */}
+      <Dialog open={ruleModalOpen} onClose={() => setRuleModalOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ fontWeight: 800, fontFamily: "'Outfit', sans-serif", color: '#051A3B' }}>
+          {ruleModalMode === 'create' ? 'Add New Routing Rule' : 'Edit Routing Rule'}
+        </DialogTitle>
+        <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 3 }}>
+          <TextField
+            label="Client Nationality / Region"
+            placeholder="e.g. Canadian, Russian, Emirati"
+            value={ruleNationality}
+            onChange={(e) => setRuleNationality(e.target.value)}
+            fullWidth
+            required
+          />
+          <TextField
+            label="Country Code (Optional)"
+            placeholder="e.g. CA, RU, UAE"
+            value={ruleCountryCode}
+            onChange={(e) => setRuleCountryCode(e.target.value)}
+            fullWidth
+          />
+          <FormControl fullWidth required>
+            <InputLabel>Auto-Assigned Consultant</InputLabel>
+            <Select
+              value={ruleConsultantId}
+              label="Auto-Assigned Consultant"
+              onChange={(e) => setRuleConsultantId(e.target.value)}
+            >
+              {consultants.map(c => (
+                <MenuItem key={c.id} value={c.id}>
+                  {c.name} ({c.email})
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button onClick={() => setRuleModalOpen(false)} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
+          <Button onClick={handleSaveRuleForm} variant="contained" color="primary" sx={{ fontWeight: 700 }}>
+            {ruleModalMode === 'create' ? 'Create Rule' : 'Save Changes'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
     </Box>
   );
