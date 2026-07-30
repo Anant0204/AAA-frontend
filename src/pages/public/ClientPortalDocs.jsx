@@ -1165,8 +1165,8 @@ export const ClientPortalDocs = () => {
       sx={{
         background: 'radial-gradient(circle at 50% 0%, #FAF6ED 0%, #F8FAFC 100%)',
         minHeight: '100vh',
-        py: 4,
-        px: { xs: 2, md: 6 },
+        py: { xs: 2.5, sm: 4 },
+        px: { xs: 1.5, sm: 3, md: 6 },
         textAlign: isRTL ? 'right' : 'left',
         fontFamily: 'Plus Jakarta Sans, sans-serif'
       }}
@@ -1177,24 +1177,25 @@ export const ClientPortalDocs = () => {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          mb: 4,
+          mb: { xs: 2, sm: 4 },
           maxWidth: 950,
           mx: 'auto',
-          flexDirection: isRTL ? 'row-reverse' : 'row',
-          px: 3,
-          py: 2,
-          borderRadius: 3.5,
+          flexDirection: { xs: 'column', sm: isRTL ? 'row-reverse' : 'row' },
+          gap: { xs: 1.5, sm: 0 },
+          px: { xs: 2, sm: 3 },
+          py: { xs: 1.5, sm: 2 },
+          borderRadius: { xs: 2.5, sm: 3.5 },
           bgcolor: 'rgba(255, 255, 255, 0.7)',
           backdropFilter: 'blur(12px)',
           border: '1px solid rgba(255, 255, 255, 0.8)',
           boxShadow: '0 8px 30px rgba(5, 26, 59, 0.03)'
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
           <Box
             sx={{
-              width: 42,
-              height: 42,
+              width: { xs: 36, sm: 42 },
+              height: { xs: 36, sm: 42 },
               borderRadius: 2,
               background: 'linear-gradient(135deg, #051A3B 0%, #C59B27 100%)',
               display: 'flex',
@@ -1202,23 +1203,23 @@ export const ClientPortalDocs = () => {
               justifyContent: 'center',
               color: 'white',
               fontWeight: 900,
-              fontSize: '1.25rem',
+              fontSize: { xs: '1rem', sm: '1.25rem' },
               boxShadow: '0 4px 12px rgba(197, 155, 39, 0.2)'
             }}
           >
             A³
           </Box>
           <Box sx={{ textAlign: isRTL ? 'right' : 'left' }}>
-            <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1.2, color: '#051A3B', fontFamily: 'Outfit, sans-serif' }}>{t('welcome')}, {client.firstName} {client.lastName}</Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>Secure Relocation & Booking Portal ({client.id})</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1.2, color: '#051A3B', fontFamily: 'Outfit, sans-serif', fontSize: { xs: '0.95rem', sm: '1.25rem' } }}>{t('welcome')}, {client.firstName} {client.lastName}</Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>Secure Relocation & Booking Portal ({client.clientCode || 'Client'})</Typography>
           </Box>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-          <FormControl size="small" sx={{ minWidth: 120 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+          <FormControl size="small" sx={{ minWidth: { xs: 100, sm: 120 } }}>
             <Select
               value={portalLang}
               onChange={(e) => changeLanguage(e.target.value)}
-              sx={{ borderRadius: 2.5, height: 36, bgcolor: 'background.paper', fontSize: '0.85rem', fontWeight: 600, border: '1px solid rgba(0,0,0,0.06)' }}
+              sx={{ borderRadius: 2.5, height: { xs: 32, sm: 36 }, bgcolor: 'background.paper', fontSize: { xs: '0.75rem', sm: '0.85rem' }, fontWeight: 600, border: '1px solid rgba(0,0,0,0.06)' }}
             >
               <MenuItem value="English">English 🇺🇸</MenuItem>
               <MenuItem value="Arabic">العربية 🇦🇪</MenuItem>
@@ -1229,14 +1230,16 @@ export const ClientPortalDocs = () => {
             </Select>
           </FormControl>
           <Button
-            startIcon={<LogoutIcon />}
+            startIcon={<LogoutIcon sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }} />}
             onClick={handleLogout}
             color="inherit"
             sx={{
               textTransform: 'none',
               fontWeight: 800,
+              fontSize: { xs: '0.8rem', sm: '0.875rem' },
               color: '#051A3B',
               borderRadius: 2.5,
+              py: { xs: 0.5, sm: 1 },
               '&:hover': { color: '#C59B27', bgcolor: 'transparent' }
             }}
           >
@@ -1250,11 +1253,11 @@ export const ClientPortalDocs = () => {
         sx={{
           maxWidth: 950,
           mx: 'auto',
-          mb: 4,
-          borderRadius: 4,
+          mb: { xs: 2, sm: 4 },
+          borderRadius: { xs: 3, sm: 4 },
           overflow: 'hidden',
           position: 'relative',
-          height: { xs: 150, sm: 190 },
+          height: { xs: 120, sm: 190 },
           boxShadow: '0 12px 36px rgba(5, 26, 59, 0.06)',
           border: '1px solid rgba(197, 155, 39, 0.15)'
         }}
@@ -1277,7 +1280,7 @@ export const ClientPortalDocs = () => {
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
-            px: { xs: 3, sm: 5 },
+            px: { xs: 2.5, sm: 5 },
             color: 'white',
             textAlign: isRTL ? 'right' : 'left'
           }}
@@ -1289,13 +1292,13 @@ export const ClientPortalDocs = () => {
               fontWeight: 900,
               letterSpacing: '-0.03em',
               mb: 0.5,
-              fontSize: { xs: '1.5rem', sm: '2rem' },
+              fontSize: { xs: '1.15rem', sm: '2rem' },
               color: '#E5C058'
             }}
           >
             Your Spain Immigration Journey
           </Typography>
-          <Typography variant="body2" sx={{ opacity: 0.9, maxWidth: 500, fontWeight: 500, fontSize: { xs: '0.75rem', sm: '0.825rem' }, lineHeight: 1.5 }}>
+          <Typography variant="body2" sx={{ opacity: 0.9, maxWidth: 500, fontWeight: 500, fontSize: { xs: '0.7rem', sm: '0.825rem' }, lineHeight: 1.35 }}>
             Track your visa application, complete certified sworn translations, upload required compliance documents, and launch your new relocation lifestyle.
           </Typography>
         </Box>
@@ -1303,11 +1306,15 @@ export const ClientPortalDocs = () => {
 
       {/* Tabs */}
       {!isTranslationClient && (
-        <Box sx={{ maxWidth: 950, mx: 'auto', mb: 3 }}>
+        <Box sx={{ maxWidth: 950, mx: 'auto', mb: { xs: 2, sm: 3 } }}>
           <Tabs
             value={tabValue}
             onChange={(e, val) => setTabValue(val)}
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
             sx={{
+              minHeight: { xs: 36, sm: 48 },
               borderBottom: 1,
               borderColor: 'divider',
               '& .MuiTabs-indicator': {
@@ -1323,7 +1330,9 @@ export const ClientPortalDocs = () => {
                 textTransform: 'none',
                 fontWeight: 800,
                 fontFamily: 'Outfit, sans-serif',
-                fontSize: '0.9rem',
+                fontSize: { xs: '0.75rem', sm: '0.9rem' },
+                minHeight: { xs: 36, sm: 48 },
+                px: { xs: 1.25, sm: 2.5 },
                 color: tabValue === 0 ? '#C59B27' : 'text.secondary',
                 '&.Mui-selected': { color: '#C59B27' }
               }}
@@ -1334,7 +1343,9 @@ export const ClientPortalDocs = () => {
                 textTransform: 'none',
                 fontWeight: 800,
                 fontFamily: 'Outfit, sans-serif',
-                fontSize: '0.9rem',
+                fontSize: { xs: '0.75rem', sm: '0.9rem' },
+                minHeight: { xs: 36, sm: 48 },
+                px: { xs: 1.25, sm: 2.5 },
                 color: tabValue === 1 ? '#C59B27' : 'text.secondary',
                 '&.Mui-selected': { color: '#C59B27' }
               }}
@@ -1346,7 +1357,9 @@ export const ClientPortalDocs = () => {
                 textTransform: 'none',
                 fontWeight: 800,
                 fontFamily: 'Outfit, sans-serif',
-                fontSize: '0.9rem',
+                fontSize: { xs: '0.75rem', sm: '0.9rem' },
+                minHeight: { xs: 36, sm: 48 },
+                px: { xs: 1.25, sm: 2.5 },
                 color: tabValue === 2 ? '#C59B27' : !isClientPaid ? 'text.disabled' : 'text.secondary',
                 '&.Mui-selected': { color: '#C59B27' }
               }}

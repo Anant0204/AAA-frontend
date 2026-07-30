@@ -78,13 +78,15 @@ export const CaseActivityTimeline = ({ clientId, leadId, applicationId }) => {
   }
 
   return (
-    <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: '#FAFBFD' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
-        <HistoryIcon sx={{ color: 'primary.main' }} />
-        <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
-          Activity Log & Case Timeline
-        </Typography>
-        <Chip label={`${timeline.length} Events`} size="small" variant="outlined" sx={{ ml: 'auto', fontWeight: 600 }} />
+    <Paper elevation={0} sx={{ p: { xs: 1.5, sm: 2 }, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: '#FAFBFD', width: '100%', overflow: 'hidden' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 2, pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+          <HistoryIcon sx={{ color: 'primary.main', fontSize: { xs: '1.1rem', sm: '1.25rem' } }} />
+          <Typography variant="h6" sx={{ fontWeight: 700, fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+            Activity Log & Case Timeline
+          </Typography>
+        </Box>
+        <Chip label={`${timeline.length} Events`} size="small" variant="outlined" sx={{ fontWeight: 600, fontSize: { xs: '0.68rem', sm: '0.75rem' }, flexShrink: 0 }} />
       </Box>
 
       {timeline.length === 0 ? (
@@ -92,16 +94,16 @@ export const CaseActivityTimeline = ({ clientId, leadId, applicationId }) => {
           <Typography variant="body2">No activity recorded yet for this profile.</Typography>
         </Box>
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
           {timeline.map((item, idx) => (
-            <Box key={item.id || idx} sx={{ display: 'flex', gap: 2, position: 'relative' }}>
+            <Box key={item.id || idx} sx={{ display: 'flex', gap: { xs: 1, sm: 2 }, position: 'relative', width: '100%', minWidth: 0 }}>
               {/* Timeline Connector Line */}
               {idx < timeline.length - 1 && (
                 <Box
                   sx={{
                     position: 'absolute',
-                    left: 17,
-                    top: 36,
+                    left: { xs: 13, sm: 17 },
+                    top: { xs: 30, sm: 36 },
                     bottom: -16,
                     width: 2,
                     bgcolor: 'divider'
@@ -112,8 +114,8 @@ export const CaseActivityTimeline = ({ clientId, leadId, applicationId }) => {
               {/* Icon Container */}
               <Box
                 sx={{
-                  width: 36,
-                  height: 36,
+                  width: { xs: 28, sm: 36 },
+                  height: { xs: 28, sm: 36 },
                   borderRadius: '50%',
                   bgcolor: 'background.paper',
                   border: '1px solid',
@@ -134,36 +136,38 @@ export const CaseActivityTimeline = ({ clientId, leadId, applicationId }) => {
                 elevation={0}
                 sx={{
                   flexGrow: 1,
-                  p: 1.5,
+                  minWidth: 0,
+                  p: { xs: 1.25, sm: 1.5 },
                   borderRadius: 2,
                   border: '1px solid',
                   borderColor: 'divider',
-                  bgcolor: 'background.paper'
+                  bgcolor: 'background.paper',
+                  overflow: 'hidden'
                 }}
               >
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.5 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', gap: 0.5, mb: 0.75 }}>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.75, minWidth: 0, maxWidth: '100%' }}>
                     <Chip
                       label={item.type.replace(/_/g, ' ')}
                       color={getEventBadgeColor(item.type)}
                       size="small"
-                      sx={{ fontSize: '0.65rem', height: 20, fontWeight: 700 }}
+                      sx={{ fontSize: { xs: '0.6rem', sm: '0.65rem' }, height: { xs: 18, sm: 20 }, fontWeight: 700, maxPx: '100%' }}
                     />
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.85rem' }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: { xs: '0.78rem', sm: '0.85rem' }, wordBreak: 'break-word' }}>
                       {item.actorName}
                     </Typography>
                     {item.actorRole && (
-                      <Typography variant="caption" sx={{ color: 'text.secondary', bgcolor: '#F1F5F9', px: 0.8, py: 0.2, borderRadius: 1 }}>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', bgcolor: '#F1F5F9', px: 0.8, py: 0.2, borderRadius: 1, fontSize: '0.65rem', flexShrink: 0 }}>
                         {item.actorRole}
                       </Typography>
                     )}
                   </Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, fontSize: { xs: '0.68rem', sm: '0.75rem' }, flexShrink: 0 }}>
                     {dayjs(item.timestamp).format('DD/MM/YYYY, hh:mm A')}
                   </Typography>
                 </Box>
 
-                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', color: 'text.primary', fontSize: '0.85rem' }}>
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', color: 'text.primary', fontSize: { xs: '0.78rem', sm: '0.85rem' }, wordBreak: 'break-word' }}>
                   {item.description}
                 </Typography>
               </Paper>
