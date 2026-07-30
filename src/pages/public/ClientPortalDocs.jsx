@@ -2385,6 +2385,7 @@ export const ClientPortalDocs = () => {
                               price: Number(pkg.price) || 0,
                               additionalApplicantPrice: Number(pkg.additionalApplicantPrice) || 500,
                               isRecommended: !!pkg.isRecommended,
+                              isFixedPrice: !!pkg.isFixedPrice,
                               refundableText: pkg.refundableText || (pkg.isRecommended ? '50% refundable if visa is rejected (Subject to T&C)' : 'Standard Package'),
                               description: pkg.description || '',
                               includes: Array.isArray(pkg.includes) ? pkg.includes : []
@@ -2396,7 +2397,7 @@ export const ClientPortalDocs = () => {
                           const isOptA = pkgCode === 'OPTION_A' || pkgCode === 'opt_a';
                           const effectiveAddCount = isOptA ? 0 : addApplicants;
                           const basePrice = pkgItem.price || 0;
-                          const addCost = effectiveAddCount * (pkgItem.additionalApplicantPrice || 500);
+                          const addCost = pkgItem.isFixedPrice ? 0 : (effectiveAddCount * (pkgItem.additionalApplicantPrice || 500));
                           const totalBaseBeforeCredit = basePrice + addCost;
                           const isCreditApplicable = (pkgCode === 'OPTION_B' || pkgCode === 'OPTION_D' || pkgCode === 'premium' || pkgCode === 'full_process') && assessmentCredit > 0;
                           const finalCardPrice = isCreditApplicable ? Math.max(0, totalBaseBeforeCredit - assessmentCredit) : totalBaseBeforeCredit;
@@ -2526,6 +2527,7 @@ export const ClientPortalDocs = () => {
                                 price: Number(pkg.price) || 0,
                                 additionalApplicantPrice: Number(pkg.additionalApplicantPrice) || 500,
                                 isRecommended: !!pkg.isRecommended,
+                                isFixedPrice: !!pkg.isFixedPrice,
                                 includes: Array.isArray(pkg.includes) ? pkg.includes : []
                               }))
                             : DEFAULT_PACKAGES;
@@ -2534,7 +2536,7 @@ export const ClientPortalDocs = () => {
                           const isOptA = activePkgCode === 'OPTION_A' || activePkgCode === 'opt_a';
                           const effectiveAddCount = isOptA ? 0 : addApplicants;
                           const baseFee = activePkg.price || 0;
-                          const addFee = effectiveAddCount * (activePkg.additionalApplicantPrice || 500);
+                          const addFee = activePkg.isFixedPrice ? 0 : (effectiveAddCount * (activePkg.additionalApplicantPrice || 500));
                           const totalBase = baseFee + addFee;
                           const creditEligible = (activePkgCode === 'OPTION_B' || activePkgCode === 'OPTION_D' || activePkgCode === 'premium' || activePkgCode === 'full_process') && assessmentCredit > 0;
                           const creditDeduction = creditEligible ? 250 : 0;
@@ -3027,7 +3029,7 @@ export const ClientPortalDocs = () => {
             const effectiveAddCount = isOptA ? 0 : addApplicants;
 
             const basePrice = currentPkg?.price || (selectedPackage === 'premium' ? 4750 : (selectedPackage === 'relocation' ? 1750 : 3500));
-            const addPrice = (effectiveAddCount * (currentPkg?.additionalApplicantPrice || 500));
+            const addPrice = currentPkg?.isFixedPrice ? 0 : (effectiveAddCount * (currentPkg?.additionalApplicantPrice || 500));
             const subTotal = Math.max(0, basePrice + addPrice - assessmentCredit);
             const vat5 = subTotal * 0.05;
             const grandTotal = subTotal * 1.05;
@@ -3160,7 +3162,7 @@ export const ClientPortalDocs = () => {
               const isOptA = selectedPackage === 'OPTION_A' || selectedPackage === 'opt_a' || currentPkg?.code === 'OPTION_A' || currentPkg?.code === 'opt_a';
               const effectiveAddCount = isOptA ? 0 : addApplicants;
               const baseFee = currentPkg?.price || (selectedPackage === 'premium' ? 4750 : (selectedPackage === 'relocation' ? 1750 : 3500));
-              const addPrice = (effectiveAddCount * (currentPkg?.additionalApplicantPrice || 500));
+              const addPrice = currentPkg?.isFixedPrice ? 0 : (effectiveAddCount * (currentPkg?.additionalApplicantPrice || 500));
               const subTotal = Math.max(0, baseFee + addPrice - assessmentCredit);
 
               selectAndPayPackageMutation.mutate({
