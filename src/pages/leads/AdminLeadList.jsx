@@ -189,12 +189,14 @@ export const AdminLeadList = () => {
   // Fetch Leads
   const { data: leads = [], isLoading } = useQuery({
     queryKey: ['leads'],
-    queryFn: dbService.getLeads });
+    queryFn: dbService.getLeads
+  });
 
   // Fetch Agents dynamically
   const { data: agents = [] } = useQuery({
     queryKey: ['agents'],
-    queryFn: dbService.getAgents });
+    queryFn: dbService.getAgents
+  });
 
   // Mutations
   const createLeadMutation = useMutation({
@@ -216,7 +218,8 @@ export const AdminLeadList = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       showAlert('Lead deleted successfully', 'success');
-    } });
+    }
+  });
 
   const assignAgentMutation = useMutation({
     mutationFn: ({ leadId, agentId }) => dbService.assignAgent(leadId, agentId),
@@ -225,14 +228,16 @@ export const AdminLeadList = () => {
       showAlert('Agent assigned successfully', 'success');
       setAssignModalOpen(false);
       setTargetConsultantId('');
-    } });
+    }
+  });
 
   const updateLeadStatusMutation = useMutation({
     mutationFn: ({ leadId, status }) => dbService.updateLeadStatus(leadId, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       showAlert('Lead status adjusted successfully!', 'success');
-    } });
+    }
+  });
 
   const handleStatusChange = (leadId, status) => {
     updateLeadStatusMutation.mutate({ leadId, status });
@@ -246,24 +251,27 @@ export const AdminLeadList = () => {
     watch,
     control,
     formState: { errors } } = useForm({
-    resolver: yupResolver(leadSchema),
-    defaultValues: {
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      nationality: '',
-      preferredLanguage: 'English',
-      serviceId: 'dnv',
-      applicantsCount: 1,
-      source: 'Google Ads',
-      notes: '',
-      meetingPreferredDate: '',
-      meetingPreferredTime: '' } });
+      resolver: yupResolver(leadSchema),
+      defaultValues: {
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        nationality: '',
+        preferredLanguage: 'English',
+        serviceId: 'dnv',
+        applicantsCount: 1,
+        source: 'Google Ads',
+        notes: '',
+        meetingPreferredDate: '',
+        meetingPreferredTime: ''
+      }
+    });
 
   const { data: leadStages = [] } = useQuery({
     queryKey: ['lead-stages'],
-    queryFn: dbService.getLeadStages });
+    queryFn: dbService.getLeadStages
+  });
 
   const watchServiceId = watch('serviceId');
   const watchSource = watch('source');
@@ -276,7 +284,8 @@ export const AdminLeadList = () => {
     createLeadMutation.mutate({
       ...data,
       status: defaultStatus,
-      assignedConsultantId: '' });
+      assignedConsultantId: ''
+    });
   };
 
   const handleOpenAssignModal = (lead) => {
@@ -289,7 +298,8 @@ export const AdminLeadList = () => {
     if (!targetConsultantId) return;
     assignAgentMutation.mutate({
       leadId: selectedLead.id,
-      agentId: targetConsultantId });
+      agentId: targetConsultantId
+    });
   };
 
   const handleDeleteLead = (id) => {
@@ -365,19 +375,22 @@ export const AdminLeadList = () => {
       id: 'name',
       label: 'Name',
       sortable: true,
-      render: (row) => `${row.firstName} ${row.lastName}` },
+      render: (row) => `${row.firstName} ${row.lastName}`
+    },
     {
       id: 'createdDate',
       label: 'Created Date',
       sortable: true,
-      render: (row) => dayjs(row.createdDate || row.createdAt).format('DD/MM/YYYY') },
+      render: (row) => dayjs(row.createdDate || row.createdAt).format('DD/MM/YYYY')
+    },
     { id: 'phone', label: 'Phone', sortable: false },
     { id: 'email', label: 'Email', sortable: false },
     { id: 'nationality', label: 'Nationality', sortable: true },
     {
       id: 'service',
       label: 'Service',
-      render: (row) => SERVICES.find((s) => s.id === row.serviceId)?.name || row.serviceId },
+      render: (row) => SERVICES.find((s) => s.id === row.serviceId)?.name || row.serviceId
+    },
     {
       id: 'status',
       label: 'Status',
@@ -403,7 +416,8 @@ export const AdminLeadList = () => {
       render: (row) => {
         const agent = agents.find((c) => c.id === row.assignedConsultantId);
         return agent ? agent.name : <Typography variant="caption" color="text.secondary">Unassigned</Typography>;
-      } },
+      }
+    },
     { id: 'source', label: 'Source', sortable: true },
   ];
 
@@ -457,7 +471,8 @@ export const AdminLeadList = () => {
               width: '6px',
               height: '100%',
               backgroundColor: cardInfo.color,
-              borderRadius: '12px 0 0 12px' }
+              borderRadius: '12px 0 0 12px'
+            }
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -499,7 +514,8 @@ export const AdminLeadList = () => {
                     color: '#fff',
                     fontSize: '0.75rem',
                     fontWeight: 700,
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.08)'
+                  }}
                 >
                   {parseFloat(cardInfo.trend) >= 0 ? '↑' : '↓'} {cardInfo.trend}
                 </Box>
@@ -547,9 +563,9 @@ export const AdminLeadList = () => {
 
             const isActive =
               preset.key === 'today' ? startDate === todayStr && endDate === todayStr :
-              preset.key === '7d' ? startDate === sevenDaysAgoStr && endDate === todayStr :
-              preset.key === '30d' ? startDate === thirtyDaysAgoStr && endDate === todayStr :
-              preset.key === 'all' ? !startDate && !endDate : false;
+                preset.key === '7d' ? startDate === sevenDaysAgoStr && endDate === todayStr :
+                  preset.key === '30d' ? startDate === thirtyDaysAgoStr && endDate === todayStr :
+                    preset.key === 'all' ? !startDate && !endDate : false;
             return (
               <Button
                 key={preset.key}
@@ -850,7 +866,7 @@ export const AdminLeadList = () => {
                   <input
                     type="date"
                     {...register('meetingPreferredDate')}
-                    onClick={(e) => { try { if (e.target.showPicker) e.target.showPicker(); } catch (err) {} }}
+                    onClick={(e) => { try { if (e.target.showPicker) e.target.showPicker(); } catch (err) { } }}
                     style={{
                       position: 'absolute',
                       top: 0,
