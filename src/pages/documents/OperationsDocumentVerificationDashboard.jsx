@@ -235,7 +235,7 @@ export const OperationsDocumentVerificationDashboard = () => {
               <div class="company-sub">Business Village, Block B, 4th Floor, Office F09, Deira, Dubai, UAE</div>
             </div>
             <div class="doc-meta">
-              <div>Date: ${new Date(selectedClient.onboardingDate || selectedClient.createdDate || FALLBACK_DATE).toLocaleDateString()}</div>
+              <div>Date: ${new Date(selectedClient.onboardingDate || selectedClient.createdDate || FALLBACK_DATE).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}</div>
               <div style="margin-top: 3px;">ID: ${selectedClient.clientCode || selectedClient.displayId || selectedClient.id}</div>
             </div>
           </div>
@@ -266,13 +266,9 @@ export const OperationsDocumentVerificationDashboard = () => {
               <span class="field-label">Phone Number</span>
               <span class="field-value">${selectedClient.phone || 'N/A'}</span>
             </div>
-            <div class="info-box">
+            <div class="info-box full-width-box">
               <span class="field-label">Communication Language</span>
               <span class="field-value">${selectedClient.preferredLanguage || 'English'}</span>
-            </div>
-            <div class="info-box full-width-box">
-              <span class="field-label">Registered Living Address</span>
-              <span class="field-value">${selectedClient.address || 'N/A'}</span>
             </div>
           </div>
 
@@ -572,9 +568,9 @@ export const OperationsDocumentVerificationDashboard = () => {
                   </Button>
                 </Box>
 
-                {/* Key Verification Metadata 2-Row Compact Grid */}
+                {/* Key Verification Metadata Compact Grid */}
                 <Box className="grid grid-cols-12 gap-4">
-                  <Box className="col-span-12 sm:col-span-6 md:col-span-3">
+                  <Box className="col-span-12 sm:col-span-4">
                     <Typography variant="caption" sx={{ color: '#64748B', display: 'block', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase' }}>
                       PASSPORT NUMBER
                     </Typography>
@@ -583,30 +579,21 @@ export const OperationsDocumentVerificationDashboard = () => {
                     </Typography>
                   </Box>
 
-                  <Box className="col-span-12 sm:col-span-6 md:col-span-3">
+                  <Box className="col-span-12 sm:col-span-4">
                     <Typography variant="caption" sx={{ color: '#64748B', display: 'block', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase' }}>
                       DOB & CITIZENSHIP
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A', fontSize: '0.85rem' }}>
-                      {selectedClient.dateOfBirth || 'N/A'} ({selectedClient.nationality?.toUpperCase() || 'N/A'})
+                      {selectedClient.dateOfBirth?.split('-').reverse().join('-') || 'N/A'} ({selectedClient.nationality?.toUpperCase() || 'N/A'})
                     </Typography>
                   </Box>
 
-                  <Box className="col-span-12 sm:col-span-6 md:col-span-3">
+                  <Box className="col-span-12 sm:col-span-4">
                     <Typography variant="caption" sx={{ color: '#64748B', display: 'block', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase' }}>
                       EMAIL & PHONE
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A', fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {selectedClient.email || 'N/A'} | {selectedClient.phone || 'N/A'}
-                    </Typography>
-                  </Box>
-
-                  <Box className="col-span-12 sm:col-span-6 md:col-span-3">
-                    <Typography variant="caption" sx={{ color: '#64748B', display: 'block', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase' }}>
-                      REGISTERED ADDRESS
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A', fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {selectedClient.address || 'N/A'}
+                      {selectedClient.email} | {selectedClient.phone}
                     </Typography>
                   </Box>
                 </Box>
