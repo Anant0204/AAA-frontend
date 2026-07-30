@@ -269,6 +269,7 @@ export const Settings = () => {
   const [pkgAddApplicantPrice, setPkgAddApplicantPrice] = useState(500);
   const [pkgDesc, setPkgDesc] = useState('');
   const [pkgIsRecommended, setPkgIsRecommended] = useState(false);
+  const [pkgIsFixedPrice, setPkgIsFixedPrice] = useState(false);
   const [pkgIncludes, setPkgIncludes] = useState([]);
   const [newIncludeText, setNewIncludeText] = useState('');
 
@@ -304,6 +305,7 @@ export const Settings = () => {
     setPkgAddApplicantPrice(500);
     setPkgDesc('');
     setPkgIsRecommended(false);
+    setPkgIsFixedPrice(false);
     setPkgIncludes([
       'Eligibility & Document Auditing',
       'Official Sworn Translation Management',
@@ -322,6 +324,7 @@ export const Settings = () => {
     setPkgAddApplicantPrice(pkgItem.additionalApplicantPrice || 500);
     setPkgDesc(pkgItem.description || '');
     setPkgIsRecommended(!!pkgItem.isRecommended);
+    setPkgIsFixedPrice(!!pkgItem.isFixedPrice);
     setPkgIncludes(Array.isArray(pkgItem.includes) ? [...pkgItem.includes] : []);
     setNewIncludeText('');
     setPkgModalOpen(true);
@@ -351,6 +354,7 @@ export const Settings = () => {
       additionalApplicantPrice: Number(pkgAddApplicantPrice) || 500,
       description: pkgDesc.trim(),
       isRecommended: pkgIsRecommended,
+      isFixedPrice: pkgIsFixedPrice,
       includes: pkgIncludes
     };
 
@@ -1383,6 +1387,22 @@ export const Settings = () => {
                 label={
                   <Typography variant="body2" sx={{ fontWeight: 700, color: pkgIsRecommended ? 'secondary.main' : 'text.primary' }}>
                     ✨ Mark as Recommended Package (Highlights Card & Badges in Client Portal)
+                  </Typography>
+                }
+              />
+            </Box>
+            <Box className="col-span-12">
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={pkgIsFixedPrice}
+                    onChange={(e) => setPkgIsFixedPrice(e.target.checked)}
+                    color="secondary"
+                  />
+                }
+                label={
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: pkgIsFixedPrice ? 'secondary.main' : 'text.primary' }}>
+                    🔒 Fixed Rate Package (Price will not increase with additional applicants)
                   </Typography>
                 }
               />
