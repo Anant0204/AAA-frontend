@@ -468,12 +468,12 @@ export const DashboardLayout = () => {
       path: '/documents/verify',
       roles: ['admin', 'operations', 'super_admin'],
     },
-    {
-      label: 'AWS Cloud Backups',
-      icon: <CloudUploadIcon />,
-      path: '/documents/storage',
-      roles: ['super_admin'],
-    },
+    // {
+    //   label: 'AWS Cloud Backups',
+    //   icon: <CloudUploadIcon />,
+    //   path: '/documents/storage',
+    //   roles: ['super_admin'],
+    // },
     {
       label: 'Finance',
       icon: <MonetizationOnIcon />,
