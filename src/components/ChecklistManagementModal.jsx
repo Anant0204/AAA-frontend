@@ -26,7 +26,8 @@ export const ChecklistManagementModal = ({
   onAddItem,
   onUpdateItem,
   onDeleteItem,
-  onReviewDoc
+  onReviewDoc,
+  onGenerateDefaultChecklist
 }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [title, setTitle] = useState('');
@@ -157,8 +158,19 @@ export const ChecklistManagementModal = ({
         )}
 
         {checklistItems.length === 0 ? (
-          <Paper variant="outlined" sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>
-            <Typography variant="body2">No checklist items in this cycle yet.</Typography>
+          <Paper variant="outlined" sx={{ p: 4, textAlign: 'center', color: 'text.secondary', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>No checklist items in this cycle yet.</Typography>
+            {cycle?.type !== 'appeal' && onGenerateDefaultChecklist && (
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AddIcon />}
+                onClick={() => onGenerateDefaultChecklist(cycle.id)}
+                sx={{ textTransform: 'none', fontWeight: 700 }}
+              >
+                ⚡ Generate Default Resubmission Checklist
+              </Button>
+            )}
           </Paper>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
