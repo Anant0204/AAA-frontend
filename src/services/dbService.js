@@ -381,6 +381,10 @@ export const dbService = {
     // filter consultants if needed
     return res.data;
   },
+  getPublicLeadDetails: async (id) => {
+    const res = await apiClient.get(`/leads/${id}/public-details`);
+    return res.data;
+  },
 
   // AUTH
   authLogin: async (email, password) => {
