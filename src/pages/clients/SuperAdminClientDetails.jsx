@@ -41,6 +41,8 @@ import AiSummaryModal from '../../components/AiSummaryModal';
 import CredentialsModal from '../../components/CredentialsModal';
 import { CommunicationHistoryTab } from '../../components/CommunicationHistoryTab';
 import CaseHistoryTimelineCard from '../../components/CaseHistoryTimelineCard';
+import ChecklistManagementModal from '../../components/ChecklistManagementModal';
+import UploadedDocumentsCard from '../../components/UploadedDocumentsCard';
 
 import dayjs from 'dayjs';
 
@@ -145,6 +147,91 @@ export const SuperAdminClientDetails = () => {
     },
     onError: (err) => {
       showAlert(err.response?.data?.message || 'Error creating application cycle', 'error');
+    }
+  });
+
+  // Phase 2 Resubmission & Checklist Management State
+  const [checklistModalOpen, setChecklistModalOpen] = useState(false);
+  const [selectedCycleForChecklist, setSelectedCycleForChecklist] = useState(null);
+
+  const { data: cycleChecklistItems = [], refetch: refetchCycleChecklist } = useQuery({
+    queryKey: ['cycleChecklist', selectedCycleForChecklist?.id],
+    queryFn: () => dbService.getCycleChecklist(selectedCycleForChecklist.id),
+    enabled: Boolean(selectedCycleForChecklist?.id)
+  });
+
+  const handleOpenChecklistModal = (cycle) => {
+    setSelectedCycleForChecklist(cycle);
+    setChecklistModalOpen(true);
+  };
+
+  const addChecklistItemMutation = useMutation({
+    mutationFn: dbService.addChecklistItem,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cycleChecklist', selectedCycleForChecklist?.id] });
+      refetchCycleChecklist();
+      showAlert('Checklist item added successfully', 'success');
+    }
+  });
+
+  const updateChecklistItemMutation = useMutation({
+    mutationFn: ({ id, data }) => dbService.updateChecklistItem(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cycleChecklist', selectedCycleForChecklist?.id] });
+      refetchCycleChecklist();
+    }
+  });
+
+  const deleteChecklistItemMutation = useMutation({
+    mutationFn: dbService.deleteChecklistItem,
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['cycleChecklist', selectedCycleForChecklist?.id] });
+      refetchCycleChecklist();
+      if (res?.deleted) {
+        showAlert('Checklist item hard-deleted (no history attached).', 'info');
+      } else {
+        showAlert('Checklist item marked as NOT_REQUIRED (document history preserved).', 'info');
+      }
+    }
+  });
+
+  const resubmitCycleMutation = useMutation({
+    mutationFn: ({ cycleId, data }) => dbService.recordResubmissionDetails(cycleId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      showAlert('Application resubmission filed successfully!', 'success');
+    },
+    onError: (err) => {
+      showAlert(err.response?.data?.message || 'Failed to file resubmission', 'error');
+    }
+  });
+
+  const recordGovernmentDecisionMutation = useMutation({
+    mutationFn: ({ cycleId, data }) => dbService.recordGovernmentDecision(cycleId, data),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      showAlert(`Government Decision recorded: ${res.clientVisaStatus}!`, 'success');
+    },
+    onError: (err) => {
+      showAlert(err.response?.data?.message || 'Failed to record government decision', 'error');
+    }
+  });
+
+  const reviewDocMutation = useMutation({
+    mutationFn: ({ documentId, data }) => dbService.reviewChecklistDoc(documentId, data),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['cycleChecklist', selectedCycleForChecklist?.id] });
+      refetchDocs();
+      if (res?.cycleAutoUpdated) {
+        showAlert('Document reviewed. All mandatory checklist items are now VERIFIED! Cycle automatically updated to "Ready for Resubmission". 🎉', 'success');
+      } else {
+        showAlert(`Document marked as ${res?.document?.status || 'reviewed'}!`, 'success');
+      }
+    },
+    onError: (err) => {
+      showAlert(err.response?.data?.message || 'Failed to review document', 'error');
     }
   });
 
@@ -554,6 +641,9 @@ export const SuperAdminClientDetails = () => {
                       onRefresh={() => queryClient.invalidateQueries({ queryKey: ['clients'] })}
                       onCreateCycle={(cycleData) => createCycleMutation.mutateAsync(cycleData)}
                       onUpdateCycle={(id, cycleData) => updateCycleMutation.mutateAsync({ id, data: cycleData })}
+                      onOpenChecklistModal={handleOpenChecklistModal}
+                      onResubmitCycle={(cycleId, data) => resubmitCycleMutation.mutateAsync({ cycleId, data })}
+                      onRecordGovernmentDecision={(cycleId, data) => recordGovernmentDecisionMutation.mutateAsync({ cycleId, data })}
                     />
                   </Box>
 
@@ -611,59 +701,12 @@ export const SuperAdminClientDetails = () => {
 
                   <Divider sx={{ my: 3 }} />
 
-                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
-                    Uploaded Documents List
-                  </Typography>
-
-                  {clientDocuments.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 3 }}>
-                      No documents uploaded yet.
-                    </Typography>
-                  ) : (
-                    <List disablePadding>
-                      {clientDocuments.map((doc) => (
-                        <Paper
-                          key={doc.id}
-                          sx={{
-                            p: 2,
-                            mb: 2,
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            boxShadow: 'none',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center' }}
-                        >
-                          <Box sx={{ flexGrow: 1, minWidth: 0, mr: 2 }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                              {doc.name || doc.fileName}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              Category: {doc.category} | Size: {doc.fileSize || '1.5 MB'}
-                            </Typography>
-                            {doc.comment && (
-                              <Box sx={{ mt: 1, p: 1, borderRadius: 1.5, bgcolor: doc.status === 'Approved' ? '#ECFDF5' : '#FEF2F2', borderLeft: '3px solid', borderColor: doc.status === 'Approved' ? '#10B981' : '#EF4444' }}>
-                                <Typography variant="caption" sx={{ fontStyle: 'italic', display: 'block', color: doc.status === 'Approved' ? '#065F46' : '#991B1B' }}>
-                                  Note: {doc.comment}
-                                </Typography>
-                              </Box>
-                            )}
-                          </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
-                            <StatusBadge status={doc.status} />
-                            <Button
-                              size="small"
-                              startIcon={<VisibilityIcon />}
-                              onClick={() => navigate('/documents/verify')}
-                              sx={{ textTransform: 'none' }}
-                            >
-                              Review
-                            </Button>
-                          </Box>
-                        </Paper>
-                      ))}
-                    </List>
-                  )}
+                  <UploadedDocumentsCard
+                    documents={clientDocuments}
+                    title="Uploaded Documents & Operations Review"
+                    onReviewDoc={(docId, data) => reviewDocMutation.mutateAsync({ documentId: docId, data })}
+                    canReview={clientsActions.canVerifyDocs}
+                  />
                 </Box>
               )}
 
@@ -1205,6 +1248,18 @@ export const SuperAdminClientDetails = () => {
           </Button>
         </Box>
       </AppModal>
+
+      {/* Checklist Management Modal */}
+      <ChecklistManagementModal
+        open={checklistModalOpen}
+        onClose={() => setChecklistModalOpen(false)}
+        cycle={selectedCycleForChecklist}
+        checklistItems={cycleChecklistItems}
+        onAddItem={(data) => addChecklistItemMutation.mutateAsync(data)}
+        onUpdateItem={(id, data) => updateChecklistItemMutation.mutateAsync({ id, data })}
+        onDeleteItem={(id) => deleteChecklistItemMutation.mutateAsync(id)}
+        onReviewDoc={(docId, data) => reviewDocMutation.mutateAsync({ documentId: docId, data })}
+      />
     </Box>
   );
 };

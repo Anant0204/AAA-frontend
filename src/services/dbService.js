@@ -608,6 +608,42 @@ export const dbService = {
     return res.data;
   },
 
+  // ─── Checklist & Resubmission Endpoints ────────────────────────────────
+  getCycleChecklist: async (cycleId) => {
+    const res = await apiClient.get(`/cases/cycles/${cycleId}/checklist`);
+    return res.data;
+  },
+  addChecklistItem: async (data) => {
+    const res = await apiClient.post('/cases/checklists/item', data);
+    return res.data;
+  },
+  updateChecklistItem: async (id, data) => {
+    const res = await apiClient.patch(`/cases/checklists/item/${id}`, data);
+    return res.data;
+  },
+  deleteChecklistItem: async (id) => {
+    const res = await apiClient.delete(`/cases/checklists/item/${id}`);
+    return res.data;
+  },
+  uploadChecklistDoc: async (checklistItemId, formData) => {
+    const res = await apiClient.post(`/cases/checklists/item/${checklistItemId}/upload`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return res.data;
+  },
+  reviewChecklistDoc: async (documentId, { status, comment }) => {
+    const res = await apiClient.patch(`/cases/documents/${documentId}/review`, { status, comment });
+    return res.data;
+  },
+  recordResubmissionDetails: async (cycleId, data) => {
+    const res = await apiClient.post(`/cases/cycles/${cycleId}/resubmit`, data);
+    return res.data;
+  },
+  recordGovernmentDecision: async (cycleId, { governmentDecision, governmentDecisionDate }) => {
+    const res = await apiClient.post(`/cases/cycles/${cycleId}/government-decision`, { governmentDecision, governmentDecisionDate });
+    return res.data;
+  },
+
   // ─── AI CEO Dashboard ───────────────────────────────────────────────────
   getCeoBrief: async () => {
     const res = await apiClient.get('/ai/ceo-brief');
