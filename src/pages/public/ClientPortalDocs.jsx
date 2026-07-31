@@ -21,6 +21,7 @@ import Autocomplete from '@mui/material/Autocomplete';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
+import Alert from '@mui/material/Alert';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
@@ -553,6 +554,52 @@ export const ClientPortalDocs = () => {
     staleTime: 0,
     refetchOnWindowFocus: true
   });
+
+  // Phase 2 Resubmission Cycle & Checklist Integration
+  const { data: clientCycles = [], refetch: refetchCycles } = useQuery({
+    queryKey: ['clientCycles', client?.id],
+    queryFn: () => dbService.getCyclesByClient(client.id),
+    enabled: Boolean(client?.id)
+  });
+
+  const activeResubmissionCycle = clientCycles.find(
+    c => c.type === 'resubmission' && c.status !== 'Closed' && c.status !== 'Archived'
+  ) || (client?.applicationCycles || []).find(
+    c => c.type === 'resubmission' && c.status !== 'Closed' && c.status !== 'Archived'
+  );
+
+  const { data: resubmissionChecklist = [], refetch: refetchResubmissionChecklist } = useQuery({
+    queryKey: ['resubmissionChecklist', activeResubmissionCycle?.id],
+    queryFn: () => dbService.getCycleChecklist(activeResubmissionCycle.id),
+    enabled: Boolean(activeResubmissionCycle?.id)
+  });
+
+  const [uploadingItemId, setUploadingItemId] = useState(null);
+
+  const handleUploadChecklistDoc = async (item, file) => {
+    if (!file || !item) return;
+    try {
+      setUploadingItemId(item.id);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('category', item.category);
+
+      await dbService.uploadChecklistDoc(item.id, formData);
+
+      queryClient.invalidateQueries({ queryKey: ['resubmissionChecklist', activeResubmissionCycle?.id] });
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ['clientCycles', client?.id] });
+      refetchDocs();
+      refetchResubmissionChecklist();
+
+      showAlert(`Document version uploaded successfully for "${item.title}". It is now Under Review.`, 'success');
+    } catch (err) {
+      console.error('Error uploading checklist file:', err);
+      showAlert(err.response?.data?.message || 'Failed to upload document version.', 'error');
+    } finally {
+      setUploadingItemId(null);
+    }
+  };
 
   const { data: consultations = [], isLoading: isConsultationsLoading } = useQuery({
     queryKey: ['consultations'],
@@ -1667,6 +1714,172 @@ export const ClientPortalDocs = () => {
                 </Box>
 
                 {/* Uploaders */}
+                {/* Active Resubmission Checklist Component when Active Resubmission Cycle Exists */}
+                {activeResubmissionCycle && (
+                  <Box className="col-span-12" sx={{ mb: 4 }}>
+                    <Paper
+                      sx={{
+                        p: 4,
+                        borderRadius: 4,
+                        border: '2px solid #051A3B',
+                        boxShadow: '0 8px 30px rgba(5, 26, 59, 0.08)',
+                        bgcolor: '#FFFFFF'
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
+                        <Box>
+                          <Typography variant="h5" sx={{ fontWeight: 900, color: '#051A3B', fontFamily: 'Outfit, sans-serif' }}>
+                            📋 Resubmission Document Checklist
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                            Application Cycle #{activeResubmissionCycle.id.substring(0, 8)} | Original Refusal Ground: <strong>{activeResubmissionCycle.refusalReason || 'Visa Refused'}</strong>
+                          </Typography>
+                        </Box>
+                        <Chip
+                          label={`Cycle Status: ${activeResubmissionCycle.status}`}
+                          color={activeResubmissionCycle.status === 'Ready for Resubmission' ? 'success' : 'primary'}
+                          sx={{ fontWeight: 800, fontSize: '0.85rem', px: 1, py: 2 }}
+                        />
+                      </Box>
+
+                      {activeResubmissionCycle.status === 'Ready for Resubmission' && (
+                        <Alert severity="success" sx={{ mb: 3, fontWeight: 700 }}>
+                          🎉 All mandatory checklist documents have been verified by Operations! Your resubmission package is fully ready for legal filing.
+                        </Alert>
+                      )}
+
+                      <Divider sx={{ mb: 3 }} />
+
+                      {['Main Applicant', 'Spouse', 'Dependents'].map((groupKey) => {
+                        const groupItems = resubmissionChecklist.filter(item => {
+                          if (groupKey === 'Main Applicant') return item.belongsTo === 'Main Applicant';
+                          if (groupKey === 'Spouse') return item.belongsTo === 'Spouse';
+                          return item.belongsTo !== 'Main Applicant' && item.belongsTo !== 'Spouse';
+                        });
+
+                        if (groupItems.length === 0) return null;
+
+                        return (
+                          <Box key={groupKey} sx={{ mb: 4 }}>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 900, mb: 2, color: '#051A3B', borderBottom: '2px solid #C59B27', display: 'inline-block', pb: 0.5 }}>
+                              👤 {groupKey} Checklist
+                            </Typography>
+                            <Grid container spacing={2}>
+                              {groupItems.map((item) => {
+                                const activeDoc = item.activeDocument;
+                                const isPending = item.status === 'PENDING_VERIFICATION';
+                                const isVerified = item.status === 'VERIFIED';
+                                const isRejected = item.status === 'REJECTED';
+                                const isNotRequired = item.status === 'NOT_REQUIRED';
+                                const isReused = item.status === 'REUSED' || Boolean(item.sourceDocumentId);
+
+                                const getStatusChip = () => {
+                                  if (isNotRequired) return <Chip label="Not Required" size="small" sx={{ bgcolor: '#E2E8F0', color: '#475569', fontWeight: 800 }} />;
+                                  if (isVerified) return <Chip label="Verified" size="small" color="success" sx={{ fontWeight: 800 }} />;
+                                  if (isReused) return <Chip label="Verified from Previous Application" size="small" color="info" sx={{ fontWeight: 800 }} />;
+                                  if (isPending) return <Chip label="Under Review" size="small" color="warning" sx={{ fontWeight: 800 }} />;
+                                  if (isRejected) return <Chip label="Re-upload Required" size="small" color="error" sx={{ fontWeight: 800 }} />;
+                                  return <Chip label="Required" size="small" color="error" variant="outlined" sx={{ fontWeight: 800 }} />;
+                                };
+
+                                return (
+                                  <Grid item xs={12} key={item.id}>
+                                    <Paper
+                                      sx={{
+                                        p: 2.5,
+                                        borderRadius: 3,
+                                        border: '1px solid',
+                                        borderColor: isRejected ? '#FCA5A5' : isVerified ? '#6EE7B7' : 'rgba(5, 26, 59, 0.1)',
+                                        bgcolor: isRejected ? '#FEF2F2' : isVerified ? '#ECFDF5' : '#FAF6ED'
+                                      }}
+                                    >
+                                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1, flexWrap: 'wrap', gap: 1 }}>
+                                        <Box>
+                                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
+                                            <Typography variant="subtitle2" sx={{ fontWeight: 900, color: '#051A3B', fontSize: '1rem' }}>
+                                              {item.title}
+                                            </Typography>
+                                            <Chip label={item.isMandatory ? 'Mandatory' : 'Optional'} size="small" variant="outlined" color={item.isMandatory ? 'error' : 'default'} sx={{ height: 20, fontSize: '0.68rem', fontWeight: 800 }} />
+                                            {activeDoc && (
+                                              <Chip label={`Version V${activeDoc.version}`} size="small" sx={{ height: 20, fontSize: '0.68rem', fontWeight: 800, bgcolor: 'rgba(5, 26, 59, 0.1)', color: '#051A3B' }} />
+                                            )}
+                                          </Box>
+                                          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600 }}>
+                                            Category: {item.category} | Due Date: {item.dueDate ? new Date(item.dueDate).toLocaleDateString() : 'No deadline'}
+                                          </Typography>
+                                          {item.clientInstructions && (
+                                            <Typography variant="body2" sx={{ mt: 1, p: 1, bgcolor: 'rgba(255,255,255,0.7)', borderRadius: 1.5, borderLeft: '3px solid #C59B27', fontSize: '0.82rem' }}>
+                                              💡 <strong>Instructions:</strong> {item.clientInstructions}
+                                            </Typography>
+                                          )}
+                                        </Box>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                          {getStatusChip()}
+                                          <Button
+                                            variant="contained"
+                                            component="label"
+                                            size="small"
+                                            disabled={uploadingItemId === item.id || isPending || isVerified || isNotRequired}
+                                            sx={{
+                                              fontWeight: 800,
+                                              bgcolor: '#051A3B',
+                                              color: 'white',
+                                              textTransform: 'none',
+                                              '&:hover': { bgcolor: '#C59B27' }
+                                            }}
+                                          >
+                                            {uploadingItemId === item.id ? 'Uploading...' : isRejected ? '🔁 Re-upload Corrected Version' : isVerified ? '✓ Document Verified' : isPending ? '⏳ Under Review' : '📤 Upload Document Version'}
+                                            <input
+                                              type="file"
+                                              hidden
+                                              accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                                              onChange={(e) => {
+                                                if (e.target.files[0]) {
+                                                  handleUploadChecklistDoc(item, e.target.files[0]);
+                                                }
+                                              }}
+                                            />
+                                          </Button>
+                                        </Box>
+                                      </Box>
+
+                                      {/* Operations Rejection Reason Prominently Displayed */}
+                                      {isRejected && (activeDoc?.comment || item.rejectionComment) && (
+                                        <Alert severity="error" sx={{ mt: 1.5, borderRadius: 2 }}>
+                                          <strong>Operations Rejection Reason:</strong> {activeDoc?.comment || item.rejectionComment}
+                                        </Alert>
+                                      )}
+
+                                      {/* Active & Past Document Versions History */}
+                                      {item.documents && item.documents.length > 0 && (
+                                        <Box sx={{ mt: 2 }}>
+                                          <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'block', mb: 0.5 }}>
+                                            Document Version History ({item.documents.length} version{item.documents.length > 1 ? 's' : ''}):
+                                          </Typography>
+                                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8 }}>
+                                            {item.documents.map((doc) => (
+                                              <Paper key={doc.id} sx={{ p: 1, px: 1.5, bgcolor: 'background.paper', borderRadius: 1.5, border: '1px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                                                  V{doc.version} - {doc.name || doc.fileName} (Uploaded: {doc.uploadedDate ? new Date(doc.uploadedDate).toLocaleDateString() : 'Recently'})
+                                                </Typography>
+                                                <StatusBadge status={doc.status} />
+                                              </Paper>
+                                            ))}
+                                          </Box>
+                                        </Box>
+                                      )}
+                                    </Paper>
+                                  </Grid>
+                                );
+                              })}
+                            </Grid>
+                          </Box>
+                        );
+                      })}
+                    </Paper>
+                  </Box>
+                )}
+
                 <Box className="col-span-12 lg:col-span-8">
                   <Paper
                     sx={{
