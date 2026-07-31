@@ -578,7 +578,7 @@ export const OperationsDocumentVerificationDashboard = () => {
                     <Typography variant="body2" sx={{ fontWeight: 800, color: '#0F172A', fontSize: '0.85rem' }}>
                       {selectedClient.passportNumber ||
                         (Array.isArray(selectedClient.dependentsDetails) && selectedClient.dependentsDetails[0]?.passportNumber) ||
-                        (clientDocuments.some(d => (d.category || '').toLowerCase().includes('passport') || (d.name || '').toLowerCase().includes('passport')) ? 'Uploaded (Pending Review)' : 'N/A')}
+                        ((clientDocs || []).some(d => (d.category || '').toLowerCase().includes('passport') || (d.name || '').toLowerCase().includes('passport')) ? 'Uploaded (Pending Review)' : 'N/A')}
                     </Typography>
                   </Box>
 

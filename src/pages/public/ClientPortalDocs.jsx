@@ -822,7 +822,7 @@ export const ClientPortalDocs = () => {
       doc.setTextColor(80, 80, 80);
       let currentY = 102;
 
-      const translationDocs = clientDocuments;
+      const translationDocs = (documents || []).filter((d) => d && d.clientId === client?.id);
       translationDocs.forEach((d) => {
         // Document rows
         const displayName = d.name.length > 35 ? d.name.substring(0, 32) + '...' : d.name;
@@ -2135,7 +2135,7 @@ export const ClientPortalDocs = () => {
 
                   {/* Documents list & Addon panel */}
                   {(() => {
-                    const translationInputDocs = clientDocuments;
+                    const translationInputDocs = (documents || []).filter((d) => d && d.clientId === client?.id);
                     return (
                       <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
                         {/* 1. Paid Documents List */}
