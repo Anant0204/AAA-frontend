@@ -402,7 +402,7 @@ export const AdminLeadDetails = () => {
     queryKey: ['lead-stages'],
     queryFn: dbService.getLeadStages });
 
-  const leadStatuses = leadStages.map(s => s.name);
+  const leadStatuses = Array.from(new Set([...leadStages.map(s => s.name), 'No Show']));
 
   return (
     <Box>

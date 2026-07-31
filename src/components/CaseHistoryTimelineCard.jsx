@@ -140,7 +140,7 @@ export const CaseHistoryTimelineCard = ({
                   borderLeftColor: cycle.type === 'appeal' ? '#9333ea' : '#0284c7'
                 }}
               >
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, flexWrap: 'wrap', gap: 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                       Application #{appNum} — {cycle.type === 'appeal' ? 'Legal Appeal' : 'Resubmission'}
@@ -152,7 +152,41 @@ export const CaseHistoryTimelineCard = ({
                       sx={{ fontSize: '10px', height: '20px' }}
                     />
                   </Box>
-                  <StatusBadge status={cycle.status} size="small" />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <StatusBadge status={cycle.status} size="small" />
+                    {onUpdateCycle && (
+                      <TextField
+                        select
+                        size="small"
+                        value={cycle.status}
+                        onChange={async (e) => {
+                          const newStatus = e.target.value;
+                          if (newStatus !== cycle.status) {
+                            await onUpdateCycle(cycle.id, { status: newStatus });
+                          }
+                        }}
+                        sx={{
+                          minWidth: 190,
+                          '& .MuiOutlinedInput-root': {
+                            fontSize: '0.78rem',
+                            height: '32px',
+                            bgcolor: '#ffffff',
+                            fontWeight: 600
+                          }
+                        }}
+                      >
+                        {cycle.type === 'appeal' ? [
+                          <MenuItem key="Appeal in Progress" value="Appeal in Progress">Appeal in Progress</MenuItem>,
+                          <MenuItem key="Appeal Approved" value="Appeal Approved">Appeal Approved</MenuItem>,
+                          <MenuItem key="Appeal Refused" value="Appeal Refused">Appeal Refused</MenuItem>
+                        ] : [
+                          <MenuItem key="Resubmission in Progress" value="Resubmission in Progress">Resubmission in Progress</MenuItem>,
+                          <MenuItem key="Ready for Resubmission" value="Ready for Resubmission">Ready for Resubmission</MenuItem>,
+                          <MenuItem key="Resubmitted" value="Resubmitted">Resubmitted</MenuItem>
+                        ]}
+                      </TextField>
+                    )}
+                  </Box>
                 </Box>
 
                 <Divider sx={{ my: 1 }} />

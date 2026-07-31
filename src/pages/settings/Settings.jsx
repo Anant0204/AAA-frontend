@@ -240,6 +240,14 @@ export const Settings = () => {
 
   const [recordingStorage, setRecordingStorage] = useState('cloud');
 
+  // Routing Rules State
+  const [ruleModalOpen, setRuleModalOpen] = useState(false);
+  const [ruleModalMode, setRuleModalMode] = useState('create');
+  const [editingRuleId, setEditingRuleId] = useState(null);
+  const [ruleNationality, setRuleNationality] = useState('');
+  const [ruleCountryCode, setRuleCountryCode] = useState('');
+  const [ruleConsultantId, setRuleConsultantId] = useState('');
+
   // Mutations
   const updateGeneralSettingsMutation = useMutation({
     mutationFn: dbService.updateSettings,
@@ -295,6 +303,72 @@ export const Settings = () => {
       showAlert(err?.message || 'Failed to delete package.', 'error');
     }
   });
+
+  // --- Routing Rules Handlers ---
+  const currentRoutingRules = generalSettings?.routingRules || [];
+
+  const handleOpenCreateRuleModal = () => {
+    setRuleModalMode('create');
+    setEditingRuleId(null);
+    setRuleNationality('');
+    setRuleCountryCode('');
+    setRuleConsultantId('');
+    setRuleModalOpen(true);
+  };
+
+  const handleOpenEditRuleModal = (rule) => {
+    setRuleModalMode('edit');
+    setEditingRuleId(rule.id);
+    setRuleNationality(rule.nationality || '');
+    setRuleCountryCode(rule.country || '');
+    setRuleConsultantId(rule.consultantId || '');
+    setRuleModalOpen(true);
+  };
+
+  const handleDeleteRule = (id) => {
+    const updatedRules = currentRoutingRules.filter(r => r.id !== id);
+    updateGeneralSettingsMutation.mutate({
+      ...generalSettings,
+      routingRules: updatedRules
+    }, {
+      onSuccess: () => showAlert('Routing rule deleted successfully.', 'success')
+    });
+  };
+
+  const handleSaveRuleForm = () => {
+    if (!ruleNationality.trim() || !ruleConsultantId) {
+      showAlert('Nationality and Consultant are required.', 'warning');
+      return;
+    }
+    const selectedConsultant = consultants.find(c => c.id === ruleConsultantId);
+    if (!selectedConsultant) return;
+
+    const payload = {
+      id: editingRuleId || `rule_${Date.now()}`,
+      nationality: ruleNationality.trim(),
+      country: ruleCountryCode.trim(),
+      consultant: selectedConsultant.name,
+      consultantId: selectedConsultant.id
+    };
+
+    let updatedRules = [...currentRoutingRules];
+    if (ruleModalMode === 'create') {
+      updatedRules.push(payload);
+    } else {
+      updatedRules = updatedRules.map(r => r.id === editingRuleId ? payload : r);
+    }
+
+    updateGeneralSettingsMutation.mutate({
+      ...generalSettings,
+      routingRules: updatedRules
+    }, {
+      onSuccess: () => {
+        showAlert(`Routing rule ${ruleModalMode === 'create' ? 'created' : 'updated'} successfully!`, 'success');
+        setRuleModalOpen(false);
+      }
+    });
+  };
+  // ------------------------------
 
   const handleOpenCreatePkgModal = () => {
     setPkgModalMode('create');
@@ -2311,6 +2385,50 @@ export const Settings = () => {
       </Dialog>
 
       {/* EDIT TEMPLATE MODAL */}
+
+      {/* ROUTING RULE MODAL */}
+      <Dialog open={ruleModalOpen} onClose={() => setRuleModalOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ fontWeight: 800, fontFamily: "'Outfit', sans-serif", color: '#051A3B' }}>
+          {ruleModalMode === 'create' ? 'Add New Routing Rule' : 'Edit Routing Rule'}
+        </DialogTitle>
+        <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 3 }}>
+          <TextField
+            label="Client Nationality / Region"
+            placeholder="e.g. Canadian, Russian, Emirati"
+            value={ruleNationality}
+            onChange={(e) => setRuleNationality(e.target.value)}
+            fullWidth
+            required
+          />
+          <TextField
+            label="Country Code (Optional)"
+            placeholder="e.g. CA, RU, UAE"
+            value={ruleCountryCode}
+            onChange={(e) => setRuleCountryCode(e.target.value)}
+            fullWidth
+          />
+          <FormControl fullWidth required>
+            <InputLabel>Auto-Assigned Consultant</InputLabel>
+            <Select
+              value={ruleConsultantId}
+              label="Auto-Assigned Consultant"
+              onChange={(e) => setRuleConsultantId(e.target.value)}
+            >
+              {consultants.map(c => (
+                <MenuItem key={c.id} value={c.id}>
+                  {c.name} ({c.email})
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button onClick={() => setRuleModalOpen(false)} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
+          <Button onClick={handleSaveRuleForm} variant="contained" color="primary" sx={{ fontWeight: 700 }}>
+            {ruleModalMode === 'create' ? 'Create Rule' : 'Save Changes'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
     </Box>
   );

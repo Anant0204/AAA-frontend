@@ -906,29 +906,6 @@ export const DashboardLayout = () => {
                 }
               }}
             />
-            {item.label === 'Doc Verification' && unreadCount > 0 && (
-              <Box
-                sx={{
-                  bgcolor: '#C59B27',
-                  color: '#fff',
-                  fontSize: '0.6rem',
-                  fontWeight: 900,
-                  px: 0.8,
-                  py: 0.2,
-                  borderRadius: 1,
-                  lineHeight: 1.4,
-                  minWidth: 18,
-                  textAlign: 'center',
-                  animation: 'pulse 2s infinite',
-                  '@keyframes pulse': {
-                    '0%, 100%': { opacity: 1 },
-                    '50%': { opacity: 0.6 },
-                  }
-                }}
-              >
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </Box>
-            )}
           </>
         )}
       </ListItemButton>
