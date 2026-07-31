@@ -438,9 +438,37 @@ export const LeadSelfFillForm = () => {
     const isCancel = params.get("cancel") === "true" || isRouteCancel;
     const cId = params.get("consultationId");
 
+    const leadIdParam = params.get("leadId") || "";
+    const paidParam = params.get("paid") === "true";
     const activeTokenOrId = cId || tokenParam || idParam;
 
     const loadData = async () => {
+      if (leadIdParam) {
+        try {
+          const res = await axios.get(`${API_URL}/leads/${leadIdParam}/public-details`);
+          if (res.data) {
+            const d = res.data;
+            if (d.phone) {
+              const parsed = parsePhone(d.phone);
+              setCountryCode(parsed.countryCode);
+              setLocalNumber(parsed.localNumber);
+            }
+            setForm((prev) => ({
+              ...prev,
+              firstName: d.firstName || prev.firstName,
+              lastName: d.lastName || prev.lastName,
+              email: d.email || prev.email,
+              phone: d.phone || prev.phone,
+              nationality: d.nationality || prev.nationality,
+              countryOfResidence: d.countryOfResidence || prev.countryOfResidence,
+              serviceId: d.serviceType || prev.serviceId
+            }));
+          }
+        } catch (lErr) {
+          console.warn("[LEAD PREFILL] Could not fetch lead details:", lErr.message);
+        }
+      }
+
       if (!activeTokenOrId) return;
 
       setLoading(true);

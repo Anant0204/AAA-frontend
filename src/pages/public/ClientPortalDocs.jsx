@@ -17,9 +17,11 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import TextField from '@mui/material/TextField';
+import Autocomplete from '@mui/material/Autocomplete';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
+import Alert from '@mui/material/Alert';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
@@ -531,10 +533,12 @@ export const ClientPortalDocs = () => {
         const initialDeps = [];
         const saved = client.dependentsDetails || [];
         for (let i = 0; i < totalDeps; i++) {
+          const rawRel = saved[i]?.relation || 'Spouse';
+          const relation = rawRel.startsWith('Other:') ? rawRel.replace(/^Other:\s*/, '') : rawRel;
           initialDeps.push({
             firstName: saved[i]?.firstName || '',
             lastName: saved[i]?.lastName || '',
-            relation: saved[i]?.relation || 'Spouse',
+            relation: relation,
             passportNumber: saved[i]?.passportNumber || '',
             nationality: saved[i]?.nationality || ''
           });
@@ -550,6 +554,52 @@ export const ClientPortalDocs = () => {
     staleTime: 0,
     refetchOnWindowFocus: true
   });
+
+  // Phase 2 Resubmission Cycle & Checklist Integration
+  const { data: clientCycles = [], refetch: refetchCycles } = useQuery({
+    queryKey: ['clientCycles', client?.id],
+    queryFn: () => dbService.getCyclesByClient(client.id),
+    enabled: Boolean(client?.id)
+  });
+
+  const activeResubmissionCycle = clientCycles.find(
+    c => c.type === 'resubmission' && c.status !== 'Closed' && c.status !== 'Archived'
+  ) || (client?.applicationCycles || []).find(
+    c => c.type === 'resubmission' && c.status !== 'Closed' && c.status !== 'Archived'
+  );
+
+  const { data: resubmissionChecklist = [], refetch: refetchResubmissionChecklist } = useQuery({
+    queryKey: ['resubmissionChecklist', activeResubmissionCycle?.id],
+    queryFn: () => dbService.getCycleChecklist(activeResubmissionCycle.id),
+    enabled: Boolean(activeResubmissionCycle?.id)
+  });
+
+  const [uploadingItemId, setUploadingItemId] = useState(null);
+
+  const handleUploadChecklistDoc = async (item, file) => {
+    if (!file || !item) return;
+    try {
+      setUploadingItemId(item.id);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('category', item.category);
+
+      await dbService.uploadChecklistDoc(item.id, formData);
+
+      queryClient.invalidateQueries({ queryKey: ['resubmissionChecklist', activeResubmissionCycle?.id] });
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ['clientCycles', client?.id] });
+      refetchDocs();
+      refetchResubmissionChecklist();
+
+      showAlert(`Document version uploaded successfully for "${item.title}". It is now Under Review.`, 'success');
+    } catch (err) {
+      console.error('Error uploading checklist file:', err);
+      showAlert(err.response?.data?.message || 'Failed to upload document version.', 'error');
+    } finally {
+      setUploadingItemId(null);
+    }
+  };
 
   const { data: consultations = [], isLoading: isConsultationsLoading } = useQuery({
     queryKey: ['consultations'],
@@ -947,12 +997,19 @@ export const ClientPortalDocs = () => {
   const handleSaveWizardDeps = () => {
     for (let i = 0; i < wizardDeps.length; i++) {
       const dep = wizardDeps[i];
-      if (!dep.firstName.trim() || !dep.lastName.trim() || !dep.passportNumber.trim() || !dep.nationality.trim()) {
+      if (!dep.firstName.trim() || !dep.lastName.trim() || !dep.relation.trim() || !dep.nationality.trim()) {
         showAlert(`Please fill in all details for Co-Applicant ${i + 1}`, 'warning');
         return;
       }
     }
-    saveDependentsMutation.mutate(wizardDeps);
+    const formattedDeps = wizardDeps.map(dep => ({
+      firstName: dep.firstName.trim(),
+      lastName: dep.lastName.trim(),
+      relation: dep.relation.trim(),
+      passportNumber: (dep.passportNumber || '').trim(),
+      nationality: dep.nationality.trim()
+    }));
+    saveDependentsMutation.mutate(formattedDeps);
   };
 
   const bookMeetingMutation = useMutation({
@@ -1422,30 +1479,85 @@ export const ClientPortalDocs = () => {
                   <Box className="col-span-12" sx={{ mb: 2 }}>
                     <Paper
                       sx={{
-                        p: 4,
-                        borderRadius: 4.5,
+                        p: { xs: 2, sm: 3, md: 4 },
+                        borderRadius: { xs: 3, md: 4.5 },
                         border: '1px solid rgba(197, 155, 39, 0.25)',
                         bgcolor: 'rgba(250, 246, 237, 0.65)',
                         backdropFilter: 'blur(8px)',
                         boxShadow: '0 8px 30px rgba(5, 26, 59, 0.03)'
                       }}
                     >
-                      <Typography variant="h6" sx={{ fontWeight: 900, color: '#051A3B', mb: 1, fontFamily: 'Outfit, sans-serif' }}>
+                      <Typography variant="h6" sx={{ fontWeight: 900, color: '#051A3B', mb: 1, fontFamily: 'Outfit, sans-serif', fontSize: { xs: '1.1rem', md: '1.25rem' } }}>
                         👨‍👩‍👧‍👦 Complete Your Family Profiles
                       </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 3, fontWeight: 500 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 3, fontWeight: 500, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
                         You have registered <strong>{totalDependents} co-applicant(s)</strong>. Please fill out their profiles to generate their checklists and unlock their document upload folders.
                       </Typography>
 
-                      <Grid container spacing={3}>
+                      <Grid container spacing={{ xs: 2, md: 3 }}>
+                        {/* Main Applicant Profile Card */}
+                        <Grid item xs={12}>
+                          <Paper sx={{ p: { xs: 2, sm: 2.5, md: 3 }, borderRadius: 3, border: '1.5px solid rgba(5, 26, 59, 0.15)', bgcolor: 'background.paper' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#051A3B', fontFamily: 'Outfit, sans-serif', display: 'flex', alignItems: 'center', gap: 1 }}>
+                                👤 Main Applicant Details
+                              </Typography>
+                              <Chip label="Primary Applicant" size="small" sx={{ bgcolor: 'rgba(5, 26, 59, 0.08)', color: '#051A3B', fontWeight: 800, fontSize: '0.75rem' }} />
+                            </Box>
+                            <Grid container spacing={2}>
+                              <Grid item xs={12} sm={6} md={3}>
+                                <TextField
+                                  label="First Name"
+                                  size="small"
+                                  fullWidth
+                                  value={client?.firstName || ''}
+                                  disabled
+                                  sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}
+                                />
+                              </Grid>
+                              <Grid item xs={12} sm={6} md={3}>
+                                <TextField
+                                  label="Last Name"
+                                  size="small"
+                                  fullWidth
+                                  value={client?.lastName || ''}
+                                  disabled
+                                  sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}
+                                />
+                              </Grid>
+                              <Grid item xs={12} sm={6} md={3} sx={{ minWidth: { md: 220 } }}>
+                                <TextField
+                                  label="Relationship"
+                                  size="small"
+                                  fullWidth
+                                  value="Main Applicant"
+                                  disabled
+                                  sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}
+                                />
+                              </Grid>
+                              <Grid item xs={12} sm={6} md={3}>
+                                <TextField
+                                  label="Nationality"
+                                  size="small"
+                                  fullWidth
+                                  value={client?.nationality || 'N/A'}
+                                  disabled
+                                  sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}
+                                />
+                              </Grid>
+                            </Grid>
+                          </Paper>
+                        </Grid>
+
+                        {/* Co-Applicants Cards */}
                         {wizardDeps.map((dep, idx) => (
                           <Grid item xs={12} key={idx}>
-                            <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid rgba(0,0,0,0.05)', bgcolor: 'background.paper' }}>
+                            <Paper sx={{ p: { xs: 2, sm: 2.5, md: 3 }, borderRadius: 3, border: '1px solid rgba(0,0,0,0.05)', bgcolor: 'background.paper' }}>
                               <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#051A3B', mb: 2, fontFamily: 'Outfit, sans-serif' }}>
                                 Co-Applicant {idx + 1} Details
                               </Typography>
                               <Grid container spacing={2}>
-                                <Grid item xs={12} sm={6} md={3}>
+                                <Grid item xs={12} sm={6} md={2.75}>
                                   <TextField
                                     label="First Name"
                                     size="small"
@@ -1458,7 +1570,7 @@ export const ClientPortalDocs = () => {
                                     }}
                                   />
                                 </Grid>
-                                <Grid item xs={12} sm={6} md={3}>
+                                <Grid item xs={12} sm={6} md={2.75}>
                                   <TextField
                                     label="Last Name"
                                     size="small"
@@ -1471,39 +1583,44 @@ export const ClientPortalDocs = () => {
                                     }}
                                   />
                                 </Grid>
-                                <Grid item xs={12} sm={6} md={2}>
-                                  <FormControl size="small" fullWidth>
-                                    <InputLabel>Relationship</InputLabel>
-                                    <Select
-                                      value={dep.relation}
-                                      label="Relationship"
-                                      onChange={(e) => {
-                                        const newDeps = [...wizardDeps];
-                                        newDeps[idx].relation = e.target.value;
-                                        setWizardDeps(newDeps);
-                                      }}
-                                    >
-                                      <MenuItem value="Spouse">Spouse</MenuItem>
-                                      <MenuItem value="Child">Child</MenuItem>
-                                      <MenuItem value="Parent">Parent</MenuItem>
-                                      <MenuItem value="Other">Other</MenuItem>
-                                    </Select>
-                                  </FormControl>
-                                </Grid>
-                                <Grid item xs={12} sm={6} md={2}>
-                                  <TextField
-                                    label="Passport Number"
-                                    size="small"
-                                    fullWidth
-                                    value={dep.passportNumber}
-                                    onChange={(e) => {
+                                <Grid item xs={12} sm={6} md={3.5} sx={{ minWidth: { md: 220 } }}>
+                                  <Autocomplete
+                                    freeSolo
+                                    disableClearable
+                                    options={['Spouse', 'Child', 'Parent', 'Other']}
+                                    value={dep.relation || ''}
+                                    onChange={(event, newValue) => {
                                       const newDeps = [...wizardDeps];
-                                      newDeps[idx].passportNumber = e.target.value;
+                                      newDeps[idx].relation = newValue || '';
                                       setWizardDeps(newDeps);
                                     }}
+                                    onInputChange={(event, newInputValue) => {
+                                      const newDeps = [...wizardDeps];
+                                      newDeps[idx].relation = newInputValue || '';
+                                      setWizardDeps(newDeps);
+                                    }}
+                                    sx={{
+                                      width: '100%',
+                                      minWidth: { md: 220 },
+                                      '& .MuiOutlinedInput-root': {
+                                        paddingRight: '30px !important',
+                                      },
+                                      '& .MuiInputBase-input': {
+                                        fontSize: '0.875rem !important'
+                                      }
+                                    }}
+                                    renderInput={(params) => (
+                                      <TextField
+                                        {...params}
+                                        label="Relationship"
+                                        size="small"
+                                        fullWidth
+                                        placeholder="Select or type..."
+                                      />
+                                    )}
                                   />
                                 </Grid>
-                                <Grid item xs={12} sm={6} md={2}>
+                                <Grid item xs={12} sm={6} md={3}>
                                   <TextField
                                     label="Nationality"
                                     size="small"
@@ -1597,6 +1714,172 @@ export const ClientPortalDocs = () => {
                 </Box>
 
                 {/* Uploaders */}
+                {/* Active Resubmission Checklist Component when Active Resubmission Cycle Exists */}
+                {activeResubmissionCycle && (
+                  <Box className="col-span-12" sx={{ mb: 4 }}>
+                    <Paper
+                      sx={{
+                        p: 4,
+                        borderRadius: 4,
+                        border: '2px solid #051A3B',
+                        boxShadow: '0 8px 30px rgba(5, 26, 59, 0.08)',
+                        bgcolor: '#FFFFFF'
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
+                        <Box>
+                          <Typography variant="h5" sx={{ fontWeight: 900, color: '#051A3B', fontFamily: 'Outfit, sans-serif' }}>
+                            📋 Resubmission Document Checklist
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                            Application Cycle #{activeResubmissionCycle.id.substring(0, 8)} | Original Refusal Ground: <strong>{activeResubmissionCycle.refusalReason || 'Visa Refused'}</strong>
+                          </Typography>
+                        </Box>
+                        <Chip
+                          label={`Cycle Status: ${activeResubmissionCycle.status}`}
+                          color={activeResubmissionCycle.status === 'Ready for Resubmission' ? 'success' : 'primary'}
+                          sx={{ fontWeight: 800, fontSize: '0.85rem', px: 1, py: 2 }}
+                        />
+                      </Box>
+
+                      {activeResubmissionCycle.status === 'Ready for Resubmission' && (
+                        <Alert severity="success" sx={{ mb: 3, fontWeight: 700 }}>
+                          🎉 All mandatory checklist documents have been verified by Operations! Your resubmission package is fully ready for legal filing.
+                        </Alert>
+                      )}
+
+                      <Divider sx={{ mb: 3 }} />
+
+                      {['Main Applicant', 'Spouse', 'Dependents'].map((groupKey) => {
+                        const groupItems = resubmissionChecklist.filter(item => {
+                          if (groupKey === 'Main Applicant') return item.belongsTo === 'Main Applicant';
+                          if (groupKey === 'Spouse') return item.belongsTo === 'Spouse';
+                          return item.belongsTo !== 'Main Applicant' && item.belongsTo !== 'Spouse';
+                        });
+
+                        if (groupItems.length === 0) return null;
+
+                        return (
+                          <Box key={groupKey} sx={{ mb: 4 }}>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 900, mb: 2, color: '#051A3B', borderBottom: '2px solid #C59B27', display: 'inline-block', pb: 0.5 }}>
+                              👤 {groupKey} Checklist
+                            </Typography>
+                            <Grid container spacing={2}>
+                              {groupItems.map((item) => {
+                                const activeDoc = item.activeDocument;
+                                const isPending = item.status === 'PENDING_VERIFICATION';
+                                const isVerified = item.status === 'VERIFIED';
+                                const isRejected = item.status === 'REJECTED';
+                                const isNotRequired = item.status === 'NOT_REQUIRED';
+                                const isReused = item.status === 'REUSED' || Boolean(item.sourceDocumentId);
+
+                                const getStatusChip = () => {
+                                  if (isNotRequired) return <Chip label="Not Required" size="small" sx={{ bgcolor: '#E2E8F0', color: '#475569', fontWeight: 800 }} />;
+                                  if (isVerified) return <Chip label="Verified" size="small" color="success" sx={{ fontWeight: 800 }} />;
+                                  if (isReused) return <Chip label="Verified from Previous Application" size="small" color="info" sx={{ fontWeight: 800 }} />;
+                                  if (isPending) return <Chip label="Under Review" size="small" color="warning" sx={{ fontWeight: 800 }} />;
+                                  if (isRejected) return <Chip label="Re-upload Required" size="small" color="error" sx={{ fontWeight: 800 }} />;
+                                  return <Chip label="Required" size="small" color="error" variant="outlined" sx={{ fontWeight: 800 }} />;
+                                };
+
+                                return (
+                                  <Grid item xs={12} key={item.id}>
+                                    <Paper
+                                      sx={{
+                                        p: 2.5,
+                                        borderRadius: 3,
+                                        border: '1px solid',
+                                        borderColor: isRejected ? '#FCA5A5' : isVerified ? '#6EE7B7' : 'rgba(5, 26, 59, 0.1)',
+                                        bgcolor: isRejected ? '#FEF2F2' : isVerified ? '#ECFDF5' : '#FAF6ED'
+                                      }}
+                                    >
+                                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1, flexWrap: 'wrap', gap: 1 }}>
+                                        <Box>
+                                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
+                                            <Typography variant="subtitle2" sx={{ fontWeight: 900, color: '#051A3B', fontSize: '1rem' }}>
+                                              {item.title}
+                                            </Typography>
+                                            <Chip label={item.isMandatory ? 'Mandatory' : 'Optional'} size="small" variant="outlined" color={item.isMandatory ? 'error' : 'default'} sx={{ height: 20, fontSize: '0.68rem', fontWeight: 800 }} />
+                                            {activeDoc && (
+                                              <Chip label={`Version V${activeDoc.version}`} size="small" sx={{ height: 20, fontSize: '0.68rem', fontWeight: 800, bgcolor: 'rgba(5, 26, 59, 0.1)', color: '#051A3B' }} />
+                                            )}
+                                          </Box>
+                                          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600 }}>
+                                            Category: {item.category} | Due Date: {item.dueDate ? new Date(item.dueDate).toLocaleDateString() : 'No deadline'}
+                                          </Typography>
+                                          {item.clientInstructions && (
+                                            <Typography variant="body2" sx={{ mt: 1, p: 1, bgcolor: 'rgba(255,255,255,0.7)', borderRadius: 1.5, borderLeft: '3px solid #C59B27', fontSize: '0.82rem' }}>
+                                              💡 <strong>Instructions:</strong> {item.clientInstructions}
+                                            </Typography>
+                                          )}
+                                        </Box>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                          {getStatusChip()}
+                                          <Button
+                                            variant="contained"
+                                            component="label"
+                                            size="small"
+                                            disabled={uploadingItemId === item.id || isPending || isVerified || isNotRequired}
+                                            sx={{
+                                              fontWeight: 800,
+                                              bgcolor: '#051A3B',
+                                              color: 'white',
+                                              textTransform: 'none',
+                                              '&:hover': { bgcolor: '#C59B27' }
+                                            }}
+                                          >
+                                            {uploadingItemId === item.id ? 'Uploading...' : isRejected ? '🔁 Re-upload Corrected Version' : isVerified ? '✓ Document Verified' : isPending ? '⏳ Under Review' : '📤 Upload Document Version'}
+                                            <input
+                                              type="file"
+                                              hidden
+                                              accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                                              onChange={(e) => {
+                                                if (e.target.files[0]) {
+                                                  handleUploadChecklistDoc(item, e.target.files[0]);
+                                                }
+                                              }}
+                                            />
+                                          </Button>
+                                        </Box>
+                                      </Box>
+
+                                      {/* Operations Rejection Reason Prominently Displayed */}
+                                      {isRejected && (activeDoc?.comment || item.rejectionComment) && (
+                                        <Alert severity="error" sx={{ mt: 1.5, borderRadius: 2 }}>
+                                          <strong>Operations Rejection Reason:</strong> {activeDoc?.comment || item.rejectionComment}
+                                        </Alert>
+                                      )}
+
+                                      {/* Active & Past Document Versions History */}
+                                      {item.documents && item.documents.length > 0 && (
+                                        <Box sx={{ mt: 2 }}>
+                                          <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'block', mb: 0.5 }}>
+                                            Document Version History ({item.documents.length} version{item.documents.length > 1 ? 's' : ''}):
+                                          </Typography>
+                                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8 }}>
+                                            {item.documents.map((doc) => (
+                                              <Paper key={doc.id} sx={{ p: 1, px: 1.5, bgcolor: 'background.paper', borderRadius: 1.5, border: '1px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                                                  V{doc.version} - {doc.name || doc.fileName} (Uploaded: {doc.uploadedDate ? new Date(doc.uploadedDate).toLocaleDateString() : 'Recently'})
+                                                </Typography>
+                                                <StatusBadge status={doc.status} />
+                                              </Paper>
+                                            ))}
+                                          </Box>
+                                        </Box>
+                                      )}
+                                    </Paper>
+                                  </Grid>
+                                );
+                              })}
+                            </Grid>
+                          </Box>
+                        );
+                      })}
+                    </Paper>
+                  </Box>
+                )}
+
                 <Box className="col-span-12 lg:col-span-8">
                   <Paper
                     sx={{

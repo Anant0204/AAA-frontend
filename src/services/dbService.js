@@ -385,6 +385,10 @@ export const dbService = {
     // filter consultants if needed
     return res.data;
   },
+  getPublicLeadDetails: async (id) => {
+    const res = await apiClient.get(`/leads/${id}/public-details`);
+    return res.data;
+  },
 
   // AUTH
   authLogin: async (email, password) => {
@@ -421,7 +425,7 @@ export const dbService = {
         const found = conv.data.find(c => c.id === conversationId);
         targetPhone = found ? found.phone : null;
       }
-      
+
       const res = await apiClient.post('/social/messages/send', { phone: targetPhone, message });
       return res.data;
     } catch (e) {
@@ -609,6 +613,46 @@ export const dbService = {
   },
   updateApplicationCycle: async (id, data) => {
     const res = await apiClient.patch(`/cases/cycles/${id}`, data);
+    return res.data;
+  },
+
+  // ─── Checklist & Resubmission Endpoints ────────────────────────────────
+  getCycleChecklist: async (cycleId) => {
+    const res = await apiClient.get(`/cases/cycles/${cycleId}/checklist`);
+    return res.data;
+  },
+  addChecklistItem: async (data) => {
+    const res = await apiClient.post('/cases/checklists/item', data);
+    return res.data;
+  },
+  updateChecklistItem: async (id, data) => {
+    const res = await apiClient.patch(`/cases/checklists/item/${id}`, data);
+    return res.data;
+  },
+  deleteChecklistItem: async (id) => {
+    const res = await apiClient.delete(`/cases/checklists/item/${id}`);
+    return res.data;
+  },
+  uploadChecklistDoc: async (checklistItemId, formData) => {
+    const res = await apiClient.post(`/cases/checklists/item/${checklistItemId}/upload`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return res.data;
+  },
+  reviewChecklistDoc: async (documentId, { status, comment }) => {
+    const res = await apiClient.patch(`/cases/documents/${documentId}/review`, { status, comment });
+    return res.data;
+  },
+  recordResubmissionDetails: async (cycleId, data) => {
+    const res = await apiClient.post(`/cases/cycles/${cycleId}/resubmit`, data);
+    return res.data;
+  },
+  recordGovernmentDecision: async (cycleId, { governmentDecision, governmentDecisionDate }) => {
+    const res = await apiClient.post(`/cases/cycles/${cycleId}/government-decision`, { governmentDecision, governmentDecisionDate });
+    return res.data;
+  },
+  generateDefaultChecklist: async (cycleId) => {
+    const res = await apiClient.post(`/cases/cycles/${cycleId}/generate-checklist`);
     return res.data;
   },
 
