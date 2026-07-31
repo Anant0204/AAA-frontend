@@ -61,14 +61,17 @@ export const FileUploader = ({ onUpload, clientId, clientName, categories, isLoa
     if (acceptedFiles && acceptedFiles.length > 0) {
       const selectedFile = acceptedFiles[0];
       setFile(selectedFile);
-      // Try to match file name to one of selectCategories
-      const lowerFile = selectedFile.name.toLowerCase();
-      const matched = selectCategories.find(c => c !== 'Other (Specify Custom Document)' && lowerFile.includes(c.toLowerCase().split(' ')[0]));
-      const detected = matched || selectCategories[0] || 'Passport';
-      setCategory(detected);
-      showAlert(`File "${selectedFile.name}" selected. Category set to "${detected}". Click Upload to submit.`, 'info');
+      // Only auto-switch category if category is not custom
+      if (!isCustom) {
+        const lowerFile = selectedFile.name.toLowerCase();
+        const matched = selectCategories.find(c => c !== 'Other (Specify Custom Document)' && c !== 'Others' && lowerFile.includes(c.toLowerCase().split(' ')[0]));
+        if (matched) {
+          setCategory(matched);
+        }
+      }
+      showAlert(`File "${selectedFile.name}" selected. Click Upload to submit.`, 'info');
     }
-  }, [showAlert, selectCategories, isLoading]);
+  }, [showAlert, selectCategories, isLoading, isCustom]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -87,6 +90,11 @@ export const FileUploader = ({ onUpload, clientId, clientName, categories, isLoa
   const handleUploadSubmit = () => {
     if (!file) {
       showAlert('Please select or drag a file to upload.', 'warning');
+      return;
+    }
+
+    if (isCustom && !customCategory.trim()) {
+      showAlert('Please enter a custom document name in the input box.', 'warning');
       return;
     }
 
