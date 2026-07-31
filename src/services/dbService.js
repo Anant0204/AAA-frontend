@@ -643,6 +643,10 @@ export const dbService = {
     const res = await apiClient.post(`/cases/cycles/${cycleId}/government-decision`, { governmentDecision, governmentDecisionDate });
     return res.data;
   },
+  generateDefaultChecklist: async (cycleId) => {
+    const res = await apiClient.post(`/cases/cycles/${cycleId}/generate-checklist`);
+    return res.data;
+  },
 
   // ─── AI CEO Dashboard ───────────────────────────────────────────────────
   getCeoBrief: async () => {

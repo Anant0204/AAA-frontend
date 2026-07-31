@@ -206,6 +206,18 @@ export const SuperAdminClientDetails = () => {
     }
   });
 
+  const generateDefaultChecklistMutation = useMutation({
+    mutationFn: (cycleId) => dbService.generateDefaultChecklist(cycleId),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['cycleChecklist', selectedCycleForChecklist?.id] });
+      refetchCycleChecklist();
+      showAlert(`Generated ${res.count} default checklist items for resubmission cycle!`, 'success');
+    },
+    onError: (err) => {
+      showAlert(err.response?.data?.message || 'Failed to generate default checklist', 'error');
+    }
+  });
+
   const recordGovernmentDecisionMutation = useMutation({
     mutationFn: ({ cycleId, data }) => dbService.recordGovernmentDecision(cycleId, data),
     onSuccess: (res) => {
@@ -1259,6 +1271,7 @@ export const SuperAdminClientDetails = () => {
         onUpdateItem={(id, data) => updateChecklistItemMutation.mutateAsync({ id, data })}
         onDeleteItem={(id) => deleteChecklistItemMutation.mutateAsync(id)}
         onReviewDoc={(docId, data) => reviewDocMutation.mutateAsync({ documentId: docId, data })}
+        onGenerateDefaultChecklist={(cycleId) => generateDefaultChecklistMutation.mutateAsync(cycleId)}
       />
     </Box>
   );
