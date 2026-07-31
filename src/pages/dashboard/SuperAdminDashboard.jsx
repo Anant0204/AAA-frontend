@@ -6,6 +6,8 @@ import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 
 import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import CloseIcon from '@mui/icons-material/Close';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import List from '@mui/material/List';
@@ -658,13 +660,39 @@ export const SuperAdminDashboard = () => {
           <Box sx={{
             mt: 2,
             p: 2.5,
+            pt: 3,
             borderRadius: '12px',
             background: 'rgba(255, 255, 255, 0.03)',
             border: '1px solid rgba(255, 255, 255, 0.05)',
             display: 'flex',
             flexDirection: isMobile ? 'column' : 'row',
-            gap: 3
+            gap: 3,
+            position: 'relative'
           }}>
+            {/* Close Button */}
+            <IconButton
+              onClick={() => setBriefText('')}
+              size="small"
+              title="Close Briefing"
+              sx={{
+                position: 'absolute',
+                top: 10,
+                right: 10,
+                color: 'rgba(255, 255, 255, 0.7)',
+                bgcolor: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  color: '#fff',
+                  bgcolor: 'rgba(239, 68, 68, 0.8)',
+                  borderColor: 'rgba(239, 68, 68, 1)',
+                  transform: 'scale(1.05)'
+                }
+              }}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+
             {/* Left side: AI Greeting and Summary */}
             <Box sx={{ flex: 1.5 }}>
               <Typography variant="subtitle2" sx={{ color: '#14B8A6', fontWeight: 800, mb: 1.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
