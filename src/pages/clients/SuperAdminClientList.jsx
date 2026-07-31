@@ -536,9 +536,9 @@ export const SuperAdminClientList = () => {
 
             const isActive =
               preset.key === 'today' ? startDate === todayStr && endDate === todayStr :
-              preset.key === '7d' ? startDate === sevenDaysAgoStr && endDate === todayStr :
-              preset.key === '30d' ? startDate === thirtyDaysAgoStr && endDate === todayStr :
-              preset.key === 'all' ? !startDate && !endDate : false;
+                preset.key === '7d' ? startDate === sevenDaysAgoStr && endDate === todayStr :
+                  preset.key === '30d' ? startDate === thirtyDaysAgoStr && endDate === todayStr :
+                    preset.key === 'all' ? !startDate && !endDate : false;
             return (
               <Button
                 key={preset.key}
