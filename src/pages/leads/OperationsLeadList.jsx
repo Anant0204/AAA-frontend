@@ -382,20 +382,26 @@ export const OperationsLeadList = () => {
       id: 'status',
       label: 'Status',
       sortable: true,
-      render: (row) => (
-        <Select
-          value={row.status || 'New Lead'}
-          onChange={(e) => handleStatusChange(row.id, e.target.value)}
-          size="small"
-          sx={{ fontSize: '0.78rem', height: 28, minWidth: 120, bgcolor: 'background.paper' }}
-        >
-          {leadStatuses.map((st) => (
-            <MenuItem key={st} value={st} sx={{ fontSize: '0.78rem' }}>
-              {st}
-            </MenuItem>
-          ))}
-        </Select>
-      )
+      render: (row) => {
+        const currentStatus = row.status || 'New Lead';
+        const options = leadStatuses.includes(currentStatus)
+          ? leadStatuses
+          : [...leadStatuses, currentStatus];
+        return (
+          <Select
+            value={currentStatus}
+            onChange={(e) => handleStatusChange(row.id, e.target.value)}
+            size="small"
+            sx={{ fontSize: '0.78rem', height: 28, minWidth: 130, bgcolor: 'background.paper' }}
+          >
+            {options.map((st) => (
+              <MenuItem key={st} value={st} sx={{ fontSize: '0.78rem' }}>
+                {st}
+              </MenuItem>
+            ))}
+          </Select>
+        );
+      }
     },
     {
       id: 'assignedConsultant',
@@ -407,7 +413,22 @@ export const OperationsLeadList = () => {
     { id: 'source', label: 'Source', sortable: true },
   ];
 
-  const leadStatuses = Array.from(new Set([...leadStages.map(s => s.name), 'No Show']));
+  const standardStatuses = [
+    'New Lead',
+    'Assessment Booked',
+    'Meeting Scheduled',
+    'Meeting Completed',
+    'Eligible - Pending Payment',
+    'Not Eligible',
+    'No Show',
+    'Lost Lead',
+    'Spam',
+    'Cold Lead',
+    'Refused',
+    'Converted Client',
+    'Cancelled'
+  ];
+  const leadStatuses = Array.from(new Set([...standardStatuses, ...leadStages.map(s => s.name)]));
 
   return (
     <Box>
