@@ -23,6 +23,7 @@ import { LANGUAGES } from '../../constants/languages';
 import SearchableDropdown from '../../components/SearchableDropdown';
 import * as yup from 'yup';
 import dayjs from 'dayjs';
+import { getAvailableTimeSlots, getTomorrowMinDateStr } from '../../utils/bookingTimeSlots';
 
 // Icons
 import AddIcon from '@mui/icons-material/Add';
@@ -98,8 +99,15 @@ const leadSchema = yup.object().shape({
   applicantsCount: yup.number().typeError('Must be a number').min(1, 'At least 1 applicant').required(),
   source: yup.string().required('Lead source is required'),
   notes: yup.string(),
-  meetingPreferredDate: yup.string().nullable().notRequired(),
-  meetingPreferredTime: yup.string().nullable().notRequired()
+  meetingPreferredDate: yup
+    .string()
+    .required('Meeting Date is required')
+    .test('no-same-day', 'Booking date must be at least tomorrow (same-day booking not allowed)', (val) => {
+      if (!val) return false;
+      const todayStr = dayjs().format('YYYY-MM-DD');
+      return val > todayStr;
+    }),
+  meetingPreferredTime: yup.string().required('Meeting Time Slot is required')
 });
 
 export const SuperAdminLeadList = () => {
@@ -332,6 +340,9 @@ export const SuperAdminLeadList = () => {
     queryKey: ['customization-settings'],
     queryFn: dbService.getCustomizationSettings
   });
+
+  const availableTimeSlots = getAvailableTimeSlots(customizationSettings);
+  const minBookingDate = getTomorrowMinDateStr();
 
   const roleConfig = (customizationSettings?.[currentUser?.id] || customizationSettings?.[currentUser?.role]) || {};
   const isViewOnly = roleConfig.viewOnlyMenus?.includes('Leads') || false;
@@ -956,18 +967,21 @@ export const SuperAdminLeadList = () => {
               <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
                 <Box sx={{ position: 'relative', width: '100%' }}>
                   <TextField
-                    label="Meeting Date (Optional)"
+                    label="Meeting Date *"
                     value={watchMeetingPreferredDate ? (() => {
                       const parts = watchMeetingPreferredDate.split('-');
                       return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : watchMeetingPreferredDate;
                     })() : ''}
                     placeholder="dd/mm/yyyy"
                     InputLabelProps={{ shrink: true }}
+                    error={!!errors.meetingPreferredDate}
+                    helperText={errors.meetingPreferredDate?.message}
                     fullWidth
                     size="small"
                   />
                   <input
                     type="date"
+                    min={minBookingDate}
                     {...register('meetingPreferredDate')}
                     onClick={(e) => { try { if (e.target.showPicker) e.target.showPicker(); } catch (err) { } }}
                     style={{
@@ -981,29 +995,26 @@ export const SuperAdminLeadList = () => {
                     }}
                   />
                 </Box>
-                <FormControl fullWidth size="small">
-                  <InputLabel id="meeting-time-label" shrink>Meeting Time Slot (Optional)</InputLabel>
+                <FormControl fullWidth size="small" error={!!errors.meetingPreferredTime}>
+                  <InputLabel id="meeting-time-label" shrink>Meeting Time Slot *</InputLabel>
                   <Select
                     labelId="meeting-time-label"
                     {...register('meetingPreferredTime')}
                     value={watchMeetingPreferredTime || ''}
-                    label="Meeting Time Slot (Optional)"
+                    label="Meeting Time Slot *"
                     notched={true}
                     displayEmpty
                   >
-                    <MenuItem value="">None</MenuItem>
-                    <MenuItem value="9-10">🌅 09:00 AM – 10:00 AM</MenuItem>
-                    <MenuItem value="10-11">🌅 10:00 AM – 11:00 AM</MenuItem>
-                    <MenuItem value="11-12">🌅 11:00 AM – 12:00 PM</MenuItem>
-                    <MenuItem value="12-13">☀️ 12:00 PM – 01:00 PM</MenuItem>
-                    <MenuItem value="13-14">☀️ 01:00 PM – 02:00 PM</MenuItem>
-                    <MenuItem value="14-15">☀️ 02:00 PM – 03:00 PM</MenuItem>
-                    <MenuItem value="15-16">☀️ 03:00 PM – 04:00 PM</MenuItem>
-                    <MenuItem value="16-17">☀️ 04:00 PM – 05:00 PM</MenuItem>
-                    <MenuItem value="17-18">🌙 05:00 PM – 06:00 PM</MenuItem>
-                    <MenuItem value="18-19">🌙 06:00 PM – 07:00 PM</MenuItem>
-                    <MenuItem value="19-20">🌙 07:00 PM – 08:00 PM</MenuItem>
+                    <MenuItem value="" disabled>Select Time Slot</MenuItem>
+                    {availableTimeSlots.map((slot) => (
+                      <MenuItem key={slot.value} value={slot.value}>
+                        {slot.label}
+                      </MenuItem>
+                    ))}
                   </Select>
+                  {errors.meetingPreferredTime && (
+                    <FormHelperText>{errors.meetingPreferredTime.message}</FormHelperText>
+                  )}
                 </FormControl>
               </Box>
 
