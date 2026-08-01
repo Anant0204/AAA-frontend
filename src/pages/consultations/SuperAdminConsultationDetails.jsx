@@ -24,6 +24,7 @@ import PauseIcon from '@mui/icons-material/Pause';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
+import VideoCallIcon from '@mui/icons-material/VideoCall';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 
 // Services & Components
