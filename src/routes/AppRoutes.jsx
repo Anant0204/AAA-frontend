@@ -108,7 +108,7 @@ const getMenuLabelForPath = (path) => {
   if (p.includes('/agents') || p.includes('/team/agents')) return 'Agents';
   if (p.includes('/active-cases')) return 'Active Cases';
   if (p.includes('/documents/verify')) return 'Doc Verification';
-  if (p.includes('/documents/storage')) return 'AWS Cloud Backups';
+// if (p.includes('/documents/storage')) return 'AWS Cloud Backups';
   if (p.includes('/payments/refund-commission')) return 'Refunds & Commissions';
   if (p.includes('/closed-cases')) return 'Closed Cases';
   if (p.includes('/marketing-manager/leads')) return 'Leads';
@@ -315,11 +315,9 @@ export const AppRoutes = () => {
           <ClientPortalDocs />
         </ClientPortalGuard>
       } />
-      <Route path="/portal/no-show-payment" element={
-        <ClientPortalGuard>
-          <NoShowPayment />
-        </ClientPortalGuard>
-      } />
+      {/* Public No-Show Payment Page */}
+      <Route path="/public/no-show-payment" element={<NoShowPayment />} />
+      <Route path="/portal/no-show-payment" element={<NoShowPayment />} />
 
       {/* Main CRM Dashboard Shell Layout (Protected) */}
       <Route
@@ -539,14 +537,14 @@ export const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
-        <Route
+        {/* <Route
           path="/super_admin/documents/storage"
           element={
             <ProtectedRoute allowedRoles={['super_admin']}>
               <SuperAdminStorageBackup />
             </ProtectedRoute>
           }
-        />
+        /> */}
         <Route
           path="/super_admin/customization"
           element={

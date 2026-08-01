@@ -461,20 +461,26 @@ export const SuperAdminLeadList = () => {
       id: 'status',
       label: 'Status',
       sortable: true,
-      render: (row) => (
-        <Select
-          value={row.status || 'New Lead'}
-          onChange={(e) => handleStatusChange(row.id, e.target.value)}
-          size="small"
-          sx={{ fontSize: '0.78rem', height: 28, minWidth: 120, bgcolor: 'background.paper' }}
-        >
-          {leadStatuses.map((st) => (
-            <MenuItem key={st} value={st} sx={{ fontSize: '0.78rem' }}>
-              {st}
-            </MenuItem>
-          ))}
-        </Select>
-      )
+      render: (row) => {
+        const currentStatus = row.status || 'New Lead';
+        const options = leadStatuses.includes(currentStatus)
+          ? leadStatuses
+          : [...leadStatuses, currentStatus];
+        return (
+          <Select
+            value={currentStatus}
+            onChange={(e) => handleStatusChange(row.id, e.target.value)}
+            size="small"
+            sx={{ fontSize: '0.78rem', height: 28, minWidth: 130, bgcolor: 'background.paper' }}
+          >
+            {options.map((st) => (
+              <MenuItem key={st} value={st} sx={{ fontSize: '0.78rem' }}>
+                {st}
+              </MenuItem>
+            ))}
+          </Select>
+        );
+      }
     },
     {
       id: 'assignedConsultant',

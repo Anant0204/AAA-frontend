@@ -13,21 +13,43 @@ import EventBusyIcon from '@mui/icons-material/EventBusy';
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined';
 import { dbService } from '../../services/dbService';
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1';
+
 const NoShowPayment = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const consultationId = searchParams.get('id') || searchParams.get('clientId') || '';
+  const leadIdParam = searchParams.get('leadId') || searchParams.get('id') || searchParams.get('clientId') || '';
   const clientNameParam = searchParams.get('name') || '';
   const emailParam = searchParams.get('email') || '';
-  const amountParam = searchParams.get('amount') || '50';
+  const amountParam = searchParams.get('amount') || '250';
 
   const [clientName, setClientName] = useState(clientNameParam);
   const [email, setEmail] = useState(emailParam);
   const [amount, setAmount] = useState(amountParam);
   const [loading, setLoading] = useState(false);
+  const [fetchingLead, setFetchingLead] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  React.useEffect(() => {
+    if (leadIdParam && (!clientName || !email)) {
+      setFetchingLead(true);
+      axios.get(`${API_URL}/leads/${leadIdParam}/public-details`)
+        .then((res) => {
+          if (res.data) {
+            if (res.data.firstName || res.data.lastName) {
+              setClientName(`${res.data.firstName || ''} ${res.data.lastName || ''}`.trim());
+            }
+            if (res.data.email) {
+              setEmail(res.data.email);
+            }
+          }
+        })
+        .catch((err) => console.warn('[NoShowPayment] Lead prefill fetch notice:', err.message))
+        .finally(() => setFetchingLead(false));
+    }
+  }, [leadIdParam]);
 
   const handlePayNoShowFee = async (e) => {
     e.preventDefault();
@@ -42,10 +64,12 @@ const NoShowPayment = () => {
 
       const res = await dbService.createCheckoutSession({
         packageId: 'no_show_fee',
-        amount: Number(amount) || 50,
+        amount: Number(amount) || 250,
         clientName: clientName,
+        email: email,
         paymentMethod: 'Credit Card',
-        clientId: consultationId
+        clientId: leadIdParam,
+        leadId: leadIdParam
       });
 
       if (res && res.url) {

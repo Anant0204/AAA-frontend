@@ -78,6 +78,10 @@ export const dbService = {
     const res = await apiClient.patch(`/consultations/${consultationId}/reassign`, { consultantId, reason, allowConflict });
     return res.data;
   },
+  assignAgentToConsultation: async (consultationId, consultantId) => {
+    const res = await apiClient.patch(`/consultations/${consultationId}/reassign`, { consultantId });
+    return res.data;
+  },
 
   // CLIENTS & CASES
   getClients: async () => {
@@ -381,6 +385,10 @@ export const dbService = {
     // filter consultants if needed
     return res.data;
   },
+  getPublicLeadDetails: async (id) => {
+    const res = await apiClient.get(`/leads/${id}/public-details`);
+    return res.data;
+  },
 
   // AUTH
   authLogin: async (email, password) => {
@@ -417,7 +425,7 @@ export const dbService = {
         const found = conv.data.find(c => c.id === conversationId);
         targetPhone = found ? found.phone : null;
       }
-      
+
       const res = await apiClient.post('/social/messages/send', { phone: targetPhone, message });
       return res.data;
     } catch (e) {
