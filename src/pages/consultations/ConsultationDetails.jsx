@@ -26,6 +26,8 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import VideoCallIcon from '@mui/icons-material/VideoCall';
 
+import LockOpenIcon from '@mui/icons-material/LockOpen';
+
 // Services & Components
 import { dbService } from '../../services/dbService';
 import PageHeader from '../../components/PageHeader';
@@ -212,53 +214,66 @@ export const ConsultationDetails = () => {
         title={`Meeting / Consultation Session - ${cons.clientName}`}
         subtitle={`Session ID: ${cons.id}`}
         action={
-          cons.status === 'Scheduled' && (
-            <Stack direction="row" spacing={1}>
-              {!cons.assignedConsultantId ? (
+          <Stack direction="row" spacing={1}>
+            {(cons.status === 'No Show' || cons.status === 'no_show' || cons.status === 'No-Show') && (
+              <Button
+                variant="contained"
+                color="success"
+                startIcon={<LockOpenIcon />}
+                onClick={() => handleStatusChange('Scheduled')}
+                sx={{
+                  background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
+                  color: 'white',
+                  fontWeight: 700,
+                  '&:hover': { opacity: 0.9 }
+                }}
+              >
+                🔓 Unblock & Restore Lead
+              </Button>
+            )}
+            {cons.status === 'Scheduled' && !cons.assignedConsultantId && (
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={() => claimMutation.mutate()}
+                disabled={claimMutation.isPending}
+                sx={{
+                  background: 'linear-gradient(135deg, #2563EB 0%, #14B8A6 100%)',
+                  color: 'white',
+                  '&:hover': { opacity: 0.9 }
+                }}
+              >
+                Claim Consultation (Pick Up)
+              </Button>
+            )}
+            {cons.status === 'Scheduled' && cons.assignedConsultantId && (cons.assignedConsultantId === currentUser?.id || currentUser?.role === 'admin' || currentUser?.role === 'operations') && (
+              <>
                 <Button
                   variant="contained"
-                  color="secondary"
-                  onClick={() => claimMutation.mutate()}
-                  disabled={claimMutation.isPending}
-                  sx={{
-                    background: 'linear-gradient(135deg, #2563EB 0%, #14B8A6 100%)',
-                    color: 'white',
-                    '&:hover': { opacity: 0.9 }
-                  }}
+                  color="success"
+                  startIcon={<CheckCircleIcon />}
+                  onClick={() => setCompleteModalOpen(true)}
                 >
-                  Claim Consultation (Pick Up)
+                  Mark Complete
                 </Button>
-              ) : (
-                (cons.assignedConsultantId === currentUser?.id || currentUser?.role === 'admin' || currentUser?.role === 'operations') && (
-                  <>
-                    <Button
-                      variant="contained"
-                      color="success"
-                      startIcon={<CheckCircleIcon />}
-                      onClick={() => setCompleteModalOpen(true)}
-                    >
-                      Mark Complete
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      color="warning"
-                      onClick={() => handleStatusChange('No Show')}
-                    >
-                      Mark No Show
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      startIcon={<HighlightOffIcon />}
-                      onClick={() => handleStatusChange('Cancelled')}
-                    >
-                      Cancel Meeting
-                    </Button>
-                  </>
-                )
-              )}
-            </Stack>
-          )
+                <Button
+                  variant="outlined"
+                  color="warning"
+                  onClick={() => handleStatusChange('No Show')}
+                >
+                  Mark No Show
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<HighlightOffIcon sx={{ fontSize: '0.9rem' }} />}
+                  onClick={() => handleStatusChange('Cancelled')}
+                >
+                  Cancel Meeting
+                </Button>
+              </>
+            )}
+          </Stack>
         }
       />
 

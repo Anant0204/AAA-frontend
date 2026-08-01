@@ -315,11 +315,9 @@ export const AppRoutes = () => {
           <ClientPortalDocs />
         </ClientPortalGuard>
       } />
-      <Route path="/portal/no-show-payment" element={
-        <ClientPortalGuard>
-          <NoShowPayment />
-        </ClientPortalGuard>
-      } />
+      {/* Public No-Show Payment Page */}
+      <Route path="/public/no-show-payment" element={<NoShowPayment />} />
+      <Route path="/portal/no-show-payment" element={<NoShowPayment />} />
 
       {/* Main CRM Dashboard Shell Layout (Protected) */}
       <Route

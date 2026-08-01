@@ -131,7 +131,10 @@ export const Login = () => {
       navigate('/dashboard');
     } catch (error) {
       console.error("Login failed:", error);
-      showAlert(error.response?.data?.message || 'Invalid login credentials. Please check email/password.', 'error');
+      const errMsg = typeof error.response?.data === 'string' 
+        ? error.response.data 
+        : (error.response?.data?.message || 'Invalid login credentials. Please check email/password.');
+      showAlert(errMsg, 'error');
     }
   };
 
