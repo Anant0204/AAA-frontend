@@ -557,7 +557,7 @@ export const LeadSelfFillForm = () => {
       setLoading(false);
     };
 
-    if (isReschedule || isCancel || activeTokenOrId) {
+    if (isReschedule || isCancel || activeTokenOrId || leadIdParam) {
       loadData();
     }
 

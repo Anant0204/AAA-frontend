@@ -133,38 +133,43 @@ const PaymentSuccess = () => {
           const client = payment.client;
 
           if (!invoice) {
-            // Default original fallback message for assessment payments or simple transactions
+            const searchParams = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search || '');
+            const activeLeadId = searchParams.get('leadId') || searchParams.get('clientId') || '';
+            const isNoShowType = searchParams.get('type') === 'no_show' || activeLeadId !== '';
+            const rebookUrl = `/#/public/lead-form?leadId=${activeLeadId}&paid=true`;
+
             return (
               <>
                 <p
                   style={{
-                    color: "rgba(255, 255, 255, 0.75)",
-                    fontSize: "14px",
+                    color: "rgba(255, 255, 255, 0.85)",
+                    fontSize: "15px",
                     lineHeight: 1.6,
                     margin: 0
                   }}
                 >
-                  We have received your €250 assessment fee. Your profile has been successfully un-blocked. Please check your WhatsApp or Email for your secure re-booking link to choose your new consultation slot.
+                  We have received your €250 assessment fee. Your profile has been successfully un-blocked. Please select your new consultation date and time below to complete your booking.
                 </p>
-                <hr style={{ border: "none", borderTop: "1px solid rgba(255, 255, 255, 0.08)", width: "100%", margin: "8px 0" }} />
+                <hr style={{ border: "none", borderTop: "1px solid rgba(255, 255, 255, 0.1)", width: "100%", margin: "12px 0" }} />
                 <a
-                  href="/#/portal/login"
+                  href={rebookUrl}
                   style={{
                     display: "inline-block",
                     width: "100%",
-                    padding: "14px",
+                    padding: "15px",
                     background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
                     color: "#fff",
                     border: "none",
                     borderRadius: "12px",
-                    fontSize: "14px",
-                    fontWeight: 700,
+                    fontSize: "15px",
+                    fontWeight: 800,
+                    textAlign: "center",
                     textDecoration: "none",
-                    boxShadow: "0 4px 15px rgba(16, 185, 129, 0.2)",
+                    boxShadow: "0 4px 15px rgba(16, 185, 129, 0.3)",
                     boxSizing: "border-box"
                   }}
                 >
-                  Go to Document Upload Portal
+                  📅 Select Your New Meeting Date & Time Slot
                 </a>
               </>
             );
