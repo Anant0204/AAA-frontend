@@ -613,7 +613,9 @@ export const ClientPortalDocs = () => {
       (p.clientId === client?.id || p.clientId === clientId) && p.status === 'Paid'
     )
   );
-  const isClientPaid = Boolean(client?.documentUploadAllowed || hasAnyPaidPayment || translationPaid);
+  const isStatusPaid = ['Payment Received', 'Paid', 'Partially Paid', 'Under Process', 'Processing', 'Active'].includes(client?.status);
+  const isVisaStatusActive = ['Document Preparation', 'Document Review', 'Apostille & Translations', 'Submitted - Pending Decision', 'NIE / Local Registration', 'Visa Approved'].includes(client?.visaStatus);
+  const isClientPaid = Boolean(client?.documentUploadAllowed || hasAnyPaidPayment || translationPaid || isStatusPaid || isVisaStatusActive);
 
   const totalApplicants = client ? getApplicantsCount(client.applicantsCount) : 1;
 
