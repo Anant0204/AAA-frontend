@@ -19,8 +19,9 @@ import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { NATIONALITIES } from '../../constants/nationalities';
 import { LANGUAGES } from '../../constants/languages';
-import { COUNTRY_CODES, parsePhone } from '../../constants/countryCodes';
+import { parsePhone } from '../../constants/countryCodes';
 import SearchableDropdown from '../../components/SearchableDropdown';
+import SearchableCountryCodeSelect from '../../components/SearchableCountryCodeSelect';
 import * as yup from 'yup';
 import dayjs from 'dayjs';
 import { getAvailableTimeSlots, getTomorrowMinDateStr } from '../../utils/bookingTimeSlots';
@@ -766,35 +767,13 @@ export const AdminLeadList = () => {
                   const { countryCode: cCode, localNumber: lNum } = parsePhone(value || '');
                   return (
                     <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                      <FormControl size="small" sx={{ width: '105px', flexShrink: 0 }}>
-                        <Select
-                          value={cCode}
-                          onChange={(e) => {
-                            const newCode = e.target.value;
-                            const cleanDigits = (lNum || '').replace(/[^\d]/g, '');
-                            onChange(cleanDigits ? `${newCode}${cleanDigits}` : newCode);
-                          }}
-                          displayEmpty
-                          MenuProps={{
-                            PaperProps: {
-                              style: {
-                                maxHeight: 260,
-                                width: 210
-                              }
-                            }
-                          }}
-                          sx={{
-                            fontWeight: 600,
-                            fontSize: '0.875rem'
-                          }}
-                        >
-                          {COUNTRY_CODES.map((c) => (
-                            <MenuItem key={c.code + c.name} value={c.code} sx={{ fontSize: '0.85rem' }}>
-                              {c.code} ({c.name})
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
+                      <SearchableCountryCodeSelect
+                        value={cCode}
+                        onChange={(newCode) => {
+                          const cleanDigits = (lNum || '').replace(/[^\d]/g, '');
+                          onChange(cleanDigits ? `${newCode}${cleanDigits}` : newCode);
+                        }}
+                      />
                       <TextField
                         label="Phone Number"
                         size="small"
