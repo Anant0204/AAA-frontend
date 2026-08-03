@@ -342,7 +342,7 @@ export const AdminClientDetails = () => {
     'Closed',
   ];
 
-  const billingStatuses = leadStages.map(s => s.name);
+  const billingStatuses = Array.from(new Set(['Partially Paid', 'Payment Completed', ...leadStages.map(s => s.name)]));
 
   return (
     <Box>
@@ -914,6 +914,11 @@ export const AdminClientDetails = () => {
               value={selectedVisaStatus || ''}
               onChange={(e) => setSelectedVisaStatus(e.target.value)}
               label="Spain Visa Progression"
+              MenuProps={{
+                anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
+                transformOrigin: { vertical: 'top', horizontal: 'left' },
+                PaperProps: { style: { maxHeight: 280 } }
+              }}
               sx={{ borderRadius: 2 }}
             >
               {visaStatuses.map((st) => (
@@ -931,6 +936,11 @@ export const AdminClientDetails = () => {
               value={selectedBillingStatus || ''}
               onChange={(e) => setSelectedBillingStatus(e.target.value)}
               label="Billing Status"
+              MenuProps={{
+                anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
+                transformOrigin: { vertical: 'top', horizontal: 'left' },
+                PaperProps: { style: { maxHeight: 280 } }
+              }}
               sx={{ borderRadius: 2 }}
             >
               {billingStatuses.map((st) => (

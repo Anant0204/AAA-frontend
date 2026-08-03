@@ -521,6 +521,14 @@ export const dbService = {
     const res = await apiClient.get(`/settings/packages?t=${Date.now()}`);
     return res.data;
   },
+  getPayments: async () => {
+    try {
+      const res = await apiClient.get('/payments');
+      return Array.isArray(res.data) ? res.data : (res.data?.payments || []);
+    } catch (err) {
+      return [];
+    }
+  },
   getClientPackages: async () => {
     const res = await apiClient.get('/payments/packages');
     return res.data;

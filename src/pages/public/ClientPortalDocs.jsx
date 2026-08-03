@@ -607,19 +607,21 @@ export const ClientPortalDocs = () => {
     queryFn: dbService.getConsultations
   });
 
-  const { data: allPayments = [], isLoading: isPaymentsLoading } = useQuery({
+  const { data: rawPayments = [], isLoading: isPaymentsLoading } = useQuery({
     queryKey: ['payments'],
     queryFn: dbService.getPayments
   });
 
+  const allPayments = Array.isArray(rawPayments) ? rawPayments : (rawPayments?.payments || []);
+
   const hasAnyPaidPayment = Boolean(
-    allPayments && allPayments.some(p =>
+    Array.isArray(allPayments) && allPayments.some(p =>
       (p.clientId === client?.id || p.clientId === clientId) && p.status === 'Paid'
     )
   );
 
   const hasMainPackagePaidPayment = Boolean(
-    allPayments && allPayments.some(p =>
+    Array.isArray(allPayments) && allPayments.some(p =>
       (p.clientId === client?.id || p.clientId === clientId) &&
       p.status === 'Paid' &&
       p.packageType !== 'OPTION_A' &&
@@ -628,10 +630,11 @@ export const ClientPortalDocs = () => {
     )
   );
 
-  const isStatusPaid = ['Payment Received', 'Paid', 'Partially Paid', 'Under Process', 'Processing', 'Active'].includes(client?.status);
+  const isStatusPaid = ['Payment Received', 'Paid', 'Partially Paid', 'Payment Completed', 'Under Process', 'Processing', 'Active'].includes(client?.status);
   const isVisaStatusActive = ['Document Preparation', 'Document Review', 'Apostille & Translations', 'Submitted - Pending Decision', 'NIE / Local Registration', 'Visa Approved'].includes(client?.visaStatus);
+  const isMainPackageStatusActive = ['Payment Completed', 'Paid', 'Document Preparation', 'Document Review', 'Apostille & Translations', 'Submitted - Pending Decision', 'NIE / Local Registration', 'Visa Approved'].includes(client?.visaStatus) || client?.status === 'Payment Completed' || client?.status === 'Paid';
   const isClientPaid = Boolean(client?.documentUploadAllowed || hasAnyPaidPayment || translationPaid || isStatusPaid || isVisaStatusActive);
-  const isMainPackagePaid = Boolean(hasMainPackagePaidPayment || (isVisaStatusActive && client?.status !== 'Assessment Booked'));
+  const isMainPackagePaid = Boolean(hasMainPackagePaidPayment || isMainPackageStatusActive);
 
   const totalApplicants = client ? getApplicantsCount(client.applicantsCount) : 1;
 
@@ -654,6 +657,12 @@ export const ClientPortalDocs = () => {
       setAssessmentCredit(0); // Credit expired after 14 days!
     }
   }, [isAssessmentCreditValid]);
+
+  useEffect(() => {
+    if (!isClientPaid && !isProfileLoading && !isClientsLoading) {
+      setTabValue(1);
+    }
+  }, [isClientPaid, isProfileLoading, isClientsLoading]);
 
   const { data: allRefunds = [], refetch: refetchRefunds } = useQuery({
     queryKey: ['refundRequests'],
@@ -2710,6 +2719,7 @@ export const ClientPortalDocs = () => {
                           const effectiveAddCount = isOptA ? 0 : addApplicants;
                           const basePrice = pkgItem.price || 0;
                           const addCost = pkgItem.isFixedPrice ? 0 : (effectiveAddCount * (pkgItem.additionalApplicantPrice || 500));
+                          const totalBaseBeforeCredit = basePrice + addCost;
                           const isCreditApplicable = (pkgCode !== 'OPTION_A' && pkgCode !== 'opt_a') && assessmentCredit > 0;
                           const finalCardPrice = isCreditApplicable ? Math.max(0, totalBaseBeforeCredit - assessmentCredit) : totalBaseBeforeCredit;
 
