@@ -438,7 +438,7 @@ export const LeadSelfFillForm = () => {
     const isCancel = params.get("cancel") === "true" || isRouteCancel;
     const cId = params.get("consultationId");
 
-    const leadIdParam = params.get("leadId") || "";
+    const leadIdParam = params.get("leadId") || params.get("id") || "";
     const paidParam = params.get("paid") === "true";
     const activeTokenOrId = cId || tokenParam || idParam;
 
