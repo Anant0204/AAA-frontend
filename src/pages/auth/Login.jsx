@@ -44,7 +44,7 @@ import LocalPoliceIcon from '@mui/icons-material/LocalPolice';
 
 const schema = yup.object().shape({
   email: yup.string().trim().email('Enter a valid email').required('Email is required'),
-  password: yup.string().length(6, 'Password must contain exactly 6 characters').required('Password is required')
+  password: yup.string().min(6, 'Password must be at least 6 characters').required('Password is required')
 });
 
 export const Login = () => {

@@ -305,6 +305,38 @@ const SwornTranslationForm = () => {
   const [selectedMultiLangs, setSelectedMultiLangs] = useState(['English', 'Urdu']);
   const [otherLangInput, setOtherLangInput] = useState('');
 
+  // Dynamic Translation Rates state
+  const [translationRates, setTranslationRates] = useState([
+    { name: 'English to Spanish', rate: 0.15 },
+    { name: 'Arabic to Spanish', rate: 0.25 },
+    { name: 'Urdu to Spanish', rate: 0.40 }
+  ]);
+
+  useEffect(() => {
+    const fetchCompanySettings = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/settings/company`);
+        const companyData = res.data?.data || res.data || {};
+        let rates = companyData.swornTranslationRates;
+        if (typeof rates === 'string') {
+          try { rates = JSON.parse(rates); } catch (e) {}
+        }
+        if (Array.isArray(rates) && rates.length > 0) {
+          setTranslationRates(rates);
+        } else if (rates && typeof rates === 'object') {
+          const converted = [];
+          if (rates.englishToSpanish !== undefined) converted.push({ name: 'English to Spanish', rate: rates.englishToSpanish });
+          if (rates.arabicToSpanish !== undefined) converted.push({ name: 'Arabic to Spanish', rate: rates.arabicToSpanish });
+          if (rates.urduToSpanish !== undefined) converted.push({ name: 'Urdu to Spanish', rate: rates.urduToSpanish });
+          if (converted.length > 0) setTranslationRates(converted);
+        }
+      } catch (err) {
+        console.warn('Failed to load dynamic translation rates:', err.message);
+      }
+    };
+    fetchCompanySettings();
+  }, []);
+
   const getFinalSourceLanguage = () => {
     if (formData.sourceLanguage !== 'Multi-Language') {
       return formData.sourceLanguage;
@@ -873,9 +905,19 @@ const SwornTranslationForm = () => {
               }}>
                 <strong style={{ color: '#fff', display: 'block', marginBottom: '6px' }}>💰 Translation Rates (excluding 5% VAT):</strong>
                 <ul style={{ margin: 0, paddingLeft: '18px', color: '#cbd5e0' }}>
-                  <li>English to Spanish: <strong>€0.15</strong> per word</li>
-                  <li>Arabic to Spanish: <strong>€0.25</strong> per word</li>
-                  <li>Urdu to Spanish: <strong>€0.40</strong> per word</li>
+                  {translationRates && translationRates.length > 0 ? (
+                    translationRates.map((r, idx) => (
+                      <li key={idx}>
+                        {r.name || r.label || 'Language Pair'}: <strong>€{Number(r.rate || 0).toFixed(2)}</strong> per word
+                      </li>
+                    ))
+                  ) : (
+                    <>
+                      <li>English to Spanish: <strong>€0.15</strong> per word</li>
+                      <li>Arabic to Spanish: <strong>€0.25</strong> per word</li>
+                      <li>Urdu to Spanish: <strong>€0.40</strong> per word</li>
+                    </>
+                  )}
                 </ul>
                 <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.4)', display: 'block', marginTop: '6px' }}>
                   * Delivery within maximum 7 working days from payment confirmation.
@@ -954,7 +996,7 @@ const SwornTranslationForm = () => {
                     background: termsAccepted ? 'linear-gradient(135deg, #11998e, #38ef7d)' : '#4a5568'
                   }}
                 >
-                  💳 Proceed with Payment (Stripe Checkout)
+                  💳 Proceed with Payment
                 </button>
               </div>
             </div>
