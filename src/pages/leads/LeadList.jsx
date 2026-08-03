@@ -20,6 +20,8 @@ import { LANGUAGES } from '../../constants/languages';
 import SearchableDropdown from '../../components/SearchableDropdown';
 import * as yup from 'yup';
 import dayjs from 'dayjs';
+import { dbService } from '../../services/dbService';
+import { getAvailableTimeSlots, getTomorrowMinDateStr } from '../../utils/bookingTimeSlots';
 
 // Icons
 import AddIcon from '@mui/icons-material/Add';
@@ -62,7 +64,17 @@ const leadSchema = yup.object().shape({
   serviceId: yup.string().required('Visa service is required'),
   applicantsCount: yup.number().typeError('Must be a number').min(1, 'At least 1 applicant').required(),
   source: yup.string().required('Lead source is required'),
-  notes: yup.string() });
+  notes: yup.string(),
+  meetingPreferredDate: yup
+    .string()
+    .required('Meeting Date is required')
+    .test('no-same-day', 'Booking date must be at least tomorrow (same-day booking not allowed)', (val) => {
+      if (!val) return false;
+      const todayStr = dayjs().format('YYYY-MM-DD');
+      return val > todayStr;
+    }),
+  meetingPreferredTime: yup.string().required('Meeting Time Slot is required')
+});
 
 export const LeadList = () => {
   const navigate = useNavigate();
@@ -70,6 +82,14 @@ export const LeadList = () => {
   const queryClient = useQueryClient();
   const { showAlert } = useAlert();
   const { isAdmin, isOperations, currentUser } = useAuth();
+
+  const { data: customizationSettings } = useQuery({
+    queryKey: ['customization-settings'],
+    queryFn: dbService.getCustomizationSettings
+  });
+
+  const availableTimeSlots = getAvailableTimeSlots(customizationSettings);
+  const minBookingDate = getTomorrowMinDateStr();
 
   // Filters & State
   const [searchTerm, setSearchTerm] = useState('');
@@ -236,22 +256,30 @@ export const LeadList = () => {
       serviceId: 'dnv',
       applicantsCount: 1,
       source: 'Google Ads',
-      notes: '' } });
+      notes: '',
+      meetingPreferredDate: '',
+      meetingPreferredTime: ''
+    }
+  });
 
   const { data: leadStages = [] } = useQuery({
     queryKey: ['lead-stages'],
-    queryFn: dbService.getLeadStages });
+    queryFn: dbService.getLeadStages
+  });
 
   const watchServiceId = watch('serviceId');
   const watchSource = watch('source');
+  const watchMeetingPreferredTime = watch('meetingPreferredTime');
+  const watchMeetingPreferredDate = watch('meetingPreferredDate');
 
   // Handle forms
   const handleCreateLead = (data) => {
-    const defaultStatus = leadStages[0]?.name || 'New Lead';
+    const defaultStatus = data.meetingPreferredDate ? 'Meeting Scheduled' : (leadStages[0]?.name || 'New Lead');
     createLeadMutation.mutate({
       ...data,
       status: defaultStatus,
-      assignedConsultantId: '' });
+      assignedConsultantId: ''
+    });
   };
 
   const handleOpenAssignModal = (lead) => {
@@ -701,6 +729,60 @@ export const LeadList = () => {
                   </Select>
                   {errors.source && (
                     <FormHelperText>{errors.source.message}</FormHelperText>
+                  )}
+                </FormControl>
+              </Box>
+
+              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
+                <Box sx={{ position: 'relative', width: '100%' }}>
+                  <TextField
+                    label="Meeting Date *"
+                    value={watchMeetingPreferredDate ? (() => {
+                      const parts = watchMeetingPreferredDate.split('-');
+                      return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : watchMeetingPreferredDate;
+                    })() : ''}
+                    placeholder="dd/mm/yyyy"
+                    InputLabelProps={{ shrink: true }}
+                    error={!!errors.meetingPreferredDate}
+                    helperText={errors.meetingPreferredDate?.message}
+                    fullWidth
+                    size="small"
+                  />
+                  <input
+                    type="date"
+                    min={minBookingDate}
+                    {...register('meetingPreferredDate')}
+                    onClick={(e) => { try { if (e.target.showPicker) e.target.showPicker(); } catch (err) { } }}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      opacity: 0,
+                      cursor: 'pointer'
+                    }}
+                  />
+                </Box>
+                <FormControl fullWidth size="small" error={!!errors.meetingPreferredTime}>
+                  <InputLabel id="meeting-time-label" shrink>Meeting Time Slot *</InputLabel>
+                  <Select
+                    labelId="meeting-time-label"
+                    {...register('meetingPreferredTime')}
+                    value={watchMeetingPreferredTime || ''}
+                    label="Meeting Time Slot *"
+                    notched={true}
+                    displayEmpty
+                  >
+                    <MenuItem value="" disabled>Select Time Slot</MenuItem>
+                    {availableTimeSlots.map((slot) => (
+                      <MenuItem key={slot.value} value={slot.value}>
+                        {slot.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  {errors.meetingPreferredTime && (
+                    <FormHelperText>{errors.meetingPreferredTime.message}</FormHelperText>
                   )}
                 </FormControl>
               </Box>

@@ -45,8 +45,6 @@ import { useAlert } from '../../contexts/AlertContext';
 import ForumIcon from '@mui/icons-material/Forum';
 import { useAuth } from '../../hooks/useAuth';
 import { SERVICES, PACKAGES } from '../../constants/mockData';
-import SmartToyIcon from '@mui/icons-material/SmartToy';
-import AiSummaryModal from '../../components/AiSummaryModal';
 import { CommunicationHistoryTab } from '../../components/CommunicationHistoryTab';
 import UploadedDocumentsCard from '../../components/UploadedDocumentsCard';
 import CaseHistoryTimelineCard from '../../components/CaseHistoryTimelineCard';
@@ -517,15 +515,6 @@ export const SuperAdminLeadDetails = () => {
         subtitle={`Customer ID: ${lead.clientCode || lead.clientId || lead.client?.clientCode || lead.displayId || lead.id} | Nationality: ${lead.nationality}`}
         action={
           <Stack direction="row" spacing={1.5}>
-            <Button
-              variant="contained"
-              color="info"
-              onClick={() => setAiSummaryOpen(true)}
-              startIcon={<SmartToyIcon />}
-              sx={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)', color: 'white', '&:hover': { opacity: 0.95 } }}
-            >
-              AI Summary
-            </Button>
             <Button variant="outlined" onClick={handleOpenStatusModal}>
               Change Status
             </Button>
@@ -1348,7 +1337,6 @@ export const SuperAdminLeadDetails = () => {
           )}
         </Box>
       </AppModal>
-      <AiSummaryModal open={aiSummaryOpen} onClose={() => setAiSummaryOpen(false)} clientData={lead} isLead={true} />
     </Box>
   );
 };

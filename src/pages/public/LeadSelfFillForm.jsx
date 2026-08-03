@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import dayjs from "dayjs";
 import { getServicesForCountry, ALL_COUNTRIES } from "../../constants/countryServices";
+import { getAvailableTimeSlots } from "../../utils/bookingTimeSlots";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://aaa-consultancy-backend-production.up.railway.app/api/v1";
 
@@ -362,27 +363,7 @@ export const LeadSelfFillForm = () => {
 
   const [serviceCategory, setServiceCategory] = useState("visa"); // visa, case_assessment, property, translation
 
-  const flowSettings = customizationSettings?.flowAutomationSettings || {};
-  const bookingAllowedStart = flowSettings.bookingAllowedStart || '09:00';
-  const bookingAllowedEnd = flowSettings.bookingAllowedEnd || '18:00';
-
-  const generateTimeSlots = (startStr, endStr) => {
-    const slots = [];
-    let [startH, startM] = (startStr || '09:00').split(':').map(Number);
-    let [endH, endM] = (endStr || '18:00').split(':').map(Number);
-    let current = startH * 60 + (startM || 0);
-    const end = endH * 60 + (endM || 0);
-
-    while (current <= end) {
-      const h = Math.floor(current / 60).toString().padStart(2, '0');
-      const m = (current % 60).toString().padStart(2, '0');
-      slots.push(`${h}:${m}`);
-      current += 30; // 30 min slots
-    }
-    return slots;
-  };
-
-  const availableTimeSlots = generateTimeSlots(bookingAllowedStart, bookingAllowedEnd);
+  const availableTimeSlots = getAvailableTimeSlots(customizationSettings);
 
   // Form fields
   const [form, setForm] = useState({
@@ -1616,8 +1597,8 @@ export const LeadSelfFillForm = () => {
                         >
                           <option value="" disabled style={{ background: "#24243e" }}>Select Time Slot (UAE)</option>
                           {availableTimeSlots.map((slot) => (
-                            <option key={slot} value={slot} style={{ background: "#24243e", color: "#fff" }}>
-                              ⏰ {slot}
+                            <option key={slot.value} value={slot.value} style={{ background: "#24243e", color: "#fff" }}>
+                              {slot.label}
                             </option>
                           ))}
                         </select>
