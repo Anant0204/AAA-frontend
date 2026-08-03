@@ -23,6 +23,9 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import LockResetIcon from '@mui/icons-material/LockReset';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import InputAdornment from '@mui/material/InputAdornment';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import Tooltip from '@mui/material/Tooltip';
 import InfoIcon from '@mui/icons-material/Info';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -88,13 +91,14 @@ export const Agents = () => {
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState('consultant');
   const [avatarBase64, setAvatarBase64] = useState('');
   const [languages, setLanguages] = useState([]);
   const [nationalities, setNationalities] = useState([]);
   const [bio, setBio] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [newPassword, setNewPassword] = useState('');
 
   const { data: allLeads = [] } = useQuery({ queryKey: ['leads'], queryFn: dbService.getLeads });
@@ -989,7 +993,29 @@ export const Agents = () => {
           </Box>
           <TextField label="Full Name *" value={name} onChange={(e) => setName(e.target.value)} fullWidth required />
           <TextField label="Email Address *" type="email" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth required />
-          <TextField label="Password *" type="password" value={password} onChange={(e) => setPassword(e.target.value)} fullWidth required helperText="Provide credentials for the agent login." />
+          <TextField
+            label="Password *"
+            type={showPassword ? 'text' : 'password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            fullWidth
+            required
+            helperText="Provide credentials for the agent login."
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowPassword((show) => !show)}
+                    onMouseDown={(e) => e.preventDefault()}
+                    edge="end"
+                    size="small"
+                  >
+                    {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
           <TextField label="Hotline Number *" value={phone} onChange={(e) => setPhone(e.target.value)} fullWidth required />
           <TextField
             select
@@ -1111,11 +1137,25 @@ export const Agents = () => {
           </Typography>
           <TextField
             label="New Account Password *"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             fullWidth
             required
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowPassword((show) => !show)}
+                    onMouseDown={(e) => e.preventDefault()}
+                    edge="end"
+                    size="small"
+                  >
+                    {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
