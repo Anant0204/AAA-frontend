@@ -44,7 +44,7 @@ import LocalPoliceIcon from '@mui/icons-material/LocalPolice';
 
 const schema = yup.object().shape({
   email: yup.string().trim().email('Enter a valid email').required('Email is required'),
-  password: yup.string().length(6, 'Password must contain exactly 6 characters').required('Password is required')
+  password: yup.string().min(6, 'Password must be at least 6 characters').required('Password is required')
 });
 
 export const Login = () => {
@@ -212,6 +212,24 @@ export const Login = () => {
             fullWidth
             error={!!errors.password}
             helperText={errors.password?.message}
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword((show) => !show)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      edge="end"
+                      size="small"
+                      sx={{ color: 'text.secondary' }}
+                      aria-label="toggle password visibility"
+                    >
+                      {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }
+            }}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -220,6 +238,8 @@ export const Login = () => {
                     onMouseDown={(e) => e.preventDefault()}
                     edge="end"
                     size="small"
+                    sx={{ color: 'text.secondary' }}
+                    aria-label="toggle password visibility"
                   >
                     {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
                   </IconButton>
