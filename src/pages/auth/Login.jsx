@@ -212,6 +212,24 @@ export const Login = () => {
             fullWidth
             error={!!errors.password}
             helperText={errors.password?.message}
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword((show) => !show)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      edge="end"
+                      size="small"
+                      sx={{ color: 'text.secondary' }}
+                      aria-label="toggle password visibility"
+                    >
+                      {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }
+            }}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -220,6 +238,8 @@ export const Login = () => {
                     onMouseDown={(e) => e.preventDefault()}
                     edge="end"
                     size="small"
+                    sx={{ color: 'text.secondary' }}
+                    aria-label="toggle password visibility"
                   >
                     {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
                   </IconButton>
