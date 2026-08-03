@@ -374,6 +374,12 @@ export const AgentLeadList = () => {
     { id: 'email', label: 'Email', sortable: false },
     { id: 'nationality', label: 'Nationality', sortable: true },
     {
+      id: 'countryOfResidence',
+      label: 'Country of Residence',
+      sortable: true,
+      render: (row) => row.countryOfResidence || row.country || '-'
+    },
+    {
       id: 'service',
       label: 'Service',
       render: (row) => SERVICES.find((s) => s.id === row.serviceId)?.name || row.serviceId },
