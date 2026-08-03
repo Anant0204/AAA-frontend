@@ -33,8 +33,8 @@ export const ClientPortalChangePassword = () => {
       showAlert('Passwords do not match.', 'error');
       return;
     }
-    if (password.length < 6) {
-      showAlert('Password must be at least 6 characters long.', 'error');
+    if (password.length !== 6) {
+      showAlert('Password must contain exactly 6 characters.', 'error');
       return;
     }
 
@@ -204,6 +204,19 @@ export const ClientPortalChangePassword = () => {
               fullWidth
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                      sx={{ color: 'rgba(255,255,255,0.6)' }}
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
               sx={{
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 2.5,

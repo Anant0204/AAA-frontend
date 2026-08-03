@@ -6,6 +6,10 @@ import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Link from '@mui/material/Link';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import InputAdornment from '@mui/material/InputAdornment';
+import IconButton from '@mui/material/IconButton';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useAlert } from '../../contexts/AlertContext';
 
 export const ResetPassword = () => {
@@ -13,12 +17,13 @@ export const ResetPassword = () => {
   const { showAlert } = useAlert();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (password.length < 6) {
-      showAlert('Password must be at least 6 characters.', 'warning');
+    if (password.length !== 6) {
+      showAlert('Password must contain exactly 6 characters.', 'warning');
       return;
     }
     if (password !== confirmPassword) {
@@ -51,9 +56,23 @@ export const ResetPassword = () => {
             onChange={(e) => setPassword(e.target.value)}
             label="New Password"
             variant="outlined"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             fullWidth
             required
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowPassword((show) => !show)}
+                    onMouseDown={(e) => e.preventDefault()}
+                    edge="end"
+                    size="small"
+                  >
+                    {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
           />
 
           <TextField
@@ -61,9 +80,23 @@ export const ResetPassword = () => {
             onChange={(e) => setConfirmPassword(e.target.value)}
             label="Confirm New Password"
             variant="outlined"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             fullWidth
             required
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowPassword((show) => !show)}
+                    onMouseDown={(e) => e.preventDefault()}
+                    edge="end"
+                    size="small"
+                  >
+                    {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
           />
 
           <Button type="submit" variant="contained" color="secondary" size="large" fullWidth disabled={loading}>

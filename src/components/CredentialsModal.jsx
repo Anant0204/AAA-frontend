@@ -47,8 +47,8 @@ export const CredentialsModal = ({ open, onClose, client, password }) => {
   };
 
   const handleSavePassword = async () => {
-    if (!localPassword || localPassword.length < 6) {
-      showAlert('Password must be at least 6 characters long', 'error');
+    if (!localPassword || localPassword.length !== 6) {
+      showAlert('Password must contain exactly 6 characters.', 'error');
       return;
     }
     setSaving(true);

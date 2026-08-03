@@ -29,6 +29,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 
 import { dbService } from '../../services/dbService';
@@ -268,6 +269,25 @@ export const SuperAdminClientList = () => {
       showAlert(err.message || 'Failed to update follow-up date', 'error');
     }
   });
+
+  const deleteClientMutation = useMutation({
+    mutationFn: dbService.deleteClient,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['consultations'] });
+      showAlert(data?.message || 'Client deleted successfully', 'success');
+    },
+    onError: (err) => {
+      showAlert(err.response?.data?.message || err.message || 'Failed to delete client', 'error');
+    }
+  });
+
+  const handleDeleteClient = (client) => {
+    if (window.confirm(`Are you sure you want to delete client "${client.firstName} ${client.lastName}" (${client.clientCode || client.id.substring(0, 8)})?\n\nThis will permanently delete the client and all associated documents, payments, and application records.`)) {
+      deleteClientMutation.mutate(client.id);
+    }
+  };
 
   const [pendingFollowUpOnly, setPendingFollowUpOnly] = useState(false);
   const todayStr = dayjs().format('YYYY-MM-DD');
@@ -616,11 +636,29 @@ export const SuperAdminClientList = () => {
           maxHeight="calc(100vh - 250px)"
           onRowClick={(row) => navigate(`/${getRolePrefix()}/clients/details/${row.id}`)}
           actions={(row) => (
-            <Tooltip title="View Customer Profile">
-              <IconButton size="small" onClick={() => navigate(`/${getRolePrefix()}/clients/details/${row.id}`)} color="primary">
-                <VisibilityIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Tooltip title="View Customer Profile">
+                <IconButton size="small" onClick={() => navigate(`/${getRolePrefix()}/clients/details/${row.id}`)} color="primary">
+                  <VisibilityIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+
+              {currentUser?.role === 'super_admin' && (
+                <Tooltip title="Delete Client (Super Admin Only)">
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteClient(row);
+                    }}
+                    disabled={deleteClientMutation.isPending}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Box>
           )}
         />
       </Box>

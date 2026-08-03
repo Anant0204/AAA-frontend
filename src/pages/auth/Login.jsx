@@ -12,6 +12,10 @@ import Button from '@mui/material/Button';
 import Link from '@mui/material/Link';
 import Divider from '@mui/material/Divider';
 import Chip from '@mui/material/Chip';
+import InputAdornment from '@mui/material/InputAdornment';
+import IconButton from '@mui/material/IconButton';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
 import { useAuth } from '../../hooks/useAuth';
 import { useAlert } from '../../contexts/AlertContext';
@@ -40,12 +44,14 @@ import LocalPoliceIcon from '@mui/icons-material/LocalPolice';
 
 const schema = yup.object().shape({
   email: yup.string().trim().email('Enter a valid email').required('Email is required'),
-  password: yup.string().min(6, 'Password must be at least 6 characters').required('Password is required') });
+  password: yup.string().length(6, 'Password must contain exactly 6 characters').required('Password is required')
+});
 
 export const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const { showAlert } = useAlert();
+  const [showPassword, setShowPassword] = React.useState(false);
 
   React.useEffect(() => {
     const queryParams = new URLSearchParams(window.location.search || window.location.hash.split('?')[1]);
@@ -201,11 +207,25 @@ export const Login = () => {
           <TextField
             {...register('password')}
             label="Password"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             variant="outlined"
             fullWidth
             error={!!errors.password}
             helperText={errors.password?.message}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowPassword((show) => !show)}
+                    onMouseDown={(e) => e.preventDefault()}
+                    edge="end"
+                    size="small"
+                  >
+                    {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
           />
 
           <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
