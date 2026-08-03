@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
+import Stack from '@mui/material/Stack';
+import Alert from '@mui/material/Alert';
 import Typography from '@mui/material/Typography';
 import Collapse from '@mui/material/Collapse';
 
@@ -455,9 +457,128 @@ export const SuperAdminCustomization = () => {
     });
   };
 
+  const parseTimeMins = (timeStr) => {
+    if (!timeStr) return 0;
+    const clean = String(timeStr).trim().toUpperCase();
+    const isPM = clean.includes('PM');
+    const isAM = clean.includes('AM');
+    const digitsOnly = clean.replace(/[^\d:]/g, '');
+    const parts = digitsOnly.split(':');
+    let hour = parseInt(parts[0] || '0', 10);
+    let min = parseInt(parts[1] || '0', 10);
+    if (isNaN(hour)) return 0;
+    if (isNaN(min)) min = 0;
+    if (isPM && hour < 12) hour += 12;
+    if (isAM && hour === 12) hour = 0;
+    return hour * 60 + min;
+  };
+
+  const currentBookingWindows = (() => {
+    const flow = localSettings?.flowAutomationSettings || {};
+    if (Array.isArray(flow.bookingWindows) && flow.bookingWindows.length > 0) {
+      return flow.bookingWindows;
+    }
+    return [{
+      startTime: flow.bookingAllowedStart || '09:00',
+      endTime: flow.bookingAllowedEnd || '18:00'
+    }];
+  })();
+
+  const handleUpdateBookingWindow = (index, field, value) => {
+    const updated = currentBookingWindows.map((win, idx) => {
+      if (idx === index) {
+        return { ...win, [field]: value };
+      }
+      return win;
+    });
+    handleUpdateFlowSetting('bookingWindows', updated);
+  };
+
+  const handleAddBookingWindow = () => {
+    const lastWin = currentBookingWindows[currentBookingWindows.length - 1];
+    let nextStart = '14:00';
+    let nextEnd = '17:00';
+    if (lastWin && lastWin.endTime) {
+      const lastEndMins = parseTimeMins(lastWin.endTime);
+      const newStartMins = Math.min(23 * 60, lastEndMins + 60);
+      const newEndMins = Math.min(23 * 60 + 59, newStartMins + 120);
+      const hS = String(Math.floor(newStartMins / 60)).padStart(2, '0');
+      const mS = String(newStartMins % 60).padStart(2, '0');
+      const hE = String(Math.floor(newEndMins / 60)).padStart(2, '0');
+      const mE = String(newEndMins % 60).padStart(2, '0');
+      nextStart = `${hS}:${mS}`;
+      nextEnd = `${hE}:${mE}`;
+    }
+    const updated = [...currentBookingWindows, { startTime: nextStart, endTime: nextEnd }];
+    handleUpdateFlowSetting('bookingWindows', updated);
+  };
+
+  const handleRemoveBookingWindow = (index) => {
+    if (currentBookingWindows.length <= 1) {
+      showAlert('At least one booking window is required', 'warning');
+      return;
+    }
+    const updated = currentBookingWindows.filter((_, idx) => idx !== index);
+    handleUpdateFlowSetting('bookingWindows', updated);
+  };
+
+  const validateBookingWindows = (windows) => {
+    if (!Array.isArray(windows) || windows.length === 0) {
+      return 'At least one booking window must be configured.';
+    }
+    for (let i = 0; i < windows.length; i++) {
+      const win = windows[i];
+      if (!win.startTime || !win.endTime) {
+        return `Window ${i + 1} has invalid or empty time values.`;
+      }
+      const startMins = parseTimeMins(win.startTime);
+      const endMins = parseTimeMins(win.endTime);
+      if (startMins >= endMins) {
+        return `Window ${i + 1}: Start time (${win.startTime}) must be strictly before End time (${win.endTime}).`;
+      }
+    }
+
+    const sorted = [...windows].sort((a, b) => parseTimeMins(a.startTime) - parseTimeMins(b.startTime));
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = sorted[i - 1];
+      const curr = sorted[i];
+      if (parseTimeMins(curr.startTime) < parseTimeMins(prev.endTime)) {
+        return `Booking Window (${curr.startTime} – ${curr.endTime}) overlaps with Window (${prev.startTime} – ${prev.endTime}). Please adjust window times.`;
+      }
+    }
+    return null;
+  };
+
   const handleSave = () => {
     if (!localSettings) return;
-    saveSettingsMutation.mutate(localSettings);
+    const flow = localSettings.flowAutomationSettings || {};
+    let windows = flow.bookingWindows;
+    if (!Array.isArray(windows) || windows.length === 0) {
+      windows = [{
+        startTime: flow.bookingAllowedStart || '09:00',
+        endTime: flow.bookingAllowedEnd || '18:00'
+      }];
+    }
+
+    const errorMsg = validateBookingWindows(windows);
+    if (errorMsg) {
+      showAlert(errorMsg, 'error');
+      return;
+    }
+
+    const sortedWindows = [...windows].sort((a, b) => parseTimeMins(a.startTime) - parseTimeMins(b.startTime));
+    const updatedSettings = {
+      ...localSettings,
+      flowAutomationSettings: {
+        ...flow,
+        bookingWindows: sortedWindows,
+        bookingAllowedStart: sortedWindows[0].startTime,
+        bookingAllowedEnd: sortedWindows[sortedWindows.length - 1].endTime
+      }
+    };
+
+    setLocalSettings(updatedSettings);
+    saveSettingsMutation.mutate(updatedSettings);
   };
 
   const handleAddDoc = (category) => {
@@ -1833,8 +1954,8 @@ export const SuperAdminCustomization = () => {
           </Box>
 
           <Box className="grid grid-cols-12 gap-3" sx={{ mt: 2 }}>
-            {/* Column 1: Meeting & Booking limits */}
-            <Box className="col-span-12 md:col-span-6" sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* Flow Automation Settings */}
+            <Box className="col-span-12" sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               {/* Meeting Scheduler card */}
               <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, boxShadow: 'none' }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#051A3B', mb: 2, display: 'flex', alignItems: 'center', gap: 1, fontFamily: 'Outfit, sans-serif' }}>
@@ -1935,67 +2056,119 @@ export const SuperAdminCustomization = () => {
                 </Box>
               </Paper>
 
-              {/* Allowed booking hours card */}
+              {/* Allowed booking hours card - Multiple Booking Windows */}
               <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, boxShadow: 'none' }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#051A3B', mb: 2, display: 'flex', alignItems: 'center', gap: 1, fontFamily: 'Outfit, sans-serif' }}>
-                  🕒 Allowed Booking Windows (Time Picker Bounds)
-                </Typography>
-                <Box className="grid grid-cols-12 gap-2">
-                  <Box className="col-span-6">
-                    <TextField
-                      type="time"
-                      label="Booking Start Time"
-                      value={localSettings?.flowAutomationSettings?.bookingAllowedStart || '09:00'}
-                      onChange={(e) => handleUpdateFlowSetting('bookingAllowedStart', e.target.value)}
-                      fullWidth
-                      size="small"
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  </Box>
-                  <Box className="col-span-6">
-                    <TextField
-                      type="time"
-                      label="Booking End Time"
-                      value={localSettings?.flowAutomationSettings?.bookingAllowedEnd || '18:00'}
-                      onChange={(e) => handleUpdateFlowSetting('bookingAllowedEnd', e.target.value)}
-                      fullWidth
-                      size="small"
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#051A3B', display: 'flex', alignItems: 'center', gap: 1, fontFamily: 'Outfit, sans-serif' }}>
+                    🕒 Allowed Booking Windows (Time Picker Bounds)
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<AddIcon />}
+                    onClick={handleAddBookingWindow}
+                    sx={{
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      fontWeight: 700,
+                      borderColor: '#4f46e5',
+                      color: '#4f46e5',
+                      '&:hover': { borderColor: '#4338ca', backgroundColor: 'rgba(79, 70, 229, 0.04)' }
+                    }}
+                  >
+                    Add Booking Window
+                  </Button>
                 </Box>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5 }}>
-                  Restricts clients from scheduling assessments outside of these business hours in the self-fill booking forms.
-                </Typography>
-              </Paper>
-            </Box>
 
-            {/* Column 2: Welcome email editor */}
-            <Box className="col-span-12 md:col-span-6">
-              <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, boxShadow: 'none', height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#051A3B', mb: 2, display: 'flex', alignItems: 'center', gap: 1, fontFamily: 'Outfit, sans-serif' }}>
-                  ✉️ Onboarding Welcome Email Customization
+                <Stack spacing={2}>
+                  {currentBookingWindows.map((win, idx) => {
+                    const windowError = (() => {
+                      if (!win.startTime || !win.endTime) return 'Enter valid time';
+                      if (parseTimeMins(win.startTime) >= parseTimeMins(win.endTime)) return 'Start time must be before End time';
+                      return null;
+                    })();
+
+                    return (
+                      <Box
+                        key={idx}
+                        sx={{
+                          p: 2,
+                          borderRadius: 2.5,
+                          border: '1px solid',
+                          borderColor: windowError ? 'error.light' : 'divider',
+                          backgroundColor: windowError ? 'rgba(239, 68, 68, 0.02)' : '#f8fafc',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 2,
+                          flexWrap: { xs: 'wrap', sm: 'nowrap' }
+                        }}
+                      >
+                        <Chip
+                          label={`Window ${idx + 1}`}
+                          size="small"
+                          sx={{ fontWeight: 700, backgroundColor: '#e0e7ff', color: '#4338ca', minWidth: 90 }}
+                        />
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
+                          <TextField
+                            type="time"
+                            label="Start Time"
+                            value={win.startTime || '09:00'}
+                            onChange={(e) => handleUpdateBookingWindow(idx, 'startTime', e.target.value)}
+                            fullWidth
+                            size="small"
+                            InputLabelProps={{ shrink: true }}
+                            error={Boolean(windowError)}
+                          />
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.secondary', px: 0.5 }}>
+                            →
+                          </Typography>
+                          <TextField
+                            type="time"
+                            label="End Time"
+                            value={win.endTime || '18:00'}
+                            onChange={(e) => handleUpdateBookingWindow(idx, 'endTime', e.target.value)}
+                            fullWidth
+                            size="small"
+                            InputLabelProps={{ shrink: true }}
+                            error={Boolean(windowError)}
+                          />
+                        </Box>
+
+                        <IconButton
+                          color="error"
+                          size="small"
+                          disabled={currentBookingWindows.length <= 1}
+                          onClick={() => handleRemoveBookingWindow(idx)}
+                          sx={{
+                            border: '1px solid',
+                            borderColor: 'error.light',
+                            '&:disabled': { opacity: 0.4 }
+                          }}
+                          title="Remove Window"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    );
+                  })}
+                </Stack>
+
+                {(() => {
+                  const err = validateBookingWindows(currentBookingWindows);
+                  if (err) {
+                    return (
+                      <Alert severity="error" sx={{ mt: 2, borderRadius: 2, fontSize: '0.85rem' }}>
+                        {err}
+                      </Alert>
+                    );
+                  }
+                  return null;
+                })()}
+
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
+                  Restricts clients from scheduling assessments outside of these business hours in the self-fill booking forms. You can define multiple non-overlapping time windows per day (e.g. 11:00 AM – 1:00 PM & 4:00 PM – 6:00 PM).
                 </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, flex: 1 }}>
-                  <TextField
-                    label="Welcome Email Subject"
-                    value={localSettings?.flowAutomationSettings?.welcomeEmailSubject || ''}
-                    onChange={(e) => handleUpdateFlowSetting('welcomeEmailSubject', e.target.value)}
-                    fullWidth
-                    size="small"
-                  />
-                  <TextField
-                    label="Welcome Email Template (HTML format)"
-                    value={localSettings?.flowAutomationSettings?.welcomeEmailTemplate || ''}
-                    onChange={(e) => handleUpdateFlowSetting('welcomeEmailTemplate', e.target.value)}
-                    fullWidth
-                    multiline
-                    rows={20}
-                    size="small"
-                    sx={{ flex: 1, '& .MuiInputBase-root': { height: '100%' } }}
-                    helperText="Supported placeholders: {client_name}, {portal_url}, {username}, {temp_password}"
-                  />
-                </Box>
               </Paper>
             </Box>
           </Box>

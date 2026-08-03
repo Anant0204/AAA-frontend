@@ -52,42 +52,62 @@ export function parseTimeToMinutes(timeStr, defaultMinutes) {
  */
 export function getAvailableTimeSlots(customizationSettings) {
   const flow = customizationSettings?.flowAutomationSettings || {};
-  const startMins = parseTimeToMinutes(flow.bookingAllowedStart, 9 * 60); // Default 09:00 AM
-  const endMins = parseTimeToMinutes(flow.bookingAllowedEnd, 18 * 60); // Default 06:00 PM
   const duration = parseInt(flow.defaultMeetingDuration, 10) || 20; // Default 20 mins
 
-  const slots = [];
-  let current = startMins;
-
-  while (current + duration <= endMins) {
-    const slotStart = current;
-    const slotEnd = current + duration;
-
-    const start12 = formatMinutesTo12h(slotStart);
-    const end12 = formatMinutesTo12h(slotEnd);
-    const start24 = formatMinutesTo24h(slotStart);
-    const end24 = formatMinutesTo24h(slotEnd);
-
-    let icon = '☀️';
-    const hour24 = Math.floor(slotStart / 60);
-    if (hour24 < 12) icon = '🌅';
-    else if (hour24 >= 17 && hour24 < 19) icon = '🌇';
-    else if (hour24 >= 19) icon = '🌙';
-
-    const slotLabel12h = `${start12} – ${end12}`;
-
-    slots.push({
-      value: slotLabel12h,
-      label: `${icon} ${slotLabel12h}`,
-      display24h: `${start24} – ${end24}`,
-      short24h: start24,
-      short12h: start12,
-      startMinutes: slotStart,
-      endMinutes: slotEnd
-    });
-
-    current += duration;
+  // Determine windows list (support both new multi-window array & legacy single start/end string)
+  let rawWindows = [];
+  if (Array.isArray(flow.bookingWindows) && flow.bookingWindows.length > 0) {
+    rawWindows = flow.bookingWindows;
+  } else if (flow.bookingAllowedStart || flow.bookingAllowedEnd) {
+    rawWindows = [{
+      startTime: flow.bookingAllowedStart || '09:00',
+      endTime: flow.bookingAllowedEnd || '18:00'
+    }];
+  } else {
+    rawWindows = [{ startTime: '09:00', endTime: '18:00' }];
   }
+
+  const slots = [];
+
+  rawWindows.forEach((win) => {
+    if (!win || !win.startTime || !win.endTime) return;
+    const startMins = parseTimeToMinutes(win.startTime, 9 * 60);
+    const endMins = parseTimeToMinutes(win.endTime, 18 * 60);
+    if (startMins >= endMins) return;
+
+    let current = startMins;
+    while (current + duration <= endMins) {
+      const slotStart = current;
+      const slotEnd = current + duration;
+
+      const start12 = formatMinutesTo12h(slotStart);
+      const end12 = formatMinutesTo12h(slotEnd);
+      const start24 = formatMinutesTo24h(slotStart);
+      const end24 = formatMinutesTo24h(slotEnd);
+
+      let icon = '☀️';
+      const hour24 = Math.floor(slotStart / 60);
+      if (hour24 < 12) icon = '🌅';
+      else if (hour24 >= 17 && hour24 < 19) icon = '🌇';
+      else if (hour24 >= 19) icon = '🌙';
+
+      const slotLabel12h = `${start12} – ${end12}`;
+
+      if (!slots.some((s) => s.startMinutes === slotStart && s.endMinutes === slotEnd)) {
+        slots.push({
+          value: slotLabel12h,
+          label: `${icon} ${slotLabel12h}`,
+          display24h: `${start24} – ${end24}`,
+          short24h: start24,
+          short12h: start12,
+          startMinutes: slotStart,
+          endMinutes: slotEnd
+        });
+      }
+
+      current += duration;
+    }
+  });
 
   // Fallback: If duration configuration results in empty list, generate 20-min slots from 9 to 18
   if (slots.length === 0) {

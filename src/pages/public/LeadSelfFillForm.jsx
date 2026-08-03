@@ -391,6 +391,56 @@ export const LeadSelfFillForm = () => {
   const [totalApplicantsDisplay, setTotalApplicantsDisplay] = useState('1');
   const [confirmedMeetingLink, setConfirmedMeetingLink] = useState('');
 
+  // Load form draft from localStorage on mount (preserves details on page refresh)
+  useEffect(() => {
+    try {
+      const savedDraft = localStorage.getItem("aaa_lead_booking_draft");
+      if (savedDraft) {
+        const draft = JSON.parse(savedDraft);
+        if (draft && typeof draft === "object") {
+          if (draft.serviceCategory && draft.serviceCategory !== "case_assessment") {
+            setServiceCategory(draft.serviceCategory);
+          }
+          if (draft.countryCode) setCountryCode(draft.countryCode);
+          if (draft.localNumber) setLocalNumber(draft.localNumber);
+          if (draft.selectedMultiLangs) setSelectedMultiLangs(draft.selectedMultiLangs);
+          if (draft.otherLangInput) setOtherLangInput(draft.otherLangInput);
+          if (draft.totalApplicantsDisplay) setTotalApplicantsDisplay(draft.totalApplicantsDisplay);
+          if (draft.form) {
+            setForm((prev) => ({
+              ...prev,
+              ...draft.form
+            }));
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to load form draft from localStorage:", e);
+    }
+  }, []);
+
+  // Save form draft to localStorage whenever form values change
+  useEffect(() => {
+    try {
+      const hasContent = form.firstName || form.lastName || form.email || localNumber || form.meetingNotes || serviceCategory !== "visa";
+      if (hasContent) {
+        const draftData = {
+          serviceCategory,
+          form,
+          countryCode,
+          localNumber,
+          selectedMultiLangs,
+          otherLangInput,
+          totalApplicantsDisplay,
+          updatedAt: Date.now()
+        };
+        localStorage.setItem("aaa_lead_booking_draft", JSON.stringify(draftData));
+      }
+    } catch (e) {
+      console.warn("Failed to save form draft to localStorage:", e);
+    }
+  }, [form, serviceCategory, countryCode, localNumber, selectedMultiLangs, otherLangInput, totalApplicantsDisplay]);
+
   const getFinalLanguage = (langVal) => {
     if (langVal !== 'Multi-Language') {
       return langVal;
@@ -877,13 +927,18 @@ export const LeadSelfFillForm = () => {
       setError("Please select your preferred meeting date and time.");
       return;
     }
-    const flowSettings = customizationSettings?.flowAutomationSettings || {};
     const selectTime = form.meetingPreferredTime;
-    const allowedStart = flowSettings.bookingAllowedStart || '09:00';
-    const allowedEnd = flowSettings.bookingAllowedEnd || '18:00';
-    if (selectTime && (selectTime < allowedStart || selectTime > allowedEnd)) {
-      setError(`Preferred meeting time must be between ${allowedStart} and ${allowedEnd}.`);
-      return;
+    if (selectTime && availableTimeSlots && availableTimeSlots.length > 0) {
+      const isValid = availableTimeSlots.some((slot) =>
+        slot.value === selectTime ||
+        slot.short24h === selectTime ||
+        slot.display24h === selectTime ||
+        selectTime.includes(slot.short12h)
+      );
+      if (!isValid) {
+        setError("Selected meeting time slot is outside of configured booking windows.");
+        return;
+      }
     }
     setLoading(true);
     setError("");
@@ -928,6 +983,7 @@ export const LeadSelfFillForm = () => {
         } else {
           setConfirmedMeetingLink("https://zoom.us/j/" + Math.floor(100000000 + Math.random() * 900000000));
         }
+        localStorage.removeItem("aaa_lead_booking_draft");
         setStep(2);
       }
     } catch (err) {
@@ -974,13 +1030,13 @@ export const LeadSelfFillForm = () => {
     });
   };
 
-  // Get minimum date (tomorrow in local timezone, NOT UTC)
-  // Using toISOString() would give UTC date which can be wrong for IST (+5:30) users
+  // Get minimum date (tomorrow in local timezone, disabling same-day booking)
   const getNextDayStr = () => {
     const d = new Date();
+    d.setDate(d.getDate() + 1); // Advances date safely to tomorrow across month/year boundaries
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
   const minBookingDate = getNextDayStr();
@@ -1190,8 +1246,7 @@ export const LeadSelfFillForm = () => {
                     style={{ ...inputStyle, color: "#fff", border: "1px solid rgba(102, 126, 234, 0.4)" }}
                   >
                     <option value="visa" style={{ background: "#24243e" }}>✈️ Spain Visa & Residency Services</option>
-                    <option value="case_assessment" style={{ background: "#24243e" }}>⚖️ Free Case Assessment (Digital Nomad / Non-Lucrative)</option>
-                    <option value="property" style={{ background: "#24243e" }}>🏡 Property Investment & Golden Visa Guidance</option>
+                    <option value="property" style={{ background: "#24243e" }}>🏡 Property Investment Guidance Service</option>
                     <option value="translation" style={{ background: "#24243e" }}>📜 Spanish Sworn Translation Service</option>
                   </select>
                 </div>
@@ -1381,7 +1436,7 @@ export const LeadSelfFillForm = () => {
                           >
                             👤 1 Main +
                           </div>
-                          <div style={{ flex: 1, position: "relative" }}>
+                          <div style={{ flex: 1, position: "relative", minWidth: "160px" }}>
                             <input
                               type="number"
                               min="0"
@@ -1414,9 +1469,17 @@ export const LeadSelfFillForm = () => {
                                 }
                               }}
                               placeholder="0"
-                              style={{ ...inputStyle, color: "#fff", paddingRight: "90px" }}
+                              style={{
+                                ...inputStyle,
+                                color: "#fff",
+                                paddingLeft: "14px",
+                                paddingRight: "100px",
+                                fontWeight: 700,
+                                fontSize: "15px",
+                                boxSizing: "border-box"
+                              }}
                             />
-                            <span style={{ position: "absolute", right: "14px", top: "50%", transform: "translateY(-50%)", fontSize: "13px", color: "rgba(255,255,255,0.6)", pointerEvents: "none", fontWeight: 600 }}>
+                            <span style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", fontSize: "13px", color: "rgba(255,255,255,0.7)", pointerEvents: "none", fontWeight: 600 }}>
                               Dependents
                             </span>
                           </div>

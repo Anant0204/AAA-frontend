@@ -104,6 +104,10 @@ export const dbService = {
     const res = await apiClient.put(`/clients/${client.id}`, client);
     return res.data;
   },
+  deleteClient: async (clientId) => {
+    const res = await apiClient.delete(`/clients/${clientId}`);
+    return res.data;
+  },
   updateClientDependents: async (clientId, dependents) => {
     const res = await apiClient.patch(`/clients/${clientId}/dependents`, { dependents });
     return res.data;
