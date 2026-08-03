@@ -739,21 +739,31 @@ export const OperationsLeadList = () => {
                   const { countryCode: cCode, localNumber: lNum } = parsePhone(value || '');
                   return (
                     <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                      <FormControl size="small" sx={{ width: '135px', flexShrink: 0 }}>
-                        <InputLabel id="country-code-select-label">Code</InputLabel>
+                      <FormControl size="small" sx={{ width: '105px', flexShrink: 0 }}>
                         <Select
-                          labelId="country-code-select-label"
-                          label="Code"
                           value={cCode}
                           onChange={(e) => {
                             const newCode = e.target.value;
                             const cleanDigits = (lNum || '').replace(/[^\d]/g, '');
                             onChange(cleanDigits ? `${newCode}${cleanDigits}` : newCode);
                           }}
+                          displayEmpty
+                          MenuProps={{
+                            PaperProps: {
+                              style: {
+                                maxHeight: 260,
+                                width: 210
+                              }
+                            }
+                          }}
+                          sx={{
+                            fontWeight: 600,
+                            fontSize: '0.875rem'
+                          }}
                         >
                           {COUNTRY_CODES.map((c) => (
-                            <MenuItem key={c.code + c.name} value={c.code}>
-                              {c.flag} {c.code}
+                            <MenuItem key={c.code + c.name} value={c.code} sx={{ fontSize: '0.85rem' }}>
+                              {c.code} ({c.name})
                             </MenuItem>
                           ))}
                         </Select>
