@@ -962,7 +962,20 @@ export const DashboardLayout = () => {
       <Divider />
 
       {/* Navigation Links */}
-      <Box sx={{ flexGrow: 1, overflowY: 'auto', py: 2 }}>
+      <Box
+        sx={{
+          flexGrow: 1,
+          overflowY: 'auto',
+          py: 2,
+          '&::-webkit-scrollbar': {
+            display: 'none',
+            width: 0,
+            height: 0,
+          },
+          msOverflowStyle: 'none',
+          scrollbarWidth: 'none',
+        }}
+      >
         <List disablePadding>
           {menuItems.map((item) => renderNavItem(item))}
 
@@ -1312,6 +1325,13 @@ export const DashboardLayout = () => {
             borderLeft: isRTL ? '1px solid' : 'none',
             borderColor: 'divider',
             overflowX: 'hidden',
+            '&::-webkit-scrollbar': {
+              display: 'none',
+              width: 0,
+              height: 0,
+            },
+            msOverflowStyle: 'none',
+            scrollbarWidth: 'none',
             transition: (theme) =>
               theme.transitions.create('width', {
                 easing: theme.transitions.easing.sharp,
@@ -1342,6 +1362,13 @@ export const DashboardLayout = () => {
             borderRight: isRTL ? 'none' : '1px solid',
             borderLeft: isRTL ? '1px solid' : 'none',
             borderColor: 'divider',
+            '&::-webkit-scrollbar': {
+              display: 'none',
+              width: 0,
+              height: 0,
+            },
+            msOverflowStyle: 'none',
+            scrollbarWidth: 'none',
           },
         }}
       >

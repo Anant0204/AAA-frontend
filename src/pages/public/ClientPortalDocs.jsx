@@ -52,6 +52,7 @@ import PrintIcon from '@mui/icons-material/Print';
 import CloseIcon from '@mui/icons-material/Close';
 
 import { dbService } from '../../services/dbService';
+import { ALL_COUNTRIES } from '../../constants/countryServices';
 import FileUploader from '../../components/FileUploader';
 import StatusBadge from '../../components/StatusBadge';
 import AppModal from '../../components/AppModal';
@@ -1515,25 +1516,77 @@ export const ClientPortalDocs = () => {
                         You have registered <strong>{totalDependents} co-applicant(s)</strong>. Please fill out their profiles to generate their checklists and unlock their document upload folders.
                       </Typography>
 
-                      <Grid container spacing={{ xs: 2, md: 3 }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                         {/* Main Applicant Profile Card */}
-                        <Grid item xs={12}>
-                          <Paper sx={{ p: { xs: 2, sm: 2.5, md: 3 }, borderRadius: 3, border: '1.5px solid rgba(5, 26, 59, 0.15)', bgcolor: 'background.paper' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#051A3B', fontFamily: 'Outfit, sans-serif', display: 'flex', alignItems: 'center', gap: 1 }}>
-                                👤 Main Applicant Details
-                              </Typography>
-                              <Chip label="Primary Applicant" size="small" sx={{ bgcolor: 'rgba(5, 26, 59, 0.08)', color: '#051A3B', fontWeight: 800, fontSize: '0.75rem' }} />
-                            </Box>
+                        <Paper sx={{ p: { xs: 2, sm: 2.5, md: 3 }, borderRadius: 3, border: '1.5px solid rgba(5, 26, 59, 0.15)', bgcolor: 'background.paper' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#051A3B', fontFamily: 'Outfit, sans-serif', display: 'flex', alignItems: 'center', gap: 1 }}>
+                              👤 Main Applicant Details
+                            </Typography>
+                            <Chip label="Primary Applicant" size="small" sx={{ bgcolor: 'rgba(5, 26, 59, 0.08)', color: '#051A3B', fontWeight: 800, fontSize: '0.75rem' }} />
+                          </Box>
+                          <Grid container spacing={2}>
+                            <Grid item xs={12} sm={6} md={3}>
+                              <TextField
+                                label="First Name"
+                                size="small"
+                                fullWidth
+                                value={client?.firstName || ''}
+                                disabled
+                                sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}
+                              />
+                            </Grid>
+                            <Grid item xs={12} sm={6} md={3}>
+                              <TextField
+                                label="Last Name"
+                                size="small"
+                                fullWidth
+                                value={client?.lastName || ''}
+                                disabled
+                                sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}
+                              />
+                            </Grid>
+                            <Grid item xs={12} sm={6} md={3}>
+                              <TextField
+                                label="Relationship"
+                                size="small"
+                                fullWidth
+                                value="Main Applicant"
+                                disabled
+                                sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}
+                              />
+                            </Grid>
+                            <Grid item xs={12} sm={6} md={3}>
+                              <TextField
+                                label="Nationality"
+                                size="small"
+                                fullWidth
+                                value={client?.nationality || 'N/A'}
+                                disabled
+                                sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}
+                              />
+                            </Grid>
+                          </Grid>
+                        </Paper>
+
+                        {/* Co-Applicants Cards */}
+                        {wizardDeps.map((dep, idx) => (
+                          <Paper key={idx} sx={{ p: { xs: 2, sm: 2.5, md: 3 }, borderRadius: 3, border: '1px solid rgba(0,0,0,0.08)', bgcolor: 'background.paper' }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#051A3B', mb: 2, fontFamily: 'Outfit, sans-serif' }}>
+                              Co-Applicant {idx + 1} Details
+                            </Typography>
                             <Grid container spacing={2}>
                               <Grid item xs={12} sm={6} md={3}>
                                 <TextField
                                   label="First Name"
                                   size="small"
                                   fullWidth
-                                  value={client?.firstName || ''}
-                                  disabled
-                                  sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}
+                                  value={dep.firstName}
+                                  onChange={(e) => {
+                                    const newDeps = [...wizardDeps];
+                                    newDeps[idx].firstName = e.target.value;
+                                    setWizardDeps(newDeps);
+                                  }}
                                 />
                               </Grid>
                               <Grid item xs={12} sm={6} md={3}>
@@ -1541,125 +1594,65 @@ export const ClientPortalDocs = () => {
                                   label="Last Name"
                                   size="small"
                                   fullWidth
-                                  value={client?.lastName || ''}
-                                  disabled
-                                  sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}
-                                />
-                              </Grid>
-                              <Grid item xs={12} sm={6} md={3} sx={{ minWidth: { md: 220 } }}>
-                                <TextField
-                                  label="Relationship"
-                                  size="small"
-                                  fullWidth
-                                  value="Main Applicant"
-                                  disabled
-                                  sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}
+                                  value={dep.lastName}
+                                  onChange={(e) => {
+                                    const newDeps = [...wizardDeps];
+                                    newDeps[idx].lastName = e.target.value;
+                                    setWizardDeps(newDeps);
+                                  }}
                                 />
                               </Grid>
                               <Grid item xs={12} sm={6} md={3}>
-                                <TextField
-                                  label="Nationality"
-                                  size="small"
+                                <FormControl fullWidth size="small">
+                                   <InputLabel id={`rel-select-label-${idx}`}>Relationship</InputLabel>
+                                   <Select
+                                     labelId={`rel-select-label-${idx}`}
+                                     label="Relationship"
+                                     value={dep.relation || ''}
+                                     onChange={(e) => {
+                                       const newDeps = [...wizardDeps];
+                                       newDeps[idx].relation = e.target.value;
+                                       setWizardDeps(newDeps);
+                                     }}
+                                   >
+                                     <MenuItem value="Spouse">Spouse</MenuItem>
+                                     <MenuItem value="Child">Child</MenuItem>
+                                     <MenuItem value="Parent">Parent</MenuItem>
+                                     <MenuItem value="Other">Other</MenuItem>
+                                   </Select>
+                                 </FormControl>
+                              </Grid>
+                              <Grid item xs={12} sm={6} md={3}>
+                                <Autocomplete
                                   fullWidth
-                                  value={client?.nationality || 'N/A'}
-                                  disabled
-                                  sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}
+                                  options={ALL_COUNTRIES}
+                                  value={dep.nationality || ''}
+                                  onChange={(event, newValue) => {
+                                    const newDeps = [...wizardDeps];
+                                    newDeps[idx].nationality = newValue || '';
+                                    setWizardDeps(newDeps);
+                                  }}
+                                  onInputChange={(event, newInputValue) => {
+                                    const newDeps = [...wizardDeps];
+                                    newDeps[idx].nationality = newInputValue || '';
+                                    setWizardDeps(newDeps);
+                                  }}
+                                  renderInput={(params) => (
+                                    <TextField
+                                      {...params}
+                                      label="Nationality"
+                                      size="small"
+                                      fullWidth
+                                      placeholder="Select country..."
+                                    />
+                                  )}
                                 />
                               </Grid>
                             </Grid>
                           </Paper>
-                        </Grid>
-
-                        {/* Co-Applicants Cards */}
-                        {wizardDeps.map((dep, idx) => (
-                          <Grid item xs={12} key={idx}>
-                            <Paper sx={{ p: { xs: 2, sm: 2.5, md: 3 }, borderRadius: 3, border: '1px solid rgba(0,0,0,0.05)', bgcolor: 'background.paper' }}>
-                              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#051A3B', mb: 2, fontFamily: 'Outfit, sans-serif' }}>
-                                Co-Applicant {idx + 1} Details
-                              </Typography>
-                              <Grid container spacing={2}>
-                                <Grid item xs={12} sm={6} md={2.75}>
-                                  <TextField
-                                    label="First Name"
-                                    size="small"
-                                    fullWidth
-                                    value={dep.firstName}
-                                    onChange={(e) => {
-                                      const newDeps = [...wizardDeps];
-                                      newDeps[idx].firstName = e.target.value;
-                                      setWizardDeps(newDeps);
-                                    }}
-                                  />
-                                </Grid>
-                                <Grid item xs={12} sm={6} md={2.75}>
-                                  <TextField
-                                    label="Last Name"
-                                    size="small"
-                                    fullWidth
-                                    value={dep.lastName}
-                                    onChange={(e) => {
-                                      const newDeps = [...wizardDeps];
-                                      newDeps[idx].lastName = e.target.value;
-                                      setWizardDeps(newDeps);
-                                    }}
-                                  />
-                                </Grid>
-                                <Grid item xs={12} sm={6} md={3.5} sx={{ minWidth: { md: 220 } }}>
-                                  <Autocomplete
-                                    freeSolo
-                                    disableClearable
-                                    options={['Spouse', 'Child', 'Parent', 'Other']}
-                                    value={dep.relation || ''}
-                                    onChange={(event, newValue) => {
-                                      const newDeps = [...wizardDeps];
-                                      newDeps[idx].relation = newValue || '';
-                                      setWizardDeps(newDeps);
-                                    }}
-                                    onInputChange={(event, newInputValue) => {
-                                      const newDeps = [...wizardDeps];
-                                      newDeps[idx].relation = newInputValue || '';
-                                      setWizardDeps(newDeps);
-                                    }}
-                                    sx={{
-                                      width: '100%',
-                                      minWidth: { md: 220 },
-                                      '& .MuiOutlinedInput-root': {
-                                        paddingRight: '30px !important',
-                                      },
-                                      '& .MuiInputBase-input': {
-                                        fontSize: '0.875rem !important'
-                                      }
-                                    }}
-                                    renderInput={(params) => (
-                                      <TextField
-                                        {...params}
-                                        label="Relationship"
-                                        size="small"
-                                        fullWidth
-                                        placeholder="Select or type..."
-                                      />
-                                    )}
-                                  />
-                                </Grid>
-                                <Grid item xs={12} sm={6} md={3}>
-                                  <TextField
-                                    label="Nationality"
-                                    size="small"
-                                    fullWidth
-                                    value={dep.nationality}
-                                    onChange={(e) => {
-                                      const newDeps = [...wizardDeps];
-                                      newDeps[idx].nationality = e.target.value;
-                                      setWizardDeps(newDeps);
-                                    }}
-                                  />
-                                </Grid>
-                              </Grid>
-                            </Paper>
-                          </Grid>
                         ))}
 
-                        <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', width: '100%', mt: 1 }}>
                           <Button
                             variant="contained"
                             onClick={handleSaveWizardDeps}
@@ -1667,19 +1660,21 @@ export const ClientPortalDocs = () => {
                             sx={{
                               px: 4,
                               py: 1.2,
-                              borderRadius: 2,
+                              height: 42,
+                              borderRadius: 2.5,
                               fontWeight: 800,
                               bgcolor: '#051A3B',
                               color: 'white',
                               fontFamily: 'Outfit, sans-serif',
                               textTransform: 'none',
-                              '&:hover': { bgcolor: '#C59B27' }
+                              boxShadow: '0 4px 14px rgba(5, 26, 59, 0.2)',
+                              '&:hover': { bgcolor: '#C59B27', boxShadow: '0 4px 14px rgba(197, 155, 39, 0.3)' }
                             }}
                           >
                             {saveDependentsMutation.isPending ? 'Saving Profiles...' : 'Save Family Profiles'}
                           </Button>
-                        </Grid>
-                      </Grid>
+                        </Box>
+                      </Box>
                     </Paper>
                   </Box>
                 )}
@@ -3006,22 +3001,28 @@ export const ClientPortalDocs = () => {
 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, mb: 0.5, display: 'block' }}>
-                      Claim Category
-                    </Typography>
-                    <Select
-                      fullWidth
-                      size="small"
-                      value={claimCategory}
-                      onChange={(e) => setClaimCategory(e.target.value)}
-                      sx={{ borderRadius: 2 }}
+                    <Box
+                      sx={{
+                        p: 2,
+                        borderRadius: 2.5,
+                        bgcolor: '#FFFBEB',
+                        border: '1.5px solid #D97706',
+                        boxShadow: '0 2px 8px rgba(217, 119, 6, 0.08)'
+                      }}
                     >
-                      <MenuItem value="Visa Rejection">Visa Rejection (50% Money-Back Guarantee)</MenuItem>
-                      <MenuItem value="Medical / Personal Emergency">Medical / Personal Emergency Cancellation</MenuItem>
-                      <MenuItem value="Relocation Plan Change">Relocation Plan Changed / Postponed</MenuItem>
-                      <MenuItem value="Service Issue">Service Issue / Dissatisfaction</MenuItem>
-                      <MenuItem value="Other">Other Reason</MenuItem>
-                    </Select>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: '#78350F',
+                          fontWeight: 800,
+                          fontSize: '0.875rem',
+                          lineHeight: 1.5,
+                          fontFamily: 'Outfit, sans-serif'
+                        }}
+                      >
+                        📌 <strong>Note:</strong> If the visa is rejected after the resubmission or appeal process, the client will receive a 100% refund, subject to the Company’s Terms and Conditions.
+                      </Typography>
+                    </Box>
                   </Box>
 
                   {/* Calculated Amount Box */}

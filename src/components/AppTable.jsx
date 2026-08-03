@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -16,8 +16,8 @@ import { dbService } from '../services/dbService';
 import { useAuth } from '../hooks/useAuth';
 
 const DEFAULT_COLUMNS = {
-  leads: ['id', 'name', 'phone', 'email', 'nationality', 'service', 'status', 'assignedConsultant', 'source', 'createdDate'],
-  clients: ['id', 'name', 'nationality', 'service', 'package', 'status', 'visaStatus', 'assignedConsultant']
+  leads: ['id', 'name', 'phone', 'email', 'nationality', 'countryOfResidence', 'service', 'status', 'assignedConsultant', 'source', 'createdDate'],
+  clients: ['id', 'name', 'nationality', 'countryOfResidence', 'service', 'package', 'status', 'visaStatus', 'assignedConsultant']
 };
 
 export const AppTable = ({
@@ -44,6 +44,55 @@ export const AppTable = ({
     enabled: !!currentUser
   });
 
+  const topScrollRef = useRef(null);
+  const bottomScrollRef = useRef(null);
+  const tableRef = useRef(null);
+  const [scrollWidth, setScrollWidth] = useState(0);
+
+  const isSyncingTop = useRef(false);
+  const isSyncingBottom = useRef(false);
+
+  const handleTopScroll = () => {
+    if (isSyncingTop.current) {
+      isSyncingTop.current = false;
+      return;
+    }
+    if (topScrollRef.current && bottomScrollRef.current) {
+      isSyncingBottom.current = true;
+      bottomScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+    }
+  };
+
+  const handleBottomScroll = () => {
+    if (isSyncingBottom.current) {
+      isSyncingBottom.current = false;
+      return;
+    }
+    if (topScrollRef.current && bottomScrollRef.current) {
+      isSyncingTop.current = true;
+      topScrollRef.current.scrollLeft = bottomScrollRef.current.scrollLeft;
+    }
+  };
+
+  useLayoutEffect(() => {
+    const updateWidth = () => {
+      const sw = Math.max(
+        tableRef.current?.scrollWidth || 0,
+        bottomScrollRef.current?.scrollWidth || 0
+      );
+      setScrollWidth(sw);
+    };
+    updateWidth();
+    const timer = setTimeout(updateWidth, 150);
+    const resizeObserver = new ResizeObserver(updateWidth);
+    if (tableRef.current) resizeObserver.observe(tableRef.current);
+    if (bottomScrollRef.current) resizeObserver.observe(bottomScrollRef.current);
+    return () => {
+      clearTimeout(timer);
+      resizeObserver.disconnect();
+    };
+  }, [data, columns]);
+
   const handleSort = (property) => {
     if (onSort) {
       onSort(property);
@@ -61,8 +110,38 @@ export const AppTable = ({
 
   return (
     <Paper sx={{ width: '100%', overflow: 'hidden', borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
-      <TableContainer sx={{ maxHeight, overflowX: 'auto' }}>
-        <Table stickyHeader aria-label="customized table">
+      {/* Top Scrollbar Container */}
+      <Box
+        ref={topScrollRef}
+        onScroll={handleTopScroll}
+        sx={{
+          overflowX: 'auto',
+          overflowY: 'hidden',
+          width: '100%',
+          height: '14px',
+          bgcolor: '#F1F5F9',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          '&::-webkit-scrollbar': {
+            height: 10,
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: '#E2E8F0',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: '#64748B',
+            borderRadius: 4,
+            '&:hover': {
+              backgroundColor: '#475569',
+            },
+          },
+        }}
+      >
+        <Box sx={{ width: scrollWidth ? `${scrollWidth}px` : '100%', height: '1px' }} />
+      </Box>
+
+      <TableContainer ref={bottomScrollRef} onScroll={handleBottomScroll} sx={{ maxHeight, overflowX: 'auto' }}>
+        <Table ref={tableRef} stickyHeader aria-label="customized table">
           <TableHead>
             <TableRow>
               {visibleColumns.map((column) => (

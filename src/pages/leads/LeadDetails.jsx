@@ -401,7 +401,7 @@ export const LeadDetails = () => {
 
       <PageHeader
         title={`${lead.firstName} ${lead.lastName}`}
-        subtitle={`Customer ID: ${lead.clientCode || lead.clientId || lead.client?.clientCode || lead.displayId || lead.id} | Nationality: ${lead.nationality}`}
+        subtitle={`Customer ID: ${lead.clientCode || lead.clientId || lead.client?.clientCode || lead.displayId || lead.id} | Nationality: ${lead.nationality || '-'} | Country of Residence: ${lead.countryOfResidence || lead.country || '-'}`}
         action={
           <Stack direction="row" spacing={1.5}>
             <Button variant="outlined" onClick={handleOpenStatusModal}>
@@ -529,6 +529,10 @@ export const LeadDetails = () => {
                       <Box>
                         <Typography variant="caption" color="text.secondary">Nationality</Typography>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>{lead.nationality}</Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">Country of Residence</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{lead.countryOfResidence || lead.country || '-'}</Typography>
                       </Box>
                       <Box>
                         <Typography variant="caption" color="text.secondary">Preferred Communication Language</Typography>
