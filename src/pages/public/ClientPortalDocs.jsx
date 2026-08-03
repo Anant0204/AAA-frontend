@@ -352,7 +352,7 @@ export const ClientPortalDocs = () => {
   const [addonLoading, setAddonLoading] = useState(false);
 
   // Visa Package selection & Billing states
-  const [selectedPackage, setSelectedPackage] = useState('OPTION_B');
+  const [selectedPackage, setSelectedPackage] = useState('OPTION_A');
   const [addApplicants, setAddApplicants] = useState(0);
   const [assessmentCredit, setAssessmentCredit] = useState(0);
   const [billingTermsChecked, setBillingTermsChecked] = useState(false);
@@ -616,24 +616,43 @@ export const ClientPortalDocs = () => {
       (p.clientId === client?.id || p.clientId === clientId) && p.status === 'Paid'
     )
   );
+
+  const hasMainPackagePaidPayment = Boolean(
+    allPayments && allPayments.some(p =>
+      (p.clientId === client?.id || p.clientId === clientId) &&
+      p.status === 'Paid' &&
+      p.packageType !== 'OPTION_A' &&
+      p.amount !== 262.50 &&
+      p.amount !== 250
+    )
+  );
+
   const isStatusPaid = ['Payment Received', 'Paid', 'Partially Paid', 'Under Process', 'Processing', 'Active'].includes(client?.status);
   const isVisaStatusActive = ['Document Preparation', 'Document Review', 'Apostille & Translations', 'Submitted - Pending Decision', 'NIE / Local Registration', 'Visa Approved'].includes(client?.visaStatus);
   const isClientPaid = Boolean(client?.documentUploadAllowed || hasAnyPaidPayment || translationPaid || isStatusPaid || isVisaStatusActive);
+  const isMainPackagePaid = Boolean(hasMainPackagePaidPayment || (isVisaStatusActive && client?.status !== 'Assessment Booked'));
 
   const totalApplicants = client ? getApplicantsCount(client.applicantsCount) : 1;
 
+  const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
   const paidAssessment = (allPayments && Array.isArray(allPayments)) ? allPayments.find(p =>
     (p.clientId === client?.id || p.clientId === clientId) &&
     p.status === 'Paid' &&
-    (p.packageType === 'OPTION_A' || p.amount === 262.50 || p.amount === 250) &&
-    (new Date() - new Date(p.createdAt || p.paidAt)) < 14 * 24 * 60 * 60 * 1000
+    (p.packageType === 'OPTION_A' || p.amount === 262.50 || p.amount === 250)
   ) : null;
 
+  const isAssessmentCreditValid = Boolean(
+    paidAssessment &&
+    (new Date() - new Date(paidAssessment.createdAt || paidAssessment.paidAt || Date.now())) <= FOURTEEN_DAYS_MS
+  );
+
   useEffect(() => {
-    if (paidAssessment && assessmentCredit === 0) {
+    if (isAssessmentCreditValid) {
       setAssessmentCredit(250);
+    } else {
+      setAssessmentCredit(0); // Credit expired after 14 days!
     }
-  }, [paidAssessment]);
+  }, [isAssessmentCreditValid]);
 
   const { data: allRefunds = [], refetch: refetchRefunds } = useQuery({
     queryKey: ['refundRequests'],
@@ -2608,7 +2627,7 @@ export const ClientPortalDocs = () => {
         {tabValue === 1 && client && client.serviceId !== 'sworn_translation' && client.serviceId !== 'translation' && client.serviceId !== 'sworn' && client.serviceType !== 'Spanish Sworn Translation' && (() => {
           return (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {isClientPaid ? (
+              {isMainPackagePaid ? (
                 <Paper sx={{ p: 4, borderRadius: 3, border: '1px solid', borderColor: 'success.main', bgcolor: '#F0FDF4', boxShadow: 'none', textAlign: 'center' }}>
                   <CheckCircleIcon color="success" sx={{ fontSize: 56, mb: 2 }} />
                   <Typography variant="h5" sx={{ fontWeight: 800, mb: 1.5 }}>Visa Relocation Package Active & Paid</Typography>
@@ -2696,8 +2715,7 @@ export const ClientPortalDocs = () => {
                           const effectiveAddCount = isOptA ? 0 : addApplicants;
                           const basePrice = pkgItem.price || 0;
                           const addCost = pkgItem.isFixedPrice ? 0 : (effectiveAddCount * (pkgItem.additionalApplicantPrice || 500));
-                          const totalBaseBeforeCredit = basePrice + addCost;
-                          const isCreditApplicable = (pkgCode === 'OPTION_B' || pkgCode === 'OPTION_D' || pkgCode === 'premium' || pkgCode === 'full_process') && assessmentCredit > 0;
+                          const isCreditApplicable = (pkgCode !== 'OPTION_A' && pkgCode !== 'opt_a') && assessmentCredit > 0;
                           const finalCardPrice = isCreditApplicable ? Math.max(0, totalBaseBeforeCredit - assessmentCredit) : totalBaseBeforeCredit;
 
                           return (
@@ -2836,7 +2854,7 @@ export const ClientPortalDocs = () => {
                           const baseFee = activePkg.price || 0;
                           const addFee = activePkg.isFixedPrice ? 0 : (effectiveAddCount * (activePkg.additionalApplicantPrice || 500));
                           const totalBase = baseFee + addFee;
-                          const creditEligible = (activePkgCode === 'OPTION_B' || activePkgCode === 'OPTION_D' || activePkgCode === 'premium' || activePkgCode === 'full_process') && assessmentCredit > 0;
+                          const creditEligible = (activePkgCode !== 'OPTION_A' && activePkgCode !== 'opt_a') && assessmentCredit > 0;
                           const creditDeduction = creditEligible ? 250 : 0;
                           const subtotalExclVat = Math.max(0, totalBase - creditDeduction);
                           const vat5 = subtotalExclVat * 0.05;
