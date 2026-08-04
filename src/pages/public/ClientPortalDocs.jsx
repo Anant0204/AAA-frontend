@@ -3321,7 +3321,8 @@ export const ClientPortalDocs = () => {
                             return;
                           }
                           createRefundMutation.mutate({
-                            clientId: client.id,
+                            clientId: client?.id || clientId,
+                            clientEmail: client?.email || '',
                             category: claimCategory,
                             reason: claimReason,
                             proofUrl: claimProofUrl,
