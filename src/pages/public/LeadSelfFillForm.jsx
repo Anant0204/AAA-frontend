@@ -4,6 +4,7 @@ import axios from "axios";
 import dayjs from "dayjs";
 import { getServicesForCountry, ALL_COUNTRIES } from "../../constants/countryServices";
 import { getAvailableTimeSlots } from "../../utils/bookingTimeSlots";
+import { dbService } from "../../services/dbService";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://aaa-consultancy-backend-production.up.railway.app/api/v1";
 
@@ -348,15 +349,15 @@ export const LeadSelfFillForm = () => {
   const [localNumber, setLocalNumber] = useState("");
 
   useEffect(() => {
-    axios.get(`${API_URL}/settings/customization`)
-      .then(res => {
-        setCustomizationSettings(res.data);
+    dbService.getCustomizationSettings()
+      .then(data => {
+        setCustomizationSettings(data);
       })
       .catch(err => console.error("Failed to load customization settings:", err));
 
-    axios.get(`${API_URL}/settings/company`)
-      .then(res => {
-        setCompanySettings(res.data);
+    dbService.getCompanySettings()
+      .then(data => {
+        setCompanySettings(data);
       })
       .catch(err => console.error("Failed to load company settings:", err));
   }, []);
