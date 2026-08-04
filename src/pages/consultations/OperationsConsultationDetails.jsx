@@ -158,6 +158,7 @@ export const OperationsConsultationDetails = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['consultations'] });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
       showAlert('Consultation marked completed. Outcome recorded!', 'success');
       setCompleteModalOpen(false);
     }
