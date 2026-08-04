@@ -3204,23 +3204,6 @@ export const ClientPortalDocs = () => {
                         })()}
                       </Box>
 
-                      {/* Claim Category / Type */}
-                      <FormControl fullWidth size="small">
-                        <InputLabel id="claim-category-label">Refund Category</InputLabel>
-                        <Select
-                          labelId="claim-category-label"
-                          value={claimCategory}
-                          onChange={(e) => setClaimCategory(e.target.value)}
-                          label="Refund Category"
-                        >
-                          <MenuItem value="Visa Rejection (50% Guarantee)">Visa Rejection (50% Money-Back Guarantee)</MenuItem>
-                          <MenuItem value="Full Refund (100% Appeal / Resubmission Rejection)">Full Refund (100% Appeal / Resubmission Rejection)</MenuItem>
-                          <MenuItem value="Consulate Appointment Delay">Consulate Appointment Delay</MenuItem>
-                          <MenuItem value="Overpayment / Duplicate Charge">Overpayment / Duplicate Charge</MenuItem>
-                          <MenuItem value="Other Case Issues">Other Case Issues</MenuItem>
-                        </Select>
-                      </FormControl>
-
                       {/* Official Proof Upload Button */}
                       <Box sx={{ border: '1px dashed', borderColor: 'divider', borderRadius: 2, p: 2, textAlign: 'center', bgcolor: '#F9FAFB' }}>
                         <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block', mb: 1 }}>
@@ -3325,7 +3308,7 @@ export const ClientPortalDocs = () => {
                           createRefundMutation.mutate({
                             clientId: client?.id || clientId,
                             clientEmail: client?.email || '',
-                            category: claimCategory,
+                            category: claimCategory || 'Visa Rejection (50% Guarantee)',
                             reason: claimReason,
                             proofUrl: claimProofUrl,
                             bankAccountName: claimBankName,
@@ -3355,7 +3338,17 @@ export const ClientPortalDocs = () => {
                         </Typography>
                       </Box>
                     ) : (
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <Box sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 2,
+                        maxHeight: '400px',
+                        overflowY: 'auto',
+                        pr: 1,
+                        '&::-webkit-scrollbar': { width: 6 },
+                        '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(5, 26, 59, 0.25)', borderRadius: 3 },
+                        '&::-webkit-scrollbar-track': { bgcolor: 'rgba(0, 0, 0, 0.02)' }
+                      }}>
                         {allRefunds.filter(r => r.clientId === client.id).map(r => (
                           <Paper key={r.id} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: '#FAF6ED' }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
