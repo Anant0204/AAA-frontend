@@ -160,6 +160,16 @@ export const dbService = {
     });
     return res.data;
   },
+  completeConsultationAndUnlockDocs: async (consultationId, outcome, notes, recommendedService, recommendedPackageId) => {
+    const res = await apiClient.patch(`/consultations/${consultationId}/outcome`, {
+      status: 'Completed',
+      eligibility: outcome || 'Eligible',
+      internalNotes: notes,
+      recommendedService,
+      recommendedPackageId
+    });
+    return res.data;
+  },
   bookClientConsultation: async (data) => {
     const res = await apiClient.post('/consultations', data);
     return res.data;
