@@ -102,11 +102,7 @@ import { SERVICES } from '../../constants/mockData';
 
 // Initial Mock Conversations
 const QUICK_TEMPLATES = [
-  { id: 't1', label: 'Greeting', text: 'Hello! Thank you for contacting AAA Business Consultancy. How can we assist you with your Spain visa journey today?' },
-  { id: 't2', label: 'Income Criteria', text: 'To assess your eligibility, could you please share your monthly remote income and employment status?' },
-  { id: 't3', label: 'Documents Request', text: 'Please upload copies of your Passport (first page) and Bank Statements (last 3 months) to our secure portal so we can review them.' },
-  { id: 't4', label: 'Schedule Consultation', text: "Let's schedule a 30-minute Zoom consultation to discuss your relocation strategy. Here is my booking link: https://zoom.us/j/calendar" },
-  { id: 't5', label: 'Follow Up', text: 'Hi, just checking in to see if you have any questions about the documents checklist we discussed.' }
+  { id: 't1', label: 'Greet', text: 'Hello {{1}}, welcome to AAA Business Consultancy! 🇪🇸\n\nThank you for reaching out to us regarding Spain Visa & Residency Services. Our immigration specialists are here to assist you with complete eligibility assessment and document processing.\n\nHow can we help you today?' }
 ];
 
 const displayName = (name, phone) => {
@@ -455,8 +451,27 @@ export const SuperAdminSocialInbox = () => {
     const val = e.target.value;
     setSelectedTemplate(val);
     const template = QUICK_TEMPLATES.find(t => t.id === val);
-    if (template) {
-      setReplyText(template.text);
+    if (template && activeConv) {
+      const clientName = displayName(activeConv.name, activeConv.phone);
+      let textToSend = template.text;
+      if (textToSend.includes('{{1}}')) {
+        textToSend = textToSend.replaceAll('{{1}}', clientName);
+      }
+      
+      const newMsg = {
+        sender: 'agent',
+        text: textToSend,
+        timestamp: new Date().toISOString()
+      };
+      
+      sendSocialMessageMutation.mutate({
+        conversationId: activeConvId,
+        phone: activeConv.phone,
+        templateName: 'aaa_greeting',
+        message: newMsg
+      });
+      
+      setSelectedTemplate('');
     }
   };
 

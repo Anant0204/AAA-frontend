@@ -444,7 +444,15 @@ export const SuperAdminClientDetails = () => {
     'Closed',
   ];
 
-  const billingStatuses = Array.from(new Set(['Partially Paid', 'Payment Completed', ...leadStages.map(s => s.name)]));
+  const billingStatuses = [
+    'Waiting for Payment',
+    'Partially Paid',
+    'Payment Completed',
+    'Documents Pending',
+    'Under Process',
+    'Completed',
+    'Case Closed',
+  ];
 
   return (
     <Box>
@@ -1036,7 +1044,7 @@ export const SuperAdminClientDetails = () => {
               MenuProps={{
                 anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
                 transformOrigin: { vertical: 'top', horizontal: 'left' },
-                PaperProps: { style: { maxHeight: 280 } }
+                PaperProps: { style: { maxHeight: 220 } }
               }}
               sx={{ borderRadius: 2 }}
             >
@@ -1058,7 +1066,7 @@ export const SuperAdminClientDetails = () => {
               MenuProps={{
                 anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
                 transformOrigin: { vertical: 'top', horizontal: 'left' },
-                PaperProps: { style: { maxHeight: 280 } }
+                PaperProps: { style: { maxHeight: 220 } }
               }}
               sx={{ borderRadius: 2 }}
             >
