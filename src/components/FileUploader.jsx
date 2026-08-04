@@ -22,24 +22,41 @@ const CATEGORIES = [
   'Other (Specify Custom Document)',
 ];
 
-export const FileUploader = ({ onUpload, clientId, clientName, categories, isLoading = false }) => {
+export const FileUploader = ({ 
+  onUpload, 
+  clientId, 
+  clientName, 
+  categories, 
+  existingDocs = [],
+  requirePassportFirst = false,
+  isLoading = false 
+}) => {
   const baseCategories = Array.isArray(categories) && categories.length > 0 ? categories : CATEGORIES;
   const selectCategories = baseCategories.includes('Other (Specify Custom Document)')
     ? baseCategories
     : [...baseCategories, 'Other (Specify Custom Document)'];
 
+  const hasPassportUploaded = Array.isArray(existingDocs) && existingDocs.some(d =>
+    (d.category || d.name || '').toLowerCase().includes('passport')
+  );
+
+  const isPassportMandatoryFirst = requirePassportFirst && !hasPassportUploaded;
+  const passportCat = selectCategories.find(c => c.toLowerCase().includes('passport')) || selectCategories[0];
+
   const [file, setFile] = useState(null);
-  const [category, setCategory] = useState(selectCategories[0] || 'Passport');
+  const [category, setCategory] = useState(isPassportMandatoryFirst ? passportCat : (selectCategories[0] || 'Passport'));
   const [customCategory, setCustomCategory] = useState('');
   const { showAlert } = useAlert();
 
   const isCustom = category === 'Other (Specify Custom Document)' || category === 'Others' || category === 'Other';
 
   React.useEffect(() => {
-    if (selectCategories.length > 0) {
+    if (isPassportMandatoryFirst) {
+      setCategory(passportCat);
+    } else if (selectCategories.length > 0 && !selectCategories.includes(category)) {
       setCategory(selectCategories[0]);
     }
-  }, [categories]);
+  }, [categories, isPassportMandatoryFirst, passportCat]);
 
   // Effect to reset local file state when isLoading transitions from true -> false (upload finishes)
   const prevIsLoading = React.useRef(isLoading);
@@ -61,17 +78,21 @@ export const FileUploader = ({ onUpload, clientId, clientName, categories, isLoa
     if (acceptedFiles && acceptedFiles.length > 0) {
       const selectedFile = acceptedFiles[0];
       setFile(selectedFile);
-      // Only auto-switch category if category is not custom
+      // Only auto-switch category if category is not custom and passport is not locked
       if (!isCustom) {
-        const lowerFile = selectedFile.name.toLowerCase();
-        const matched = selectCategories.find(c => c !== 'Other (Specify Custom Document)' && c !== 'Others' && lowerFile.includes(c.toLowerCase().split(' ')[0]));
-        if (matched) {
-          setCategory(matched);
+        if (isPassportMandatoryFirst) {
+          setCategory(passportCat);
+        } else {
+          const lowerFile = selectedFile.name.toLowerCase();
+          const matched = selectCategories.find(c => c !== 'Other (Specify Custom Document)' && c !== 'Others' && lowerFile.includes(c.toLowerCase().split(' ')[0]));
+          if (matched) {
+            setCategory(matched);
+          }
         }
       }
       showAlert(`File "${selectedFile.name}" selected. Click Upload to submit.`, 'info');
     }
-  }, [showAlert, selectCategories, isLoading, isCustom]);
+  }, [showAlert, selectCategories, isLoading, isCustom, isPassportMandatoryFirst, passportCat]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -90,6 +111,11 @@ export const FileUploader = ({ onUpload, clientId, clientName, categories, isLoa
   const handleUploadSubmit = () => {
     if (!file) {
       showAlert('Please select or drag a file to upload.', 'warning');
+      return;
+    }
+
+    if (isPassportMandatoryFirst && !category.toLowerCase().includes('passport')) {
+      showAlert('Passport (Copy) is mandatory! Please upload your Passport first to unlock other categories.', 'warning');
       return;
     }
 
@@ -114,19 +140,48 @@ export const FileUploader = ({ onUpload, clientId, clientName, categories, isLoa
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+      {isPassportMandatoryFirst && (
+        <Box
+          sx={{
+            p: 1.5,
+            px: 2,
+            bgcolor: '#FEF2F2',
+            border: '1.5px solid #FCA5A5',
+            borderRadius: 2.5,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5
+          }}
+        >
+          <Typography variant="body2" sx={{ color: '#991B1B', fontWeight: 800, fontSize: '0.825rem' }}>
+            ⚠️ Passport (Copy) is mandatory! You must upload your Passport first before unlocking other document categories.
+          </Typography>
+        </Box>
+      )}
+
       <FormControl fullWidth size="small" disabled={isLoading}>
         <InputLabel id="upload-doc-category-label">Document Category</InputLabel>
         <Select
           labelId="upload-doc-category-label"
-          value={category}
+          value={isPassportMandatoryFirst ? passportCat : category}
           label="Document Category"
-          onChange={(e) => setCategory(e.target.value)}
+          onChange={(e) => {
+            if (isPassportMandatoryFirst && !e.target.value.toLowerCase().includes('passport')) {
+              showAlert('Passport (Copy) is mandatory! Please upload your Passport first to unlock other categories.', 'warning');
+              return;
+            }
+            setCategory(e.target.value);
+          }}
         >
-          {selectCategories.map((cat) => (
-            <MenuItem key={cat} value={cat}>
-              {cat}
-            </MenuItem>
-          ))}
+          {selectCategories.map((cat) => {
+            const isPassportOption = cat.toLowerCase().includes('passport');
+            const isDisabledOption = isPassportMandatoryFirst && !isPassportOption;
+            return (
+              <MenuItem key={cat} value={cat} disabled={isDisabledOption}>
+                {cat} {isDisabledOption ? ' 🔒 (Passport Required First)' : ''}
+              </MenuItem>
+            );
+          })}
         </Select>
       </FormControl>
 
