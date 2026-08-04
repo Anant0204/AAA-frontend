@@ -84,7 +84,7 @@ import { SERVICES } from '../../constants/mockData';
 
 // Initial Mock Conversations
 const QUICK_TEMPLATES = [
-  { id: 't1', label: 'Greet', text: 'Hello {{1}}, welcome to AAA Business Consultancy! 🇪🇸\n\nThank you for reaching out to us regarding Spain Visa & Residency Services. Our immigration specialists are here to assist you with complete eligibility assessment and document processing.\n\nHow can we help you today?' }
+  { id: 't1', label: 'Greet', text: 'Hello👋 \n\nWelcome to AAA Business Consultancy Services! \n\nWe’re here to help you with your Spain Visa, Residency & Relocation requirements. \n\nReply Hi to get started.' }
 ];
 
 const displayName = (name, phone) => {
