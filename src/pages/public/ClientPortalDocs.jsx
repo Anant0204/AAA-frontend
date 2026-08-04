@@ -659,17 +659,19 @@ export const ClientPortalDocs = () => {
   const hasEligibleRefundPayment = Boolean(
     Array.isArray(allPayments) && allPayments.some(p =>
       (p.clientId === client?.id || p.clientId === clientId) &&
-      p.status === 'Paid' &&
-      allRefundableCodes.includes(p.packageType)
+      (p.status === 'Paid' || p.status === 'Payment Completed') &&
+      allRefundableCodes.includes(p.packageType) &&
+      p.packageType !== 'OPTION_A' &&
+      p.amount !== 262.50 &&
+      p.amount !== 250
     )
   );
 
   const currentStatusUpper = String(client?.status || '').toUpperCase();
-  const isPaidOrCompletedStatus = ['PAYMENT COMPLETED', 'PAID', 'PAYMENT RECEIVED', 'UNDER PROCESS', 'PROCESSING', 'ACTIVE', 'PARTIALLY PAID'].includes(currentStatusUpper) || Boolean(client?.documentUploadAllowed);
+  const isFullyPaidStatus = ['PAYMENT COMPLETED', 'PAID', 'UNDER PROCESS', 'PROCESSING', 'ACTIVE'].includes(currentStatusUpper) && currentStatusUpper !== 'PARTIALLY PAID' && currentStatusUpper !== 'WAITING FOR PAYMENT';
   const isRefundEligible = Boolean(
-    isPaidOrCompletedStatus ||
     hasEligibleRefundPayment ||
-    allRefundableCodes.includes(client?.packageId)
+    (isFullyPaidStatus && (allRefundableCodes.includes(client?.packageId) || Boolean(client?.documentUploadAllowed)))
   );
 
   const isStatusPaid = ['Payment Received', 'Paid', 'Partially Paid', 'Payment Completed', 'Under Process', 'Processing', 'Active'].includes(client?.status);
