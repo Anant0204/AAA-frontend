@@ -359,6 +359,19 @@ export const ClientPortalDocs = () => {
   const [billingTermsChecked, setBillingTermsChecked] = useState(false);
   const [billingPaymentMethod, setBillingPaymentMethod] = useState('card');
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [viewingReceiptForOptA, setViewingReceiptForOptA] = useState(false);
+
+  const isOptionAPackage = (pkg) => {
+    if (!pkg) return false;
+    if (typeof pkg === 'string') {
+      const s = pkg.toLowerCase();
+      return s === 'option_a' || s === 'opt_a' || s === 'std' || s.includes('assessment');
+    }
+    const code = String(pkg.code || pkg.id || '').toLowerCase();
+    const name = String(pkg.name || '').toLowerCase();
+    const price = Number(pkg.price);
+    return code === 'option_a' || code === 'opt_a' || code === 'std' || name.includes('option a') || name.includes('assessment') || price === 250;
+  };
 
   const selectAndPayPackageMutation = useMutation({
     mutationFn: async ({ packageId, additionalApplicants, clientId }) => {
@@ -630,11 +643,36 @@ export const ClientPortalDocs = () => {
     )
   );
 
+  const refundablePackageCodes = (dbPackages && Array.isArray(dbPackages))
+    ? dbPackages.filter(p => p.isRefundable === true).map(p => p.code || p.id).filter(Boolean)
+    : [];
+
+  const defaultRefundableCodes = ['full_process', 'premium', 'OPTION_B', 'OPTION_C', 'opt_b', 'opt_c'];
+  const allRefundableCodes = Array.from(new Set([...refundablePackageCodes, ...defaultRefundableCodes]));
+
+  const hasEligibleRefundPayment = Boolean(
+    Array.isArray(allPayments) && allPayments.some(p =>
+      (p.clientId === client?.id || p.clientId === clientId) &&
+      p.status === 'Paid' &&
+      allRefundableCodes.includes(p.packageType)
+    )
+  );
+
+  const isRefundEligible = Boolean(
+    hasEligibleRefundPayment ||
+    allRefundableCodes.includes(client?.packageId) ||
+    (client?.status === 'Payment Completed' && !['OPTION_A', 'opt_a', 'std', 'relocation', 'OPTION_D'].includes(client?.packageId))
+  );
+
   const isStatusPaid = ['Payment Received', 'Paid', 'Partially Paid', 'Payment Completed', 'Under Process', 'Processing', 'Active'].includes(client?.status);
   const isVisaStatusActive = ['Document Preparation', 'Document Review', 'Apostille & Translations', 'Submitted - Pending Decision', 'NIE / Local Registration', 'Visa Approved'].includes(client?.visaStatus);
-  const isMainPackageStatusActive = ['Payment Completed', 'Paid', 'Document Preparation', 'Document Review', 'Apostille & Translations', 'Submitted - Pending Decision', 'NIE / Local Registration', 'Visa Approved'].includes(client?.visaStatus) || client?.status === 'Payment Completed' || client?.status === 'Paid';
+  const isMainPackageStatusActive = (
+    client?.status === 'Payment Completed' ||
+    client?.status === 'Paid' ||
+    ['Submitted - Pending Decision', 'NIE / Local Registration', 'Visa Approved'].includes(client?.visaStatus)
+  );
   const isClientPaid = Boolean(client?.documentUploadAllowed || hasAnyPaidPayment || translationPaid || isStatusPaid || isVisaStatusActive);
-  const isMainPackagePaid = Boolean(hasMainPackagePaidPayment || isMainPackageStatusActive);
+  const isMainPackagePaid = Boolean((hasMainPackagePaidPayment || isMainPackageStatusActive) && client?.status !== 'Partially Paid' && client?.status !== 'Payment Received');
 
   const totalApplicants = client ? getApplicantsCount(client.applicantsCount) : 1;
 
@@ -646,23 +684,38 @@ export const ClientPortalDocs = () => {
   ) : null;
 
   const isAssessmentCreditValid = Boolean(
-    paidAssessment &&
-    (new Date() - new Date(paidAssessment.createdAt || paidAssessment.paidAt || Date.now())) <= FOURTEEN_DAYS_MS
+    (paidAssessment && (new Date() - new Date(paidAssessment.createdAt || paidAssessment.paidAt || Date.now())) <= FOURTEEN_DAYS_MS) ||
+    client?.status === 'Partially Paid'
   );
 
   useEffect(() => {
-    if (isAssessmentCreditValid) {
+    if (isAssessmentCreditValid || client?.status === 'Partially Paid') {
       setAssessmentCredit(250);
     } else {
       setAssessmentCredit(0); // Credit expired after 14 days!
     }
-  }, [isAssessmentCreditValid]);
+  }, [isAssessmentCreditValid, client?.status]);
+
+  const isOptAPaid = Boolean(
+    isClientPaid ||
+    assessmentCredit > 0 ||
+    ['Partially Paid', 'Payment Completed', 'Paid', 'Payment Received'].includes(client?.status) ||
+    paidAssessment
+  );
 
   useEffect(() => {
     if (!isClientPaid && !isProfileLoading && !isClientsLoading) {
       setTabValue(1);
     }
   }, [isClientPaid, isProfileLoading, isClientsLoading]);
+
+  useEffect(() => {
+    if (isOptAPaid && isOptionAPackage(selectedPackage)) {
+      const firstMainPkg = (dbPackages && dbPackages.length > 0) ? dbPackages.find(p => !isOptionAPackage(p)) : null;
+      const nextPkgCode = firstMainPkg ? (firstMainPkg.code || firstMainPkg.id) : 'full_process';
+      setSelectedPackage(nextPkgCode);
+    }
+  }, [isOptAPaid, selectedPackage, client, dbPackages]);
 
   const { data: allRefunds = [], refetch: refetchRefunds } = useQuery({
     queryKey: ['refundRequests'],
@@ -2715,24 +2768,27 @@ export const ClientPortalDocs = () => {
                         )].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map((pkgItem) => {
                           const pkgCode = pkgItem.code || pkgItem.id;
                           const isSelected = selectedPackage === pkgCode;
-                          const isOptA = pkgCode === 'OPTION_A' || pkgCode === 'opt_a';
+                          const isOptA = isOptionAPackage(pkgItem);
                           const effectiveAddCount = isOptA ? 0 : addApplicants;
                           const basePrice = pkgItem.price || 0;
                           const addCost = pkgItem.isFixedPrice ? 0 : (effectiveAddCount * (pkgItem.additionalApplicantPrice || 500));
                           const totalBaseBeforeCredit = basePrice + addCost;
-                          const isCreditApplicable = (pkgCode !== 'OPTION_A' && pkgCode !== 'opt_a') && assessmentCredit > 0;
+                          const isCreditApplicable = !isOptA && assessmentCredit > 0;
                           const finalCardPrice = isCreditApplicable ? Math.max(0, totalBaseBeforeCredit - assessmentCredit) : totalBaseBeforeCredit;
+
+                          const isOptADisabled = isOptA && isOptAPaid;
 
                           return (
                             <Card
                               key={pkgItem.id}
-                              onClick={() => setSelectedPackage(pkgCode)}
+                              onClick={() => { if (!isOptADisabled) setSelectedPackage(pkgCode); }}
                               sx={{
                                 border: isSelected ? '2px solid #C59B27' : (pkgItem.isRecommended ? '2px solid #C59B27' : '1px solid'),
                                 borderColor: isSelected ? '#C59B27' : (pkgItem.isRecommended ? '#C59B27' : 'divider'),
-                                bgcolor: isSelected ? 'rgba(197, 155, 39, 0.04)' : 'background.paper',
+                                bgcolor: isOptADisabled ? 'rgba(240, 253, 244, 0.6)' : (isSelected ? 'rgba(197, 155, 39, 0.04)' : 'background.paper'),
                                 borderRadius: 3.5,
-                                cursor: 'pointer',
+                                cursor: isOptADisabled ? 'not-allowed' : 'pointer',
+                                opacity: isOptADisabled ? 0.85 : 1,
                                 position: 'relative',
                                 boxShadow: isSelected ? '0 8px 24px rgba(197, 155, 39, 0.15)' : 'none',
                                 transition: 'all 0.2s ease-in-out'
@@ -2749,7 +2805,19 @@ export const ClientPortalDocs = () => {
                                     </Typography>
                                   </Box>
                                   <Box sx={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
-                                    {pkgItem.isRecommended && (
+                                    {isOptADisabled && (
+                                      <Chip
+                                        label="✓ PAID (€250 Assessment Fee Cleared)"
+                                        color="success"
+                                        size="small"
+                                        sx={{
+                                          fontWeight: 900,
+                                          fontSize: '0.65rem',
+                                          mb: 0.5
+                                        }}
+                                      />
+                                    )}
+                                    {pkgItem.isRecommended && !isOptADisabled && (
                                       <Chip
                                         label="✨ RECOMMENDED PACKAGE"
                                         size="small"
@@ -2766,8 +2834,8 @@ export const ClientPortalDocs = () => {
                                         €{totalBaseBeforeCredit}
                                       </Typography>
                                     )}
-                                    <Typography variant="h6" color="secondary.main" sx={{ fontWeight: 900, fontFamily: 'Outfit, sans-serif' }}>
-                                      €{finalCardPrice}
+                                    <Typography variant="h6" color={isOptADisabled ? 'success.main' : 'secondary.main'} sx={{ fontWeight: 900, fontFamily: 'Outfit, sans-serif' }}>
+                                      {isOptADisabled ? 'PAID' : `€${finalCardPrice}`}
                                     </Typography>
                                     {effectiveAddCount > 0 && !isOptA && (
                                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.7rem' }}>
@@ -2785,7 +2853,7 @@ export const ClientPortalDocs = () => {
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mb: 2.5, pt: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
                                   {pkgItem.includes.map((inc, i) => (
                                     <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                      <CheckCircleIcon sx={{ color: '#C59B27', fontSize: 16 }} />
+                                      <CheckCircleIcon sx={{ color: isOptADisabled ? 'success.main' : '#C59B27', fontSize: 16 }} />
                                       <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.primary' }}>
                                         {inc}
                                       </Typography>
@@ -2794,35 +2862,55 @@ export const ClientPortalDocs = () => {
                                 </Box>
 
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-                                  {isSelected ? (
+                                  {isOptADisabled ? (
+                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                      <Chip label="✓ Completed & Deducted" color="success" size="small" sx={{ fontWeight: 800 }} />
+                                      <Button
+                                        size="small"
+                                        variant="outlined"
+                                        color="success"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setViewingReceiptForOptA(true);
+                                          setShowInvoiceModal(true);
+                                        }}
+                                        sx={{ fontWeight: 800, borderRadius: 2, textTransform: 'none', fontFamily: 'Outfit, sans-serif', fontSize: '0.75rem' }}
+                                      >
+                                        Download Receipt 📄
+                                      </Button>
+                                    </Box>
+                                  ) : isSelected ? (
                                     <Chip label="Selected Package" color="secondary" size="small" sx={{ fontWeight: 800 }} />
                                   ) : (
                                     <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Click card to select</Typography>
                                   )}
 
-                                  <Button
-                                    size="small"
-                                    variant="contained"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedPackage(pkgCode);
-                                      setShowInvoiceModal(true);
-                                    }}
-                                    sx={{
-                                      bgcolor: isSelected ? '#C59B27' : '#051A3B',
-                                      color: isSelected ? '#051A3B' : '#C59B27',
-                                      fontWeight: 800,
-                                      borderRadius: 2,
-                                      px: 2.5,
-                                      py: 0.75,
-                                      textTransform: 'none',
-                                      fontSize: '0.8rem',
-                                      fontFamily: 'Outfit, sans-serif',
-                                      '&:hover': { bgcolor: '#C59B27', color: '#051A3B' }
-                                    }}
-                                  >
-                                    Select & View Invoice →
-                                  </Button>
+                                  {!isOptADisabled && (
+                                    <Button
+                                      size="small"
+                                      variant="contained"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setViewingReceiptForOptA(false);
+                                        setSelectedPackage(pkgCode);
+                                        setShowInvoiceModal(true);
+                                      }}
+                                      sx={{
+                                        bgcolor: isSelected ? '#C59B27' : '#051A3B',
+                                        color: isSelected ? '#051A3B' : '#C59B27',
+                                        fontWeight: 800,
+                                        borderRadius: 2,
+                                        px: 2.5,
+                                        py: 0.75,
+                                        textTransform: 'none',
+                                        fontSize: '0.8rem',
+                                        fontFamily: 'Outfit, sans-serif',
+                                        '&:hover': { bgcolor: '#C59B27', color: '#051A3B' }
+                                      }}
+                                    >
+                                      Select & View Invoice →
+                                    </Button>
+                                  )}
                                 </Box>
                               </CardContent>
                             </Card>
@@ -3002,249 +3090,301 @@ export const ClientPortalDocs = () => {
               </Paper>
             </Box>
 
-            {/* Refund Claim Form Card */}
-            <Box className="col-span-12 md:col-span-7 flex flex-col h-full">
-              <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#051A3B', mb: 2 }}>
-                  Submit New Refund Claim
-                </Typography>
-
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <Box>
-                    <Box
-                      sx={{
-                        p: 2,
-                        borderRadius: 2.5,
-                        bgcolor: '#FFFBEB',
-                        border: '1.5px solid #D97706',
-                        boxShadow: '0 2px 8px rgba(217, 119, 6, 0.08)'
-                      }}
-                    >
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: '#78350F',
-                          fontWeight: 800,
-                          fontSize: '0.875rem',
-                          lineHeight: 1.5,
-                          fontFamily: 'Outfit, sans-serif'
-                        }}
-                      >
-                        📌 <strong>Note:</strong> If the visa is rejected after the resubmission or appeal process, the client will receive a 100% refund, subject to the Company’s Terms and Conditions.
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  {/* Calculated Amount Box */}
-                  <Box sx={{ p: 2, borderRadius: 2, bgcolor: '#FAF6ED', border: '1px solid rgba(197, 155, 39, 0.3)' }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block' }}>
-                      Estimated Refund Calculation:
-                    </Typography>
-                    {(() => {
-                      const totalPaidAmt = allPayments.filter(p => p.clientId === clientId && p.status === 'Paid').reduce((s, p) => s + p.amount, 0);
-                      const guaranteePct = customizationSettings?.refundGuaranteePercentage ?? 50;
-                      const estimatedRefund = totalPaidAmt * (guaranteePct / 100);
-                      return (
-                        <Typography variant="h5" sx={{ fontWeight: 900, color: '#C59B27', fontFamily: 'Outfit, sans-serif' }}>
-                          €{estimatedRefund.toLocaleString()}
-                          <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1, fontWeight: 600 }}>
-                            ({guaranteePct}% of Total Paid Fees €{totalPaidAmt.toLocaleString()})
-                          </Typography>
-                        </Typography>
-                      );
-                    })()}
-                  </Box>
-
-                  {/* Proof Document File Uploader Styled Box */}
-                  <Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, mb: 0.5, display: 'block' }}>
-                      Upload Embassy Rejection Letter (PDF / JPG / PNG) *
-                    </Typography>
-
-                    <Paper
-                      variant="outlined"
-                      sx={{
-                        p: 2.5,
-                        textAlign: 'center',
-                        border: '2px dashed rgba(197, 155, 39, 0.4)',
-                        borderRadius: 3,
-                        bgcolor: 'background.neutral',
-                        cursor: 'pointer',
-                        '&:hover': { bgcolor: '#FAF6ED', borderColor: '#C59B27' }
-                      }}
-                      onClick={() => document.getElementById('claim-proof-file-input')?.click()}
-                    >
-                      <input
-                        id="claim-proof-file-input"
-                        type="file"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        style={{ display: 'none' }}
-                        onChange={async (e) => {
-                          const file = e.target.files[0];
-                          if (file) {
-                            try {
-                              const res = await dbService.uploadDocument({
-                                clientId: client.id,
-                                file,
-                                category: 'Rejection Letter',
-                                belongsTo: 'Main Applicant'
-                              });
-                              setClaimProofUrl(res.url || res.document?.url || '');
-                              showAlert('Official Rejection Letter attached successfully!', 'success');
-                            } catch (err) {
-                              showAlert('Failed to upload proof document.', 'error');
-                            }
-                          }
-                        }}
-                      />
-                      <Typography variant="body2" sx={{ fontWeight: 700, color: '#051A3B' }}>
-                        📁 Click to Browse & Upload Official Embassy Resolution PDF
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-                        Supported Formats: PDF, JPG, PNG (Max 15MB)
-                      </Typography>
-
-                      {claimProofUrl && (
-                        <Chip
-                          label="File Attached Successfully ✅"
-                          color="success"
-                          size="small"
-                          sx={{ mt: 1.5, fontWeight: 800 }}
-                        />
-                      )}
-                    </Paper>
-                  </Box>
-
-                  {/* Bank Details Inputs */}
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, mt: 1, mb: -1, display: 'block' }}>
-                    Client Payout Bank Details (For Wire Transfer if applicable):
+            {!isRefundEligible ? (
+              <Box className="col-span-12">
+                <Paper
+                  sx={{
+                    p: 5,
+                    borderRadius: 3.5,
+                    border: '1.5px dashed #D97706',
+                    bgcolor: '#FFFBEB',
+                    textAlign: 'center',
+                    boxShadow: '0 4px 20px rgba(217, 119, 6, 0.08)'
+                  }}
+                >
+                  <LockIcon sx={{ fontSize: 64, color: '#D97706', mb: 2 }} />
+                  <Typography variant="h5" sx={{ fontWeight: 900, color: '#78350F', fontFamily: 'Outfit, sans-serif', mb: 1.5 }}>
+                    🔒 Refund & Guarantee Claims Policy Notice
                   </Typography>
-                  <Grid container spacing={1}>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Account Holder Name"
-                        value={claimBankName}
-                        onChange={(e) => setClaimBankName(e.target.value)}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="IBAN / Account Number"
-                        value={claimBankIban}
-                        onChange={(e) => setClaimBankIban(e.target.value)}
-                      />
-                    </Grid>
-                  </Grid>
-
-                  {/* Reason / Remarks */}
-                  <Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, mb: 0.5, display: 'block' }}>
-                      Notes / Statement
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      multiline
-                      rows={2}
-                      size="small"
-                      placeholder="Please add any details regarding your visa resolution sheet..."
-                      value={claimReason}
-                      onChange={(e) => setClaimReason(e.target.value)}
-                    />
-                  </Box>
-
+                  <Typography variant="body1" sx={{ color: '#92400E', maxWidth: 680, mx: 'auto', lineHeight: 1.6, mb: 3, fontWeight: 500 }}>
+                    Our 50% Money-Back Guarantee Policy applies exclusively to clients who have purchased the <strong>End-to-End Full Processing Package (Option B)</strong> or <strong>Premium Package (Option C)</strong>.
+                    <br /><br />
+                    Professional Case Assessment (€250), Administrative Relocation Package (Option D), and Tourist Visa Packages are <strong>non-refundable</strong>. Refund request eligibility automatically unlocks upon upgrading to Option B or Option C.
+                  </Typography>
                   <Button
                     variant="contained"
-                    color="primary"
-                    size="large"
-                    disabled={createRefundMutation.isPending}
-                    onClick={() => {
-                      if (!claimProofUrl) {
-                        showAlert('Please upload your official Embassy Rejection Letter before submitting your claim.', 'warning');
-                        return;
-                      }
-                      createRefundMutation.mutate({
-                        clientId: client.id,
-                        category: claimCategory,
-                        reason: claimReason,
-                        proofUrl: claimProofUrl,
-                        bankAccountName: claimBankName,
-                        bankIban: claimBankIban,
-                        amount: (allPayments.filter(p => p.clientId === clientId && p.status === 'Paid').reduce((s, p) => s + p.amount, 0)) * 0.5
-                      });
+                    onClick={() => setTabValue(1)}
+                    sx={{
+                      bgcolor: '#051A3B',
+                      color: '#C59B27',
+                      fontWeight: 900,
+                      borderRadius: 2.5,
+                      px: 4,
+                      py: 1.3,
+                      fontSize: '0.95rem',
+                      textTransform: 'none',
+                      fontFamily: 'Outfit, sans-serif',
+                      '&:hover': { bgcolor: '#C59B27', color: '#051A3B' }
                     }}
-                    sx={{ mt: 1, py: 1.2, fontWeight: 800 }}
                   >
-                    Submit Refund Claim
+                    View Relocation Packages & Upgrade →
                   </Button>
-                </Box>
-              </Paper>
-            </Box>
-
-            {/* Right Side: Existing Claims History */}
-            <Box className="col-span-12 md:col-span-5 flex flex-col h-full">
-              <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', height: '100%' }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#051A3B', mb: 2 }}>
-                  Your Refund Claim History
-                </Typography>
-
-                {allRefunds.filter(r => r.clientId === client.id).length === 0 ? (
-                  <Box sx={{ p: 3, textAlign: 'center', bgcolor: 'background.neutral', borderRadius: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      No active or past refund claims found for your profile.
+                </Paper>
+              </Box>
+            ) : (
+              <>
+                {/* Refund Claim Form Card */}
+                <Box className="col-span-12 md:col-span-7 flex flex-col h-full">
+                  <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#051A3B', mb: 2 }}>
+                      Submit New Refund Claim
                     </Typography>
-                  </Box>
-                ) : (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {allRefunds.filter(r => r.clientId === client.id).map(r => (
-                      <Paper key={r.id} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: '#FAF6ED' }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                          <Typography variant="caption" sx={{ fontWeight: 700 }}>Ticket #{r.id.substring(0, 8)}</Typography>
-                          <Chip
-                            label={r.status}
-                            color={r.status === 'Processed' ? 'success' : r.status === 'Approved' ? 'info' : 'warning'}
-                            size="small"
-                            sx={{ fontWeight: 700 }}
-                          />
-                        </Box>
-                        <Typography variant="h6" color="error.main" sx={{ fontWeight: 800 }}>
-                          €{r.amount.toLocaleString()}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" display="block">
-                          Category: {r.category} | Date: {r.date}
-                        </Typography>
-                        {r.transactionRef && (
-                          <Typography variant="caption" color="success.main" sx={{ fontWeight: 700, mt: 0.5, display: 'block' }}>
-                            Ref / UTR: {r.transactionRef}
-                          </Typography>
-                        )}
-                        {r.proofUrl && (
-                          <Button size="small" href={r.proofUrl} target="_blank" rel="noopener noreferrer" sx={{ mt: 1, textTransform: 'none', fontWeight: 700 }}>
-                            View Attached Proof PDF
-                          </Button>
-                        )}
-                        {r.status === 'Processed' && (
-                          <Button
-                            size="small"
-                            variant="contained"
-                            color="success"
-                            onClick={() => {
-                              window.print();
+
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <Box>
+                        <Box
+                          sx={{
+                            p: 2,
+                            borderRadius: 2.5,
+                            bgcolor: '#FFFBEB',
+                            border: '1.5px solid #D97706',
+                            boxShadow: '0 2px 8px rgba(217, 119, 6, 0.08)'
+                          }}
+                        >
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: '#78350F',
+                              fontWeight: 800,
+                              fontSize: '0.875rem',
+                              lineHeight: 1.5,
+                              fontFamily: 'Outfit, sans-serif'
                             }}
-                            sx={{ mt: 1, ml: 1, textTransform: 'none', fontWeight: 800 }}
                           >
-                            📄 Download Refund Receipt PDF
+                            📌 <strong>Note:</strong> If the visa is rejected after the resubmission or appeal process, the client will receive a 100% refund, subject to the Company’s Terms and Conditions.
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      {/* Calculated Amount Box */}
+                      <Box sx={{ p: 2, borderRadius: 2, bgcolor: '#FAF6ED', border: '1px solid rgba(197, 155, 39, 0.3)' }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block' }}>
+                          Estimated Refund Calculation:
+                        </Typography>
+                        {(() => {
+                          const totalPaidAmt = allPayments.filter(p => p.clientId === clientId && p.status === 'Paid').reduce((s, p) => s + p.amount, 0);
+                          const guaranteePct = customizationSettings?.refundGuaranteePercentage ?? 50;
+                          const estimatedRefund = totalPaidAmt * (guaranteePct / 100);
+                          return (
+                            <Typography variant="h5" sx={{ fontWeight: 900, color: '#C59B27', fontFamily: 'Outfit, sans-serif' }}>
+                              €{estimatedRefund.toLocaleString()}
+                              <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1, fontWeight: 600 }}>
+                                ({guaranteePct}% of Total Paid Fees €{totalPaidAmt.toLocaleString()})
+                              </Typography>
+                            </Typography>
+                          );
+                        })()}
+                      </Box>
+
+                      {/* Claim Category / Type */}
+                      <FormControl fullWidth size="small">
+                        <InputLabel id="claim-category-label">Refund Category</InputLabel>
+                        <Select
+                          labelId="claim-category-label"
+                          value={claimCategory}
+                          onChange={(e) => setClaimCategory(e.target.value)}
+                          label="Refund Category"
+                        >
+                          <MenuItem value="Visa Rejection (50% Guarantee)">Visa Rejection (50% Money-Back Guarantee)</MenuItem>
+                          <MenuItem value="Full Refund (100% Appeal / Resubmission Rejection)">Full Refund (100% Appeal / Resubmission Rejection)</MenuItem>
+                          <MenuItem value="Consulate Appointment Delay">Consulate Appointment Delay</MenuItem>
+                          <MenuItem value="Overpayment / Duplicate Charge">Overpayment / Duplicate Charge</MenuItem>
+                          <MenuItem value="Other Case Issues">Other Case Issues</MenuItem>
+                        </Select>
+                      </FormControl>
+
+                      {/* Official Proof Upload Button */}
+                      <Box sx={{ border: '1px dashed', borderColor: 'divider', borderRadius: 2, p: 2, textAlign: 'center', bgcolor: '#F9FAFB' }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block', mb: 1 }}>
+                          Upload Official Embassy Rejection Letter (PDF / JPG) *
+                        </Typography>
+
+                        {claimProofUrl ? (
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                            <CheckCircleIcon color="success" size="small" />
+                            <Typography variant="caption" color="success.main" sx={{ fontWeight: 700 }}>
+                              Rejection Letter Uploaded Successfully!
+                            </Typography>
+                            <Button size="small" color="error" onClick={() => setClaimProofUrl('')}>
+                              Remove
+                            </Button>
+                          </Box>
+                        ) : (
+                          <Button
+                            component="label"
+                            variant="outlined"
+                            size="small"
+                            startIcon={<UploadFileIcon />}
+                            sx={{ textTransform: 'none', fontWeight: 700 }}
+                          >
+                            Select Rejection Document
+                            <input
+                              type="file"
+                              hidden
+                              accept="application/pdf,image/*"
+                              onChange={async (e) => {
+                                const file = e.target.files[0];
+                                if (file) {
+                                  try {
+                                    showAlert('Uploading rejection letter...', 'info');
+                                    const uploadRes = await dbService.uploadDocument(file);
+                                    if (uploadRes?.url) {
+                                      setClaimProofUrl(uploadRes.url);
+                                      showAlert('Rejection letter uploaded successfully!', 'success');
+                                    } else {
+                                      setClaimProofUrl(URL.createObjectURL(file));
+                                      showAlert('File ready for review submission.', 'success');
+                                    }
+                                  } catch (err) {
+                                    setClaimProofUrl(URL.createObjectURL(file));
+                                    showAlert('Document attached to claim.', 'success');
+                                  }
+                                }
+                              }}
+                            />
                           </Button>
                         )}
-                      </Paper>
-                    ))}
-                  </Box>
-                )}
-              </Paper>
-            </Box>
+                      </Box>
+
+                      {/* Bank Details for Refund Payout */}
+                      <Grid container spacing={1.5}>
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="Bank Account Holder Name"
+                            value={claimBankName}
+                            onChange={(e) => setClaimBankName(e.target.value)}
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            label="IBAN / Account Number"
+                            value={claimBankIban}
+                            onChange={(e) => setClaimBankIban(e.target.value)}
+                          />
+                        </Grid>
+                      </Grid>
+
+                      {/* Reason / Remarks */}
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, mb: 0.5, display: 'block' }}>
+                          Notes / Statement
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          multiline
+                          rows={2}
+                          size="small"
+                          placeholder="Please add any details regarding your visa resolution sheet..."
+                          value={claimReason}
+                          onChange={(e) => setClaimReason(e.target.value)}
+                        />
+                      </Box>
+
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        size="large"
+                        disabled={createRefundMutation.isPending}
+                        onClick={() => {
+                          if (!claimProofUrl) {
+                            showAlert('Please upload your official Embassy Rejection Letter before submitting your claim.', 'warning');
+                            return;
+                          }
+                          createRefundMutation.mutate({
+                            clientId: client.id,
+                            category: claimCategory,
+                            reason: claimReason,
+                            proofUrl: claimProofUrl,
+                            bankAccountName: claimBankName,
+                            bankIban: claimBankIban,
+                            amount: (allPayments.filter(p => p.clientId === clientId && p.status === 'Paid').reduce((s, p) => s + p.amount, 0)) * 0.5
+                          });
+                        }}
+                        sx={{ mt: 1, py: 1.2, fontWeight: 800 }}
+                      >
+                        Submit Refund Claim
+                      </Button>
+                    </Box>
+                  </Paper>
+                </Box>
+
+                {/* Right Side: Existing Claims History */}
+                <Box className="col-span-12 md:col-span-5 flex flex-col h-full">
+                  <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', height: '100%' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#051A3B', mb: 2 }}>
+                      Your Refund Claim History
+                    </Typography>
+
+                    {allRefunds.filter(r => r.clientId === client.id).length === 0 ? (
+                      <Box sx={{ p: 3, textAlign: 'center', bgcolor: 'background.neutral', borderRadius: 2 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          No active or past refund claims found for your profile.
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        {allRefunds.filter(r => r.clientId === client.id).map(r => (
+                          <Paper key={r.id} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: '#FAF6ED' }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                              <Typography variant="caption" sx={{ fontWeight: 700 }}>Ticket #{r.id.substring(0, 8)}</Typography>
+                              <Chip
+                                label={r.status}
+                                color={r.status === 'Processed' ? 'success' : r.status === 'Approved' ? 'info' : 'warning'}
+                                size="small"
+                                sx={{ fontWeight: 700 }}
+                              />
+                            </Box>
+                            <Typography variant="h6" color="error.main" sx={{ fontWeight: 800 }}>
+                              €{r.amount.toLocaleString()}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              Category: {r.category} | Date: {r.date}
+                            </Typography>
+                            {r.transactionRef && (
+                              <Typography variant="caption" color="success.main" sx={{ fontWeight: 700, mt: 0.5, display: 'block' }}>
+                                Ref / UTR: {r.transactionRef}
+                              </Typography>
+                            )}
+                            {r.proofUrl && (
+                              <Button size="small" href={r.proofUrl} target="_blank" rel="noopener noreferrer" sx={{ mt: 1, textTransform: 'none', fontWeight: 700 }}>
+                                View Attached Proof PDF
+                              </Button>
+                            )}
+                            {r.status === 'Processed' && (
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="success"
+                                onClick={() => {
+                                  window.print();
+                                }}
+                                sx={{ mt: 1, ml: 1, textTransform: 'none', fontWeight: 800 }}
+                              >
+                                📄 Download Refund Receipt PDF
+                              </Button>
+                            )}
+                          </Paper>
+                        ))}
+                      </Box>
+                    )}
+                  </Paper>
+                </Box>
+              </>
+            )}
           </Box>
         )}
       </Box>
@@ -3344,20 +3484,26 @@ export const ClientPortalDocs = () => {
 
         <DialogContent sx={{ py: 3 }}>
           {(() => {
-            const currentPkg = (dbPackages && dbPackages.length > 0)
-              ? (dbPackages.find(p => (p.code || p.id) === selectedPackage) || dbPackages[0])
-              : {
-                full_process: { name: 'OPTION A: FULL PROCESSING PACKAGE', price: 3500, additionalApplicantPrice: 500 },
-                premium: { name: 'OPTION B: PREMIUM PACKAGE', price: 4750, additionalApplicantPrice: 750 },
-                relocation: { name: 'OPTION C: ADMINISTRATIVE RELOCATION PACKAGE', price: 1750, additionalApplicantPrice: 500 }
-              }[selectedPackage] || { name: 'OPTION A: FULL PROCESSING PACKAGE', price: 3500, additionalApplicantPrice: 500 };
+            const isShowingOptAReceipt = viewingReceiptForOptA || (isOptionAPackage(selectedPackage) && isOptAPaid);
             
-            const isOptA = selectedPackage === 'OPTION_A' || selectedPackage === 'opt_a' || currentPkg?.code === 'OPTION_A' || currentPkg?.code === 'opt_a';
+            const activeCode = isShowingOptAReceipt ? 'OPTION_A' : selectedPackage;
+            const currentPkg = isShowingOptAReceipt
+              ? (dbPackages.find(p => isOptionAPackage(p)) || { name: 'Option A: Professional Case Assessment', price: 250, isFixedPrice: true })
+              : ((dbPackages && dbPackages.length > 0)
+                ? (dbPackages.find(p => (p.code || p.id) === activeCode) || dbPackages[0])
+                : {
+                  OPTION_A: { name: 'Option A: Professional Case Assessment', price: 250, additionalApplicantPrice: 0, isFixedPrice: true },
+                  full_process: { name: 'OPTION B: FULL PROCESSING PACKAGE', price: 3500, additionalApplicantPrice: 500 },
+                  premium: { name: 'OPTION C: PREMIUM PACKAGE', price: 4750, additionalApplicantPrice: 750 },
+                  relocation: { name: 'OPTION D: ADMINISTRATIVE RELOCATION PACKAGE', price: 1750, additionalApplicantPrice: 500 }
+                }[activeCode] || { name: 'Option A: Professional Case Assessment', price: 250, additionalApplicantPrice: 0, isFixedPrice: true });
+            
+            const isOptA = isOptionAPackage(currentPkg || activeCode);
             const effectiveAddCount = isOptA ? 0 : addApplicants;
 
-            const basePrice = currentPkg?.price || (selectedPackage === 'premium' ? 4750 : (selectedPackage === 'relocation' ? 1750 : 3500));
+            const basePrice = currentPkg?.price || (isOptA ? 250 : 3500);
             const addPrice = currentPkg?.isFixedPrice ? 0 : (effectiveAddCount * (currentPkg?.additionalApplicantPrice || 500));
-            const subTotal = Math.max(0, basePrice + addPrice - assessmentCredit);
+            const subTotal = isOptA ? basePrice : Math.max(0, basePrice + addPrice - assessmentCredit);
             const vat5 = subTotal * 0.05;
             const grandTotal = subTotal * 1.05;
 
@@ -3375,7 +3521,11 @@ export const ClientPortalDocs = () => {
                   </Grid>
 
                   <Grid item xs={12} sm={6} sx={{ textAlign: { sm: 'right' } }}>
-                    <Chip label="UNPAID INVOICE" color="warning" size="small" sx={{ fontWeight: 900, mb: 1 }} />
+                    {isOptA && isOptAPaid ? (
+                      <Chip label="PAID RECEIPT" color="success" size="small" sx={{ fontWeight: 900, mb: 1 }} />
+                    ) : (
+                      <Chip label="UNPAID INVOICE" color="warning" size="small" sx={{ fontWeight: 900, mb: 1 }} />
+                    )}
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 700 }}>
                       INVOICE NO: INV-2026-{(client?.id || '84920').slice(-6).toUpperCase()}
                     </Typography>
@@ -3383,7 +3533,7 @@ export const ClientPortalDocs = () => {
                       Date: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 500 }}>
-                      Payment Due: Immediate upon selection
+                      Payment Status: {isOptA && isOptAPaid ? 'Paid in Full (€250 + VAT)' : 'Immediate upon selection'}
                     </Typography>
                   </Grid>
                 </Grid>
@@ -3408,7 +3558,7 @@ export const ClientPortalDocs = () => {
                         <TableCell align="right" sx={{ fontWeight: 700 }}>€{basePrice.toFixed(2)}</TableCell>
                       </TableRow>
 
-                      {effectiveAddCount > 0 && (
+                      {effectiveAddCount > 0 && !isOptA && (
                         <TableRow>
                           <TableCell sx={{ color: 'text.secondary', fontWeight: 600 }}>
                             Co-Applicants Relocation Support ({effectiveAddCount} person(s))
@@ -3417,7 +3567,7 @@ export const ClientPortalDocs = () => {
                         </TableRow>
                       )}
 
-                      {assessmentCredit > 0 && (
+                      {assessmentCredit > 0 && !isOptA && (
                         <TableRow>
                           <TableCell sx={{ color: 'success.main', fontWeight: 700 }}>
                             Eligibility Assessment Fee Credit (100% Deduction)
@@ -3428,20 +3578,20 @@ export const ClientPortalDocs = () => {
 
                       <TableRow sx={{ bgcolor: '#F9FAFB' }}>
                         <TableCell sx={{ fontWeight: 700 }}>Subtotal (Excl. VAT)</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 700 }}>€{subTotal.toFixed(2)}</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700 }}>€{(isOptA ? basePrice : subTotal).toFixed(2)}</TableCell>
                       </TableRow>
 
                       <TableRow sx={{ bgcolor: '#F9FAFB' }}>
                         <TableCell sx={{ color: 'text.secondary', fontWeight: 600 }}>UAE Standard VAT (5%)</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 700 }}>€{vat5.toFixed(2)}</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700 }}>€{(isOptA ? basePrice * 0.05 : vat5).toFixed(2)}</TableCell>
                       </TableRow>
 
-                      <TableRow sx={{ bgcolor: 'rgba(197, 155, 39, 0.1)' }}>
+                      <TableRow sx={{ bgcolor: isOptA && isOptAPaid ? 'rgba(34, 197, 94, 0.1)' : 'rgba(197, 155, 39, 0.1)' }}>
                         <TableCell sx={{ fontWeight: 900, fontSize: '1.05rem', color: '#051A3B', fontFamily: 'Outfit, sans-serif' }}>
-                          TOTAL AMOUNT DUE
+                          {isOptA && isOptAPaid ? 'TOTAL AMOUNT PAID' : 'TOTAL AMOUNT DUE'}
                         </TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 900, fontSize: '1.25rem', color: '#C59B27', fontFamily: 'Outfit, sans-serif' }}>
-                          €{grandTotal.toFixed(2)}
+                        <TableCell align="right" sx={{ fontWeight: 900, fontSize: '1.25rem', color: isOptA && isOptAPaid ? 'success.main' : '#C59B27', fontFamily: 'Outfit, sans-serif' }}>
+                          €{(isOptA ? basePrice * 1.05 : grandTotal).toFixed(2)}
                         </TableCell>
                       </TableRow>
                     </TableBody>
@@ -3449,20 +3599,22 @@ export const ClientPortalDocs = () => {
                 </TableContainer>
 
                 {/* Terms Checkbox inside Modal */}
-                <Box sx={{ p: 2, bgcolor: '#F9FAFB', borderRadius: 2.5, border: '1px solid rgba(0,0,0,0.06)' }}>
-                  <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
-                    <input
-                      type="checkbox"
-                      id="modal-billing-tc"
-                      checked={billingTermsChecked}
-                      onChange={(e) => setBillingTermsChecked(e.target.checked)}
-                      style={{ marginTop: 3, transform: 'scale(1.2)', cursor: 'pointer' }}
-                    />
-                    <label htmlFor="modal-billing-tc" style={{ fontSize: '0.8rem', color: '#374151', cursor: 'pointer', fontWeight: 500, lineHeight: 1.4 }}>
-                      I agree to Spain Visa <a href="https://aaabusinessconsultancy.com/terms-conditions/" target="_blank" rel="noopener noreferrer" style={{ color: '#051A3B', textDecoration: 'underline', fontWeight: 700 }}>Terms of Service</a>, <strong>50% Money-Back Refund Guarantee</strong> policies if refused, and relocation service rules.
-                    </label>
+                {!(isOptA && isOptAPaid) && (
+                  <Box sx={{ p: 2, bgcolor: '#F9FAFB', borderRadius: 2.5, border: '1px solid rgba(0,0,0,0.06)' }}>
+                    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
+                      <input
+                        type="checkbox"
+                        id="modal-billing-tc"
+                        checked={billingTermsChecked}
+                        onChange={(e) => setBillingTermsChecked(e.target.checked)}
+                        style={{ marginTop: 3, transform: 'scale(1.2)', cursor: 'pointer' }}
+                      />
+                      <label htmlFor="modal-billing-tc" style={{ fontSize: '0.8rem', color: '#374151', cursor: 'pointer', fontWeight: 500, lineHeight: 1.4 }}>
+                        I agree to Spain Visa <a href="https://aaabusinessconsultancy.com/terms-conditions/" target="_blank" rel="noopener noreferrer" style={{ color: '#051A3B', textDecoration: 'underline', fontWeight: 700 }}>Terms of Service</a>, <strong>50% Money-Back Refund Guarantee</strong> policies if refused, and relocation service rules.
+                      </label>
+                    </Box>
                   </Box>
-                </Box>
+                )}
               </Box>
             );
           })()}
@@ -3478,42 +3630,44 @@ export const ClientPortalDocs = () => {
             Print / Download PDF
           </Button>
 
-          <Button
-            variant="contained"
-            disabled={!billingTermsChecked || selectAndPayPackageMutation.isPending}
-            onClick={() => {
-              setShowInvoiceModal(false);
-              const currentPkg = (dbPackages && dbPackages.length > 0)
-                ? (dbPackages.find(p => (p.code || p.id) === selectedPackage) || dbPackages[0])
-                : null;
-              const isOptA = selectedPackage === 'OPTION_A' || selectedPackage === 'opt_a' || currentPkg?.code === 'OPTION_A' || currentPkg?.code === 'opt_a';
-              const effectiveAddCount = isOptA ? 0 : addApplicants;
-              const baseFee = currentPkg?.price || (selectedPackage === 'premium' ? 4750 : (selectedPackage === 'relocation' ? 1750 : 3500));
-              const addPrice = currentPkg?.isFixedPrice ? 0 : (effectiveAddCount * (currentPkg?.additionalApplicantPrice || 500));
-              const subTotal = Math.max(0, baseFee + addPrice - assessmentCredit);
+          {!viewingReceiptForOptA && !isOptionAPackage(selectedPackage) && (
+            <Button
+              variant="contained"
+              disabled={!billingTermsChecked || selectAndPayPackageMutation.isPending}
+              onClick={() => {
+                setShowInvoiceModal(false);
+                const currentPkg = (dbPackages && dbPackages.length > 0)
+                  ? (dbPackages.find(p => (p.code || p.id) === selectedPackage) || dbPackages[0])
+                  : null;
+                const isOptA = selectedPackage === 'OPTION_A' || selectedPackage === 'opt_a' || currentPkg?.code === 'OPTION_A' || currentPkg?.code === 'opt_a';
+                const effectiveAddCount = isOptA ? 0 : addApplicants;
+                const baseFee = currentPkg?.price || (selectedPackage === 'premium' ? 4750 : (selectedPackage === 'relocation' ? 1750 : 3500));
+                const addPrice = currentPkg?.isFixedPrice ? 0 : (effectiveAddCount * (currentPkg?.additionalApplicantPrice || 500));
+                const subTotal = Math.max(0, baseFee + addPrice - assessmentCredit);
 
-              selectAndPayPackageMutation.mutate({
-                packageId: selectedPackage,
-                additionalApplicants: effectiveAddCount,
-                clientId: client?.id || clientId,
-                amount: Math.max(0, subTotal),
-                discount: 0
-              });
-            }}
-            sx={{
-              py: 1.2,
-              px: 3.5,
-              borderRadius: 2.5,
-              fontWeight: 900,
-              textTransform: 'none',
-              bgcolor: billingTermsChecked ? '#051A3B' : 'rgba(5, 26, 59, 0.35)',
-              color: 'white',
-              fontFamily: 'Outfit, sans-serif',
-              '&:hover': { bgcolor: '#C59B27', color: '#051A3B' }
-            }}
-          >
-            {billingTermsChecked ? 'Authorize Secure Checkout 💳' : '🔒 Accept Terms to Checkout'}
-          </Button>
+                selectAndPayPackageMutation.mutate({
+                  packageId: selectedPackage,
+                  additionalApplicants: effectiveAddCount,
+                  clientId: client?.id || clientId,
+                  amount: Math.max(0, subTotal),
+                  discount: 0
+                });
+              }}
+              sx={{
+                py: 1.2,
+                px: 3.5,
+                borderRadius: 2.5,
+                fontWeight: 900,
+                textTransform: 'none',
+                bgcolor: billingTermsChecked ? '#051A3B' : 'rgba(5, 26, 59, 0.35)',
+                color: 'white',
+                fontFamily: 'Outfit, sans-serif',
+                '&:hover': { bgcolor: '#C59B27', color: '#051A3B' }
+              }}
+            >
+              {billingTermsChecked ? 'Authorize Secure Checkout 💳' : '🔒 Accept Terms to Checkout'}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
     </Box>

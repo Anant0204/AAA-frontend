@@ -278,6 +278,7 @@ export const Settings = () => {
   const [pkgDesc, setPkgDesc] = useState('');
   const [pkgIsRecommended, setPkgIsRecommended] = useState(false);
   const [pkgIsFixedPrice, setPkgIsFixedPrice] = useState(false);
+  const [pkgIsRefundable, setPkgIsRefundable] = useState(false);
   const [pkgIncludes, setPkgIncludes] = useState([]);
   const [newIncludeText, setNewIncludeText] = useState('');
 
@@ -380,6 +381,7 @@ export const Settings = () => {
     setPkgDesc('');
     setPkgIsRecommended(false);
     setPkgIsFixedPrice(false);
+    setPkgIsRefundable(false);
     setPkgIncludes([
       'Eligibility & Document Auditing',
       'Official Sworn Translation Management',
@@ -399,6 +401,7 @@ export const Settings = () => {
     setPkgDesc(pkgItem.description || '');
     setPkgIsRecommended(!!pkgItem.isRecommended);
     setPkgIsFixedPrice(!!pkgItem.isFixedPrice);
+    setPkgIsRefundable(pkgItem.isRefundable !== undefined ? !!pkgItem.isRefundable : (pkgItem.code === 'premium' || pkgItem.code === 'full_process' || pkgItem.code === 'OPTION_B' || pkgItem.code === 'OPTION_C'));
     setPkgIncludes(Array.isArray(pkgItem.includes) ? [...pkgItem.includes] : []);
     setNewIncludeText('');
     setPkgModalOpen(true);
@@ -429,6 +432,7 @@ export const Settings = () => {
       description: pkgDesc.trim(),
       isRecommended: pkgIsRecommended,
       isFixedPrice: pkgIsFixedPrice,
+      isRefundable: pkgIsRefundable,
       includes: pkgIncludes
     };
 
@@ -1475,6 +1479,27 @@ export const Settings = () => {
                   <Typography variant="body2" sx={{ fontWeight: 700, color: pkgIsFixedPrice ? 'secondary.main' : 'text.primary' }}>
                     🔒 Fixed Rate Package (Price will not increase with additional applicants)
                   </Typography>
+                }
+              />
+            </Box>
+            <Box className="col-span-12">
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={pkgIsRefundable}
+                    onChange={(e) => setPkgIsRefundable(e.target.checked)}
+                    color="success"
+                  />
+                }
+                label={
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 800, color: pkgIsRefundable ? 'success.main' : 'text.primary' }}>
+                      🛡️ Refund Available / Money-Back Guarantee Eligible
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      When ON, clients purchasing this package automatically unlock Tab 3 (Refund & Guarantee Claims) in their Client Portal.
+                    </Typography>
+                  </Box>
                 }
               />
             </Box>
