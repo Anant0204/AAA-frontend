@@ -338,12 +338,17 @@ export const AgentLeadList = () => {
     .filter((lead) => {
       if (!filterByDate(lead.createdAt || lead.createdDate, startDate, endDate)) return false;
 
-      const fullName = `${lead.firstName} ${lead.lastName}`.toLowerCase();
+      const fullName = `${lead.firstName || ''} ${lead.lastName || ''}`.toLowerCase();
+      const leadIdStr = String(lead.id || '').toLowerCase();
+      const emailStr = String(lead.email || '').toLowerCase();
+      const phoneStr = String(lead.phone || '');
+      const searchLower = (searchTerm || '').toLowerCase();
+
       const matchSearch =
-        fullName.includes(searchTerm.toLowerCase()) ||
-        lead.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        lead.phone.includes(searchTerm);
+        fullName.includes(searchLower) ||
+        leadIdStr.includes(searchLower) ||
+        emailStr.includes(searchLower) ||
+        phoneStr.includes(searchLower);
 
       // Role-based scoping: consultants only see their own assigned leads
       if (!isAdmin && !isOperations && currentUser && currentUser.role === 'consultant') {
