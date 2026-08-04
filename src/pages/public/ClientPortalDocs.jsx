@@ -684,7 +684,7 @@ export const ClientPortalDocs = () => {
   ) : null;
 
   const isAssessmentCreditValid = Boolean(
-    (paidAssessment && (new Date() - new Date(paidAssessment.createdAt || paidAssessment.paidAt || Date.now())) <= FOURTEEN_DAYS_MS) ||
+    (paidAssessment && (new Date() - new Date(paidAssessment.paidAt || paidAssessment.updatedAt || paidAssessment.createdAt || Date.now())) <= FOURTEEN_DAYS_MS) ||
     client?.status === 'Partially Paid'
   );
 
@@ -2004,6 +2004,8 @@ export const ClientPortalDocs = () => {
                                 clientId={client.id}
                                 clientName={`${client.firstName} ${client.lastName}`}
                                 categories={docsNeeded}
+                                existingDocs={personDocs}
+                                requirePassportFirst={true}
                                 isLoading={uploadDocMutation.isPending}
                               />
 
@@ -2742,7 +2744,7 @@ export const ClientPortalDocs = () => {
                     <Box sx={{ p: 2, mb: 3, bgcolor: '#F0FDF4', borderRadius: 2.5, border: '1px solid #86EFAC', display: 'flex', alignItems: 'center', gap: 1.5 }}>
                       <CheckCircleIcon sx={{ color: 'success.main' }} />
                       <Typography variant="body2" sx={{ color: '#166534', fontWeight: 700 }}>
-                        ✨ Eligible for €250 Professional Case Assessment Credit! This amount will be automatically deducted if you select Option B or Option D within 14 days.
+                        ✨ Eligible for €250 Professional Case Assessment Credit! This amount will be automatically deducted if you select any package within 14 days.
                       </Typography>
                     </Box>
                   )}
