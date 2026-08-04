@@ -164,6 +164,7 @@ export const SuperAdminAgents = () => {
   const [languages, setLanguages] = useState([]);
   const [nationalities, setNationalities] = useState([]);
   const [password, setPassword] = useState('');
+  const [bio, setBio] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [newPassword, setNewPassword] = useState('');
 

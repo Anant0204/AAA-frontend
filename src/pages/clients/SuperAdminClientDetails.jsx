@@ -801,7 +801,7 @@ export const SuperAdminClientDetails = () => {
                       const clientRefunds = refundRequests.filter(r => r.clientId === client.id);
                       if (clientRefunds.length === 0) {
                         return (
-                          <Paper sx={{ p: 2.5, border: '1px border', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.neutral' }}>
+                          <Paper sx={{ p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.neutral' }}>
                             <Typography variant="body2" color="text.secondary">
                               No refund requests filed for this client profile. (50% Refund Guarantee applies to rejected cases).
                             </Typography>
@@ -812,28 +812,73 @@ export const SuperAdminClientDetails = () => {
                         <Paper
                           key={ref.id}
                           sx={{
-                            p: 2,
+                            p: 2.5,
                             mb: 2,
                             border: '1px solid',
-                            borderColor: 'divider',
-                            borderRadius: 2,
+                            borderColor: ref.status === 'Processed' ? '#16A34A' : ref.status === 'Rejected' ? '#EF4444' : 'divider',
+                            borderRadius: 3,
                             boxShadow: 'none',
-                            bgcolor: 'background.neutral'
+                            bgcolor: ref.status === 'Processed' ? '#F0FDF4' : ref.status === 'Rejected' ? '#FEF2F2' : '#FAF6ED'
                           }}
                         >
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                              Refund Request ID: {ref.id}
-                            </Typography>
-                            <Chip label={ref.status} color={ref.status === 'Approved' ? 'success' : ref.status === 'Processed' ? 'info' : 'warning'} size="small" sx={{ fontWeight: 600 }} />
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                            <Box>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                                Claim Ticket #{ref.id?.substring(0, 8)}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                Submitted On: {ref.createdAt ? dayjs(ref.createdAt).format('DD/MM/YYYY hh:mm A') : 'Recent'}
+                              </Typography>
+                            </Box>
+                            <Chip
+                              label={ref.status || 'Pending Review'}
+                              color={ref.status === 'Processed' ? 'success' : ref.status === 'Rejected' ? 'error' : 'warning'}
+                              size="small"
+                              sx={{ fontWeight: 800 }}
+                            />
                           </Box>
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                            Category: {ref.category} | Amount Requested: <strong>€{ref.amount}</strong>
-                          </Typography>
-                          {ref.reason && (
-                            <Typography variant="caption" display="block" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                              Reason: {ref.reason}
-                            </Typography>
+
+                          <Box className="grid grid-cols-12 gap-2" sx={{ my: 1, p: 1.5, bgcolor: 'white', borderRadius: 2, border: '1px solid #E2E8F0' }}>
+                            <Box className="col-span-6">
+                              <Typography variant="caption" color="text.secondary" display="block">Category</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 700 }}>{ref.category}</Typography>
+                            </Box>
+                            <Box className="col-span-6">
+                              <Typography variant="caption" color="text.secondary" display="block">Calculated 50% Refund</Typography>
+                              <Typography variant="body2" color="error.main" sx={{ fontWeight: 800 }}>€{ref.amount?.toLocaleString()}</Typography>
+                            </Box>
+                            {ref.reason && (
+                              <Box className="col-span-12" sx={{ mt: 0.5 }}>
+                                <Typography variant="caption" color="text.secondary" display="block">Client Reason/Statement</Typography>
+                                <Typography variant="caption" sx={{ fontWeight: 600, fontStyle: 'italic' }}>{ref.reason}</Typography>
+                              </Box>
+                            )}
+                            {ref.bankIban && (
+                              <Box className="col-span-12" sx={{ mt: 0.5 }}>
+                                <Typography variant="caption" color="text.secondary" display="block">Bank Payout Info</Typography>
+                                <Typography variant="caption" sx={{ fontWeight: 700 }}>Name: {ref.bankAccountName || 'N/A'} | IBAN: {ref.bankIban}</Typography>
+                              </Box>
+                            )}
+                          </Box>
+
+                          {ref.proofUrl && (
+                            <Box sx={{ mt: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                                📄 Embassy Rejection Letter Proof Attached
+                              </Typography>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                color="primary"
+                                href={ref.proofUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                startIcon={<VisibilityIcon />}
+                                sx={{ fontWeight: 700 }}
+                              >
+                                View Rejection Document PDF
+                              </Button>
+                            </Box>
                           )}
                         </Paper>
                       ));

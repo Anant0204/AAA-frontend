@@ -29,6 +29,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import LockIcon from '@mui/icons-material/Lock';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import VideoCameraFrontIcon from '@mui/icons-material/VideoCameraFront';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
@@ -504,6 +505,11 @@ export const ClientPortalDocs = () => {
     queryFn: dbService.getPackages
   });
 
+  const { data: customizationSettings } = useQuery({
+    queryKey: ['customization-settings'],
+    queryFn: dbService.getCustomizationSettings
+  });
+
   const dbClient = clients.find((c) => c.id === clientId);
   const localClientData = JSON.parse(localStorage.getItem('clientData') || 'null');
   const localMockClient = JSON.parse(localStorage.getItem('mockClientData') || 'null');
@@ -658,10 +664,12 @@ export const ClientPortalDocs = () => {
     )
   );
 
+  const currentStatusUpper = String(client?.status || '').toUpperCase();
+  const isPaidOrCompletedStatus = ['PAYMENT COMPLETED', 'PAID', 'PAYMENT RECEIVED', 'UNDER PROCESS', 'PROCESSING', 'ACTIVE', 'PARTIALLY PAID'].includes(currentStatusUpper) || Boolean(client?.documentUploadAllowed);
   const isRefundEligible = Boolean(
+    isPaidOrCompletedStatus ||
     hasEligibleRefundPayment ||
-    allRefundableCodes.includes(client?.packageId) ||
-    (client?.status === 'Payment Completed' && !['OPTION_A', 'opt_a', 'std', 'relocation', 'OPTION_D'].includes(client?.packageId))
+    allRefundableCodes.includes(client?.packageId)
   );
 
   const isStatusPaid = ['Payment Received', 'Paid', 'Partially Paid', 'Payment Completed', 'Under Process', 'Processing', 'Active'].includes(client?.status);
@@ -746,11 +754,6 @@ export const ClientPortalDocs = () => {
   const { data: generalSettings } = useQuery({
     queryKey: ['settings-general'],
     queryFn: dbService.getSettings
-  });
-
-  const { data: customizationSettings } = useQuery({
-    queryKey: ['customization-settings'],
-    queryFn: dbService.getCustomizationSettings
   });
 
   const getRateForLang = (lang) => {
@@ -3174,14 +3177,25 @@ export const ClientPortalDocs = () => {
                           Estimated Refund Calculation:
                         </Typography>
                         {(() => {
-                          const totalPaidAmt = allPayments.filter(p => p.clientId === clientId && p.status === 'Paid').reduce((s, p) => s + p.amount, 0);
+                          const safePayments = Array.isArray(allPayments) ? allPayments : [];
+                          let totalPaidAmt = safePayments
+                            .filter(p => p && (p.clientId === clientId || p.clientId === client?.id) && (p.status === 'Paid' || p.status === 'Payment Completed'))
+                            .reduce((s, p) => s + (Number(p.amount) || 0), 0);
+
+                          if (totalPaidAmt === 0 && (client?.status === 'Payment Completed' || client?.status === 'Paid' || client?.status === 'Payment Received')) {
+                            const activePkg = (dbPackages && dbPackages.length > 0)
+                              ? dbPackages.find(p => (p.code || p.id) === (client?.packageId || selectedPackage))
+                              : null;
+                            totalPaidAmt = Number(activePkg?.price) || 3500;
+                          }
+
                           const guaranteePct = customizationSettings?.refundGuaranteePercentage ?? 50;
                           const estimatedRefund = totalPaidAmt * (guaranteePct / 100);
                           return (
                             <Typography variant="h5" sx={{ fontWeight: 900, color: '#C59B27', fontFamily: 'Outfit, sans-serif' }}>
-                              €{estimatedRefund.toLocaleString()}
+                              €{(estimatedRefund || 0).toLocaleString()}
                               <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1, fontWeight: 600 }}>
-                                ({guaranteePct}% of Total Paid Fees €{totalPaidAmt.toLocaleString()})
+                                ({guaranteePct}% of Total Paid Fees €{(totalPaidAmt || 0).toLocaleString()})
                               </Typography>
                             </Typography>
                           );
@@ -3313,7 +3327,7 @@ export const ClientPortalDocs = () => {
                             proofUrl: claimProofUrl,
                             bankAccountName: claimBankName,
                             bankIban: claimBankIban,
-                            amount: (allPayments.filter(p => p.clientId === clientId && p.status === 'Paid').reduce((s, p) => s + p.amount, 0)) * 0.5
+                            amount: ((Array.isArray(allPayments) ? allPayments.filter(p => p && (p.clientId === clientId || p.clientId === client?.id) && (p.status === 'Paid' || p.status === 'Payment Completed')).reduce((s, p) => s + (Number(p.amount) || 0), 0) : 0)) * ((customizationSettings?.refundGuaranteePercentage ?? 50) / 100)
                           });
                         }}
                         sx={{ mt: 1, py: 1.2, fontWeight: 800 }}

@@ -64,9 +64,17 @@ export const SuperAdminRefundCommissionHub = () => {
   const [refundModalOpen, setRefundModalOpen] = useState(false);
   const [auditModalOpen, setAuditModalOpen] = useState(false);
   const [activeAuditRefund, setActiveAuditRefund] = useState(null);
-  const [auditPayoutMethod, setAuditPayoutMethod] = useState('Stripe Automatic');
+  const [auditAmount, setAuditAmount] = useState('');
+  const [auditPayoutMethod, setAuditPayoutMethod] = useState('Manual Bank Transfer');
   const [auditTransactionRef, setAuditTransactionRef] = useState('');
   const [auditNotes, setAuditNotes] = useState('');
+
+  React.useEffect(() => {
+    if (activeAuditRefund) {
+      setAuditAmount(activeAuditRefund.amount !== undefined ? activeAuditRefund.amount : '');
+      setAuditPayoutMethod('Manual Bank Transfer');
+    }
+  }, [activeAuditRefund]);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [pendingPayoutAction, setPendingPayoutAction] = useState(null);
   const [rateModalOpen, setRateModalOpen] = useState(false);
@@ -121,8 +129,8 @@ export const SuperAdminRefundCommissionHub = () => {
   });
 
   const updateRefundStatusMutation = useMutation({
-    mutationFn: ({ refundId, status, payoutMethod, transactionRef, adminNotes }) =>
-      dbService.updateRefundStatus(refundId, status, payoutMethod, transactionRef, adminNotes),
+    mutationFn: ({ refundId, status, payoutMethod, transactionRef, adminNotes, amount }) =>
+      dbService.updateRefundStatus(refundId, status, payoutMethod, transactionRef, adminNotes, amount),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['refund-requests'] });
       queryClient.invalidateQueries({ queryKey: ['refundRequests'] });
@@ -669,7 +677,7 @@ export const SuperAdminRefundCommissionHub = () => {
       >
         {activeAuditRefund && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}>
-            {/* Details Summary */}
+            {/* Details Summary & SuperAdmin Editable Amount Field */}
             <Box className="grid grid-cols-12 gap-2" sx={{ p: 2, bgcolor: 'background.neutral', borderRadius: 2 }}>
               <Box className="col-span-6">
                 <Typography variant="caption" color="text.secondary" display="block">Client Name</Typography>
@@ -684,8 +692,25 @@ export const SuperAdminRefundCommissionHub = () => {
                 <Typography variant="body2" sx={{ fontWeight: 700 }}>€{(activeAuditRefund.totalPaidAmount || activeAuditRefund.amount * 2).toLocaleString()}</Typography>
               </Box>
               <Box className="col-span-6" sx={{ mt: 1 }}>
-                <Typography variant="caption" color="text.secondary" display="block">50% Calculated Refund</Typography>
-                <Typography variant="body1" color="error.main" sx={{ fontWeight: 800 }}>€{activeAuditRefund.amount.toLocaleString()}</Typography>
+                <Typography variant="caption" color="text.secondary" display="block">50% Calculated Default</Typography>
+                <Typography variant="body2" color="error.main" sx={{ fontWeight: 700 }}>€{(activeAuditRefund.amount || 0).toLocaleString()}</Typography>
+              </Box>
+
+              {/* Editable Approved Payout Amount for SuperAdmin */}
+              <Box className="col-span-12" sx={{ mt: 1.5 }}>
+                <Typography variant="caption" sx={{ fontWeight: 800, color: '#051A3B', display: 'block', mb: 0.5 }}>
+                  Approved Payout Amount (€) — SuperAdmin Override Input:
+                </Typography>
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="number"
+                  disabled={activeAuditRefund.status === 'Processed'}
+                  value={auditAmount}
+                  onChange={(e) => setAuditAmount(e.target.value)}
+                  helperText="💡 Pre-filled with 50% policy default (€). Edit to adjust for VAT, taxes, wire fees, or special deductions."
+                  sx={{ bgcolor: 'white', borderRadius: 1 }}
+                />
               </Box>
             </Box>
 
@@ -789,169 +814,65 @@ export const SuperAdminRefundCommissionHub = () => {
                 </Typography>
 
                 <Grid container spacing={2}>
-                  {/* OPTION 1: STRIPE AUTOMATIC PAYOUT */}
+                  {/* SINGLE PAYOUT ACTION PANEL */}
                   {(() => {
                     const userRoleKey = currentUser?.role || 'admin';
                     const userRoleActions = customizationSettings?.[userRoleKey]?.actions?.refunds;
                     const canStripe = customizationSettings?.enableStripeRefunds !== false && userRoleActions?.canProcessStripeRefund !== false;
-                    const canBank = customizationSettings?.enableManualBankPayouts !== false && userRoleActions?.canProcessBankPayout !== false;
                     const requireConfirm = userRoleActions?.requireDoubleConfirmation !== false;
 
                     return (
-                      <React.Fragment>
-                        {canStripe && (
-                          <Grid item xs={12} sm={!canBank ? 12 : 6}>
-                            <Paper
-                              variant="outlined"
-                              sx={{
-                                p: 2,
-                                borderRadius: 3,
-                                border: '1.5px solid',
-                                borderColor: auditPayoutMethod === 'Stripe Automatic' ? 'primary.main' : 'divider',
-                                bgcolor: auditPayoutMethod === 'Stripe Automatic' ? 'primary.lighter' : 'background.paper'
-                              }}
-                            >
-                              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'primary.main', mb: 0.5 }}>
-                                ⚡ Option 1: Auto-Pay via Stripe
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5, minHeight: 32 }}>
-                                Automated 1-click refund back to client's original credit/debit card on file.
-                              </Typography>
-                              <Button
-                                variant={auditPayoutMethod === 'Stripe Automatic' ? "contained" : "outlined"}
-                                color="primary"
-                                fullWidth
-                                size="small"
-                                disabled={updateRefundStatusMutation.isPending || activeAuditRefund?.status === 'Processed'}
-                                onClick={() => {
-                                  setAuditPayoutMethod('Stripe Automatic');
-                                  const payoutPayload = {
-                                    refundId: activeAuditRefund.id,
-                                    status: 'Processed',
-                                    payoutMethod: 'Stripe Automatic',
-                                    transactionRef: `STRIPE-RF-${Date.now().toString().substring(6)}`,
-                                    adminNotes: auditNotes,
-                                    amount: activeAuditRefund.amount,
-                                    clientName: activeAuditRefund.clientName
-                                  };
+                      <Grid item xs={12}>
+                        <Paper
+                          variant="outlined"
+                          sx={{
+                            p: 2.5,
+                            borderRadius: 3,
+                            border: '1.5px solid',
+                            borderColor: 'primary.main',
+                            bgcolor: 'primary.lighter'
+                          }}
+                        >
+                          <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'primary.main', mb: 0.5 }}>
+                            ⚡ Process Refund Payout
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+                            Process refund payout back to client. Click below to execute payout with approved amount above.
+                          </Typography>
+                          <Button
+                            variant="contained"
+                            color="primary"
+                            fullWidth
+                            size="large"
+                            disabled={updateRefundStatusMutation.isPending || activeAuditRefund?.status === 'Processed'}
+                            onClick={() => {
+                              const finalAmt = Number(auditAmount) || activeAuditRefund.amount;
+                              const payoutPayload = {
+                                refundId: activeAuditRefund.id,
+                                status: 'Processed',
+                                payoutMethod: 'Stripe Automatic',
+                                transactionRef: `STRIPE-RF-${Date.now().toString().substring(6)}`,
+                                adminNotes: auditNotes,
+                                amount: finalAmt,
+                                clientName: activeAuditRefund.clientName
+                              };
 
-                                  if (requireConfirm) {
-                                    setPendingPayoutAction(payoutPayload);
-                                    setConfirmModalOpen(true);
-                                  } else {
-                                    updateRefundStatusMutation.mutate(payoutPayload);
-                                  }
-                                }}
-                                sx={{ fontWeight: 800, py: 1 }}
-                              >
-                                {activeAuditRefund?.status === 'Processed' ? '🔒 Stripe Auto-Pay Completed' : `⚡ Process Stripe Auto-Pay (€${activeAuditRefund.amount.toLocaleString()})`}
-                              </Button>
-                            </Paper>
-                          </Grid>
-                        )}
-
-                        {/* OPTION 2: MANUAL BANK TRANSFER */}
-                        {canBank && (
-                          <Grid item xs={12} sm={!canStripe ? 12 : 6}>
-                            <Paper
-                              variant="outlined"
-                              sx={{
-                                p: 2,
-                                borderRadius: 3,
-                                border: '1.5px solid',
-                                borderColor: auditPayoutMethod === 'Manual Bank Transfer' ? 'warning.main' : 'divider',
-                                bgcolor: auditPayoutMethod === 'Manual Bank Transfer' ? '#FAF6ED' : 'background.paper'
-                              }}
-                            >
-                              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#A37E1C', mb: 0.5 }}>
-                                🏦 Option 2: Manual Bank Wire Payout
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5, minHeight: 32 }}>
-                                Transfer funds manually via online bank portal using auto-filled IBAN details below.
-                              </Typography>
-                              <Button
-                                variant={auditPayoutMethod === 'Manual Bank Transfer' ? "contained" : "outlined"}
-                                color="warning"
-                                fullWidth
-                                size="small"
-                                disabled={activeAuditRefund?.status === 'Processed'}
-                                onClick={() => setAuditPayoutMethod('Manual Bank Transfer')}
-                                sx={{ fontWeight: 800, py: 1 }}
-                              >
-                                {activeAuditRefund?.status === 'Processed' ? '🔒 Manual Payout Completed' : '🏦 Manual Wire Transfer Form'}
-                              </Button>
-                            </Paper>
-                          </Grid>
-                        )}
-                      </React.Fragment>
+                              if (requireConfirm) {
+                                setPendingPayoutAction(payoutPayload);
+                                setConfirmModalOpen(true);
+                              } else {
+                                updateRefundStatusMutation.mutate(payoutPayload);
+                              }
+                            }}
+                            sx={{ fontWeight: 800, py: 1.3 }}
+                          >
+                            {activeAuditRefund?.status === 'Processed' ? '🔒 Refund Payout Completed' : `⚡ Process Refund Payout (€${(Number(auditAmount) || activeAuditRefund.amount).toLocaleString()})`}
+                          </Button>
+                        </Paper>
+                      </Grid>
                     );
                   })()}
                 </Grid>
-
-                {/* MANUAL BANK TRANSFER AUTO-FILLED FORM */}
-                {auditPayoutMethod === 'Manual Bank Transfer' && (
-                  <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid rgba(197, 155, 39, 0.4)', bgcolor: '#FAF6ED', display: 'flex', flexDirection: 'column', gap: 1.5, mt: 1 }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, color: '#A37E1C' }}>
-                      📋 AUTO-FILLED CLIENT BANK PAYOUT DATA:
-                    </Typography>
-
-                    <Grid container spacing={1}>
-                      <Grid item xs={12} sm={6}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          label="Account Holder Name (Auto-Filled)"
-                          value={activeAuditRefund.bankAccountName || activeAuditRefund.clientName}
-                          InputProps={{ readOnly: true }}
-                        />
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          label="IBAN / Account Number (Auto-Filled)"
-                          value={activeAuditRefund.bankIban || 'ES91 2100 0418 45 0200051332'}
-                          InputProps={{ readOnly: true }}
-                        />
-                      </Grid>
-                      <Grid item xs={12}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          required
-                          disabled={activeAuditRefund?.status === 'Processed'}
-                          label="Bank Transfer Reference / UTR Number *"
-                          placeholder="Enter your Bank Wire Reference (e.g., UTR-984210382)"
-                          value={auditTransactionRef}
-                          onChange={(e) => setAuditTransactionRef(e.target.value)}
-                          sx={{ bgcolor: 'white', borderRadius: 1 }}
-                        />
-                      </Grid>
-                    </Grid>
-
-                    <Button
-                      variant="contained"
-                      color="success"
-                      fullWidth
-                      disabled={!auditTransactionRef || updateRefundStatusMutation.isPending || activeAuditRefund?.status === 'Processed'}
-                      onClick={() => {
-                        setPendingPayoutAction({
-                          refundId: activeAuditRefund.id,
-                          status: 'Processed',
-                          payoutMethod: 'Manual Bank Transfer',
-                          transactionRef: auditTransactionRef,
-                          adminNotes: auditNotes,
-                          amount: activeAuditRefund.amount,
-                          clientName: activeAuditRefund.clientName
-                        });
-                        setConfirmModalOpen(true);
-                      }}
-                      sx={{ py: 1.2, fontWeight: 800 }}
-                    >
-                      {activeAuditRefund?.status === 'Processed' ? '🔒 Manual Wire Transfer Paid & Locked' : 'Confirm Manual Wire Payout & Issue Receipt'}
-                    </Button>
-                  </Paper>
-                )}
 
                 <TextField
                   fullWidth

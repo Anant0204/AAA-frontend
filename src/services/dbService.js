@@ -577,8 +577,8 @@ export const dbService = {
     const res = await apiClient.post('/payments/refunds', data);
     return res.data;
   },
-  updateRefundStatus: async (refundId, status, payoutMethod, transactionRef, adminNotes) => {
-    const res = await apiClient.patch(`/payments/refunds/${refundId}/status`, { status, payoutMethod, transactionRef, adminNotes });
+  updateRefundStatus: async (refundId, status, payoutMethod, transactionRef, adminNotes, amount) => {
+    const res = await apiClient.patch(`/payments/refunds/${refundId}/status`, { status, payoutMethod, transactionRef, adminNotes, amount });
     return res.data;
   },
   getBackupLogs: async () => [],
