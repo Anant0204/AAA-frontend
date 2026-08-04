@@ -40,6 +40,7 @@ import StatCard from '../../components/StatCard';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
 import { SERVICES, PACKAGES } from '../../constants/mockData';
+import { getPackageDisplayName } from '../../utils/packageHelper';
 
 const clientSchema = yup.object().shape({
   firstName: yup.string().required('First Name is required'),
@@ -150,6 +151,12 @@ export const ClosedCases = () => {
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ['clients'],
     queryFn: dbService.getClients,
+  });
+
+  // Fetch Packages dynamically
+  const { data: dbPackages = [] } = useQuery({
+    queryKey: ['packages'],
+    queryFn: dbService.getPackages,
   });
 
   // Fetch Consultants dynamically
@@ -266,7 +273,7 @@ export const ClosedCases = () => {
     {
       id: 'package',
       label: 'Selected Package',
-      render: (row) => PACKAGES.find((p) => p.id === row.packageId)?.name || row.packageId,
+      render: (row) => getPackageDisplayName(row.packageId, dbPackages),
     },
     { id: 'status', label: 'Billing Status', sortable: true },
     { id: 'visaStatus', label: 'Immigration Progress', sortable: true },

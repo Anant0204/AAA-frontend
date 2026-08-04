@@ -42,6 +42,7 @@ import StatCard from '../../components/StatCard';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
 import { SERVICES, PACKAGES } from '../../constants/mockData';
+import { getPackageDisplayName } from '../../utils/packageHelper';
 
 const clientSchema = yup.object().shape({
   firstName: yup.string().required('First Name is required'),
@@ -233,6 +234,12 @@ export const SuperAdminClientList = () => {
     queryFn: dbService.getLeadStages,
   });
 
+  // Fetch Packages dynamically
+  const { data: dbPackages = [] } = useQuery({
+    queryKey: ['packages'],
+    queryFn: dbService.getPackages,
+  });
+
   const { data: customizationSettings } = useQuery({
     queryKey: ['customization-settings'],
     queryFn: dbService.getCustomizationSettings
@@ -401,7 +408,7 @@ export const SuperAdminClientList = () => {
     {
       id: 'package',
       label: 'Selected Package',
-      render: (row) => PACKAGES.find((p) => p.id === row.packageId)?.name || row.packageId,
+      render: (row) => getPackageDisplayName(row.packageId, dbPackages),
     },
     { id: 'status', label: 'Financial Status', sortable: true },
     { id: 'visaStatus', label: 'Case Status', sortable: true },

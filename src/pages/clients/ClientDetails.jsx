@@ -35,6 +35,7 @@ import FileUploader from '../../components/FileUploader';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
 import { SERVICES, PACKAGES } from '../../constants/mockData';
+import { getPackageDisplayName } from '../../utils/packageHelper';
 
 export const ClientDetails = () => {
   const { id } = useParams();
@@ -83,6 +84,10 @@ export const ClientDetails = () => {
   const { data: consultants = [] } = useQuery({
     queryKey: ['consultants'],
     queryFn: dbService.getConsultants });
+
+  const { data: dbPackages = [] } = useQuery({
+    queryKey: ['packages'],
+    queryFn: dbService.getPackages });
 
   // Fetch Leads dynamically
   const { data: leads = [] } = useQuery({
@@ -231,7 +236,7 @@ export const ClientDetails = () => {
               </Box>
               <Box>
                 <Typography variant="caption" color="text.secondary" display="block">Enrolled Package</Typography>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{packageObj?.name || client.packageId}</Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{getPackageDisplayName(client.packageId, dbPackages)}</Typography>
               </Box>
               <Box>
                 <Typography variant="caption" color="text.secondary" display="block">Phone Contact</Typography>

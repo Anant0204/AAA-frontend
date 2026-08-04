@@ -29,6 +29,7 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
 
 
 const getMediaUrl = (url) => {
@@ -778,6 +779,27 @@ export const OperationsSocialInbox = () => {
                       </Box>
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {activeConv.platform === 'whatsapp' && (
+                        activeConv.isWindowOpen ? (
+                          <Tooltip title={`24-Hour Customer WhatsApp Session Active. Window closes at ${activeConv.windowExpiresAt ? new Date(activeConv.windowExpiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '24h'}`}>
+                            <Chip
+                              label={`🟢 24h Window Active (${Math.floor((activeConv.remainingMinutes || 0) / 60)}h ${(activeConv.remainingMinutes || 0) % 60}m)`}
+                              color="success"
+                              size="small"
+                              sx={{ fontWeight: 'bold', fontSize: '0.7rem' }}
+                            />
+                          </Tooltip>
+                        ) : (
+                          <Tooltip title="Customer has not messaged in 24 hours. Plain text messages will not deliver to customer phone. Please send an approved Template message.">
+                            <Chip
+                              label="🔴 24h Window Closed (>24h)"
+                              color="error"
+                              size="small"
+                              sx={{ fontWeight: 'bold', fontSize: '0.7rem' }}
+                            />
+                          </Tooltip>
+                        )
+                      )}
                       <Chip
                         label={activeConv.status}
                         color={activeConv.status === 'New Lead' ? 'info' : 'secondary'}
@@ -862,6 +884,13 @@ export const OperationsSocialInbox = () => {
                     })}
                     <div ref={messageEndRef} />
                   </Box>
+
+                  {/* WhatsApp 24-Hour Session Closed Alert */}
+                  {activeConv.platform === 'whatsapp' && !activeConv.isWindowOpen && (
+                    <Alert severity="warning" variant="filled" sx={{ mx: 2, my: 1, py: 0.25, fontSize: '0.75rem', bgcolor: '#FEF3C7', color: '#92400E', border: '1px solid #FCD34D' }}>
+                      ⚠️ <strong>WhatsApp 24-Hour Session Closed:</strong> Customer has not messaged in 24h. Direct plain text replies will not reach client's phone. Use <strong>Quick Templates (⚡)</strong> to send an approved template.
+                    </Alert>
+                  )}
 
                   {/* Compose Reply Area */}
                   <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>

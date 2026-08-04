@@ -36,6 +36,7 @@ import FileUploader from '../../components/FileUploader';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
 import { SERVICES, PACKAGES } from '../../constants/mockData';
+import { getPackageDisplayName } from '../../utils/packageHelper';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import AiSummaryModal from '../../components/AiSummaryModal';
 import CredentialsModal from '../../components/CredentialsModal';
@@ -275,6 +276,11 @@ export const SuperAdminClientDetails = () => {
   const { data: consultants = [] } = useQuery({
     queryKey: ['consultants'],
     queryFn: dbService.getConsultants });
+
+  // Fetch Packages dynamically
+  const { data: dbPackages = [] } = useQuery({
+    queryKey: ['packages'],
+    queryFn: dbService.getPackages });
 
   // Fetch Leads dynamically
   const { data: leads = [] } = useQuery({
@@ -521,7 +527,7 @@ export const SuperAdminClientDetails = () => {
               </Box>
               <Box>
                 <Typography variant="caption" color="text.secondary" display="block">Enrolled Package</Typography>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{packageObj?.name || client.packageId}</Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{getPackageDisplayName(client.packageId, dbPackages)}</Typography>
               </Box>
               <Box>
                 <Typography variant="caption" color="text.secondary" display="block">Phone Contact</Typography>

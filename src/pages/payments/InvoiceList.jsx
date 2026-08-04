@@ -33,6 +33,7 @@ import FilterPanel from '../../components/FilterPanel';
 import AppTable from '../../components/AppTable';
 import StatCard from '../../components/StatCard';
 import { SERVICES, PACKAGES } from '../../constants/mockData';
+import { getPackageDisplayName } from '../../utils/packageHelper';
 
 export const InvoiceList = () => {
   const navigate = useNavigate();
@@ -141,6 +142,12 @@ export const InvoiceList = () => {
     queryKey: ['payments'],
     queryFn: dbService.getPayments });
 
+  // Fetch Packages dynamically
+  const { data: dbPackages = [] } = useQuery({
+    queryKey: ['packages'],
+    queryFn: dbService.getPackages,
+  });
+
   const filteredInvoices = payments.filter((p) => {
     const dateToCheck = p.status === 'Paid' ? (p.paymentDate || p.dueDate) : p.dueDate;
     if (!filterByDate(dateToCheck, startDate, endDate)) return false;
@@ -165,7 +172,7 @@ export const InvoiceList = () => {
     {
       id: 'package',
       label: 'Relocation Package',
-      render: (row) => PACKAGES.find(p => p.id === row.packageId)?.name || row.packageId || '-' },
+      render: (row) => getPackageDisplayName(row.packageId, dbPackages) },
     {
       id: 'total',
       label: 'Grand Total',
