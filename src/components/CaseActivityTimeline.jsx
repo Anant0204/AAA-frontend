@@ -16,19 +16,23 @@ import HistoryIcon from '@mui/icons-material/History';
 import dayjs from 'dayjs';
 
 export const CaseActivityTimeline = ({ clientId, leadId, applicationId }) => {
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['caseTimeline', clientId, leadId, applicationId],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (clientId) params.append('clientId', clientId);
-      if (leadId) params.append('leadId', leadId);
-      if (applicationId) params.append('applicationId', applicationId);
+      try {
+        const params = new URLSearchParams();
+        if (clientId) params.append('clientId', clientId);
+        if (leadId) params.append('leadId', leadId);
+        if (applicationId) params.append('applicationId', applicationId);
 
-      const res = await apiClient.get(`/audit-logs/timeline?${params.toString()}`);
-      return res.data;
+        const res = await apiClient.get(`/audit-logs/timeline?${params.toString()}`);
+        return res.data || { timeline: [] };
+      } catch (err) {
+        return { timeline: [] };
+      }
     },
     enabled: Boolean(clientId || leadId || applicationId),
-    refetchInterval: 10000 // Auto refresh every 10 seconds
+    retry: false
   });
 
   const getEventIcon = (type) => {
@@ -66,14 +70,6 @@ export const CaseActivityTimeline = ({ clientId, leadId, applicationId }) => {
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
         <CircularProgress size={28} />
       </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Typography variant="body2" color="error" sx={{ p: 2 }}>
-        Unable to load activity log timeline.
-      </Typography>
     );
   }
 
