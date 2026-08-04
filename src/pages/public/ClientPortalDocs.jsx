@@ -684,7 +684,7 @@ export const ClientPortalDocs = () => {
   ) : null;
 
   const isAssessmentCreditValid = Boolean(
-    (paidAssessment && (new Date() - new Date(paidAssessment.createdAt || paidAssessment.paidAt || Date.now())) <= FOURTEEN_DAYS_MS) ||
+    (paidAssessment && (new Date() - new Date(paidAssessment.paidAt || paidAssessment.updatedAt || paidAssessment.createdAt || Date.now())) <= FOURTEEN_DAYS_MS) ||
     client?.status === 'Partially Paid'
   );
 
