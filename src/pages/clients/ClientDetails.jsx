@@ -181,7 +181,15 @@ export const ClientDetails = () => {
     'Closed',
   ];
 
-  const billingStatuses = leadStages.map(s => s.name);
+  const billingStatuses = [
+    'Waiting for Payment',
+    'Partially Paid',
+    'Payment Completed',
+    'Documents Pending',
+    'Under Process',
+    'Completed',
+    'Case Closed',
+  ];
 
   return (
     <Box>
@@ -759,6 +767,11 @@ export const ClientDetails = () => {
               value={selectedVisaStatus || ''}
               onChange={(e) => setSelectedVisaStatus(e.target.value)}
               label="Spain Visa Progression"
+              MenuProps={{
+                anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
+                transformOrigin: { vertical: 'top', horizontal: 'left' },
+                PaperProps: { style: { maxHeight: 260 } }
+              }}
               sx={{ borderRadius: 2 }}
             >
               {visaStatuses.map((st) => (
@@ -776,6 +789,11 @@ export const ClientDetails = () => {
               value={selectedBillingStatus || ''}
               onChange={(e) => setSelectedBillingStatus(e.target.value)}
               label="Billing Status"
+              MenuProps={{
+                anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
+                transformOrigin: { vertical: 'top', horizontal: 'left' },
+                PaperProps: { style: { maxHeight: 260 } }
+              }}
               sx={{ borderRadius: 2 }}
             >
               {billingStatuses.map((st) => (

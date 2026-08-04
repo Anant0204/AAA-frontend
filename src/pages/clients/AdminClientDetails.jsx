@@ -348,7 +348,15 @@ export const AdminClientDetails = () => {
     'Closed',
   ];
 
-  const billingStatuses = Array.from(new Set(['Partially Paid', 'Payment Completed', ...leadStages.map(s => s.name)]));
+  const billingStatuses = [
+    'Waiting for Payment',
+    'Partially Paid',
+    'Payment Completed',
+    'Documents Pending',
+    'Under Process',
+    'Completed',
+    'Case Closed',
+  ];
 
   return (
     <Box>

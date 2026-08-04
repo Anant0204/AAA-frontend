@@ -894,16 +894,31 @@ export const SuperAdminLeadList = () => {
                     />
                   )}
                 />
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Preferred Language"
-                  value="English"
-                  disabled
-                  InputProps={{ readOnly: true }}
-                  sx={{ flex: 1 }}
+                <Controller
+                  control={control}
+                  name="countryOfResidence"
+                  render={({ field: { onChange, value } }) => (
+                    <SearchableDropdown
+                      value={value}
+                      onChange={onChange}
+                      error={!!errors.countryOfResidence}
+                      helperText={errors.countryOfResidence?.message}
+                      label="Country of Residence"
+                      options={NATIONALITIES}
+                      sx={{ flex: 1 }}
+                    />
+                  )}
                 />
               </Box>
+
+              <TextField
+                fullWidth
+                size="small"
+                label="Preferred Language"
+                value="English"
+                disabled
+                InputProps={{ readOnly: true }}
+              />
             </Box>
 
             {/* Right Column: Case Details */}
