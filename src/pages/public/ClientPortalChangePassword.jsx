@@ -20,6 +20,7 @@ export const ClientPortalChangePassword = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const clientData = JSON.parse(localStorage.getItem('clientData'));
 
@@ -200,7 +201,7 @@ export const ClientPortalChangePassword = () => {
             />
             <TextField
               label="Confirm New Password"
-              type={showPassword ? 'text' : 'password'}
+              type={showConfirmPassword ? 'text' : 'password'}
               fullWidth
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
@@ -208,11 +209,11 @@ export const ClientPortalChangePassword = () => {
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton
-                      onClick={() => setShowPassword(!showPassword)}
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       edge="end"
                       sx={{ color: 'rgba(255,255,255,0.6)' }}
                     >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                      {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
                   </InputAdornment>
                 ),
