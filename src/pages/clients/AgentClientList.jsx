@@ -194,6 +194,7 @@ export const AgentClientList = () => {
         fullName.includes(searchTerm.toLowerCase()) ||
         client.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (client.phone && client.phone.includes(searchTerm)) ||
         (client.status && client.status.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (client.visaStatus && client.visaStatus.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (client.serviceId && client.serviceId.toLowerCase().includes(searchTerm.toLowerCase()));

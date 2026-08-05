@@ -154,7 +154,8 @@ export const ClientList = () => {
       const matchSearch =
         fullName.includes(searchTerm.toLowerCase()) ||
         client.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        client.email.toLowerCase().includes(searchTerm.toLowerCase());
+        client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (client.phone && client.phone.includes(searchTerm));
 
       // Role-based scoping: consultants only see their own assigned clients
       if (!isAdmin && !isOperations && currentUser && currentUser.role === 'consultant') {
