@@ -1965,7 +1965,7 @@ export const SuperAdminCustomization = () => {
                   <TextField
                     type="number"
                     label="Default Meeting Duration (Minutes)"
-                    value={localSettings?.flowAutomationSettings?.defaultMeetingDuration || 30}
+                    value={localSettings?.flowAutomationSettings?.defaultMeetingDuration ?? 30}
                     onChange={(e) => {
                       const val = parseInt(e.target.value, 10);
                       handleUpdateFlowSetting('defaultMeetingDuration', isNaN(val) ? '' : val);
@@ -1976,7 +1976,7 @@ export const SuperAdminCustomization = () => {
                   <TextField
                     type="number"
                     label="Join Grace Period / Booking Expiry (Minutes)"
-                    value={localSettings?.flowAutomationSettings?.joinGracePeriod || 10}
+                    value={localSettings?.flowAutomationSettings?.joinGracePeriod ?? 10}
                     onChange={(e) => {
                       const val = parseInt(e.target.value, 10);
                       handleUpdateFlowSetting('joinGracePeriod', isNaN(val) ? '' : val);
