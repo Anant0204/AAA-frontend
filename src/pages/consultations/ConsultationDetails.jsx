@@ -255,7 +255,7 @@ export const ConsultationDetails = () => {
                   startIcon={<CheckCircleIcon />}
                   onClick={() => setCompleteModalOpen(true)}
                 >
-                  Mark Complete
+                  {cons.type === 'follow_up' || cons.clientId ? 'Complete Follow-up' : 'Mark Complete'}
                 </Button>
                 <Button
                   variant="outlined"

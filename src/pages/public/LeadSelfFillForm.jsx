@@ -443,6 +443,18 @@ export const LeadSelfFillForm = () => {
     }
   }, [form, serviceCategory, countryCode, localNumber, selectedMultiLangs, otherLangInput, totalApplicantsDisplay]);
 
+  const parsePhone = (phoneStr) => {
+    if (!phoneStr) return { countryCode: "+971", localNumber: "" };
+    let clean = phoneStr.trim();
+    if (!clean.startsWith("+")) clean = "+" + clean;
+    for (const c of COUNTRY_CODES) {
+      if (clean.startsWith(c.code)) {
+        return { countryCode: c.code, localNumber: clean.substring(c.code.length).trim() };
+      }
+    }
+    return { countryCode: "+971", localNumber: clean.replace(/[^\d]/g, "") };
+  };
+
   const getFinalLanguage = (langVal) => {
     if (langVal !== 'Multi-Language') {
       return langVal;
