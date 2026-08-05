@@ -510,7 +510,7 @@ export const LeadSelfFillForm = () => {
             }
             setForm((prev) => ({
               ...prev,
-              id: d.id || d.clientId || leadIdParam,
+              id: d.clientId || d.id || leadIdParam,
               firstName: d.firstName || prev.firstName,
               lastName: d.lastName || prev.lastName,
               email: d.email || prev.email,
