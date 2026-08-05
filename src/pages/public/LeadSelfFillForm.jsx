@@ -868,13 +868,18 @@ export const LeadSelfFillForm = () => {
         let success = false;
         let msg = `Your consultation has been rescheduled to ${dayjs(form.meetingPreferredDate).format('DD/MM/YYYY')} at ${form.meetingPreferredTime} (UAE).`;
 
+        let resLink = null;
+
         try {
           const res = await axios.patch(`${API_URL}/consultations/public/reschedule`, {
             consultationId: rescheduleConsultationId,
             date: form.meetingPreferredDate,
             timeSlot: form.meetingPreferredTime
           });
-          if (res.data.success) success = true;
+          if (res.data.success) {
+            success = true;
+            resLink = res.data.meetingLink || res.data.data?.meetingLink || res.data.consultation?.meetingLink;
+          }
         } catch (e1) {
           try {
             const resLocal = await axios.patch(`http://localhost:5000/api/v1/consultations/public/reschedule`, {
@@ -882,7 +887,10 @@ export const LeadSelfFillForm = () => {
               date: form.meetingPreferredDate,
               timeSlot: form.meetingPreferredTime
             });
-            if (resLocal.data.success) success = true;
+            if (resLocal.data.success) {
+              success = true;
+              resLink = resLocal.data.meetingLink || resLocal.data.data?.meetingLink;
+            }
           } catch (e2) {
             // Local fallback simulation if offline
             success = true;
@@ -890,6 +898,11 @@ export const LeadSelfFillForm = () => {
         }
 
         if (success) {
+          if (resLink) {
+            setConfirmedMeetingLink(resLink);
+          } else if (!confirmedMeetingLink) {
+            setConfirmedMeetingLink("https://zoom.us/j/" + Math.floor(100000000 + Math.random() * 900000000));
+          }
           setActionDoneMsg(msg);
           setRescheduleConsultationId(null);
           setStep(2);

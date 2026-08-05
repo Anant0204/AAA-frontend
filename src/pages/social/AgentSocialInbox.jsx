@@ -145,6 +145,12 @@ export const AgentSocialInbox = () => {
 
   const markConversationReadMutation = useMutation({
     mutationFn: dbService.markConversationRead,
+    onMutate: (convId) => {
+      queryClient.setQueryData(['conversations'], (oldData) => {
+        if (!Array.isArray(oldData)) return oldData;
+        return oldData.map(c => c.id === convId ? { ...c, unreadCount: 0 } : c);
+      });
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['conversations'] })
   });
 
