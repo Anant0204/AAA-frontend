@@ -286,7 +286,7 @@ export const SuperAdminConsultationDetails = () => {
                 Claim Consultation (Pick Up)
               </Button>
             )}
-            {cons.status === 'Scheduled' && cons.assignedConsultantId && (cons.assignedConsultantId === currentUser?.id || currentUser?.role === 'super_admin') && (
+            {(cons.status === 'Scheduled' || cons.status === 'Unblocked') && cons.assignedConsultantId && (cons.assignedConsultantId === currentUser?.id || currentUser?.role === 'super_admin') && (
               <>
                 <Button
                   variant="contained"

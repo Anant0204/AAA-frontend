@@ -258,7 +258,7 @@ export const AgentConsultationDetails = () => {
                 </Button>
               </Stack>
             )}
-            {cons.status === 'Scheduled' && (
+            {(cons.status === 'Scheduled' || cons.status === 'Unblocked') && (
               <Stack direction="row" spacing={1}>
                 {!cons.consultantId ? (
                   <Button

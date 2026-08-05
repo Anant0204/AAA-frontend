@@ -219,7 +219,7 @@ export const OperationsConsultationDetails = () => {
         title={`Meeting / Consultation Session - ${cons.clientName}`}
         subtitle={`Session ID: ${cons.id}`}
         action={
-          cons.status === 'Scheduled' && (
+          (cons.status === 'Scheduled' || cons.status === 'Unblocked') && (
             <Stack direction="row" spacing={1}>
               {!cons.assignedConsultantId ? (
                 <Button
