@@ -1049,8 +1049,8 @@ export const SuperAdminClientDetails = () => {
                 </Box>
               )}
 
-              {(activeTab === 5 || (activeTab === 4 && (!canViewDeps || clientsActions.canManageDependents === false))) && (
-                <CommunicationHistoryTab clientId={client.id} leadId={client.leadId} />
+              {activeTab === 6 && (
+                <CommunicationHistoryTab clientId={client.id} leadId={client.leadId} hideLogForm={true} />
               )}
             </Box>
           </AppCard>

@@ -26,7 +26,7 @@ import CallReceivedIcon from '@mui/icons-material/CallReceived';
 import { dbService } from '../services/dbService';
 import { useAlert } from '../contexts/AlertContext';
 
-export const CommunicationHistoryTab = ({ clientId, leadId }) => {
+export const CommunicationHistoryTab = ({ clientId, leadId, hideLogForm = false }) => {
   const queryClient = useQueryClient();
   const { showAlert } = useAlert();
 
@@ -90,63 +90,65 @@ export const CommunicationHistoryTab = ({ clientId, leadId }) => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Log Manual Communication Card */}
-      <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-          📝 Log New Communication / Call Note
-        </Typography>
-        <form onSubmit={handleSubmit}>
-          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
-            <FormControl size="small" sx={{ minWidth: 160 }}>
-              <InputLabel id="channel-label">Channel</InputLabel>
-              <Select
-                labelId="channel-label"
-                value={channel}
-                onChange={(e) => setChannel(e.target.value)}
-                label="Channel"
-              >
-                <MenuItem value="WHATSAPP">💬 WhatsApp</MenuItem>
-                <MenuItem value="EMAIL">✉️ Email</MenuItem>
-                <MenuItem value="CALL">📞 Phone Call</MenuItem>
-                <MenuItem value="MEETING">🎥 Meeting Log</MenuItem>
-              </Select>
-            </FormControl>
+      {!hideLogForm && (
+        <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
+          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+            📝 Log New Communication / Call Note
+          </Typography>
+          <form onSubmit={handleSubmit}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
+              <FormControl size="small" sx={{ minWidth: 160 }}>
+                <InputLabel id="channel-label">Channel</InputLabel>
+                <Select
+                  labelId="channel-label"
+                  value={channel}
+                  onChange={(e) => setChannel(e.target.value)}
+                  label="Channel"
+                >
+                  <MenuItem value="WHATSAPP">💬 WhatsApp</MenuItem>
+                  <MenuItem value="EMAIL">✉️ Email</MenuItem>
+                  <MenuItem value="CALL">📞 Phone Call</MenuItem>
+                  <MenuItem value="MEETING">🎥 Meeting Log</MenuItem>
+                </Select>
+              </FormControl>
 
-            <FormControl size="small" sx={{ minWidth: 160 }}>
-              <InputLabel id="direction-label">Direction</InputLabel>
-              <Select
-                labelId="direction-label"
-                value={direction}
-                onChange={(e) => setDirection(e.target.value)}
-                label="Direction"
-              >
-                <MenuItem value="OUTBOUND">📤 Outbound (Sent)</MenuItem>
-                <MenuItem value="INBOUND">📥 Inbound (Received)</MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
+              <FormControl size="small" sx={{ minWidth: 160 }}>
+                <InputLabel id="direction-label">Direction</InputLabel>
+                <Select
+                  labelId="direction-label"
+                  value={direction}
+                  onChange={(e) => setDirection(e.target.value)}
+                  label="Direction"
+                >
+                  <MenuItem value="OUTBOUND">📤 Outbound (Sent)</MenuItem>
+                  <MenuItem value="INBOUND">📥 Inbound (Received)</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
 
-          <TextField
-            fullWidth
-            multiline
-            rows={2}
-            size="small"
-            placeholder="Type message content, email summary, or call notes..."
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            sx={{ mb: 2 }}
-          />
+            <TextField
+              fullWidth
+              multiline
+              rows={2}
+              size="small"
+              placeholder="Type message content, email summary, or call notes..."
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              sx={{ mb: 2 }}
+            />
 
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            startIcon={<SendIcon />}
-            disabled={addLogMutation.isPending}
-          >
-            {addLogMutation.isPending ? 'Saving Log...' : 'Save Communication Log'}
-          </Button>
-        </form>
-      </Paper>
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              startIcon={<SendIcon />}
+              disabled={addLogMutation.isPending}
+            >
+              {addLogMutation.isPending ? 'Saving Log...' : 'Save Communication Log'}
+            </Button>
+          </form>
+        </Paper>
+      )}
 
       {/* Communication Timeline Log */}
       <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
