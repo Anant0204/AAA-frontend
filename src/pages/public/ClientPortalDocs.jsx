@@ -2774,8 +2774,8 @@ export const ClientPortalDocs = () => {
                           : DEFAULT_PACKAGES
                         )].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map((pkgItem) => {
                           const pkgCode = pkgItem.code || pkgItem.id;
-                          const isSelected = selectedPackage === pkgCode;
                           const isOptA = isOptionAPackage(pkgItem);
+                          const isSelected = selectedPackage === pkgCode || (isOptionAPackage(selectedPackage) && isOptA);
                           const effectiveAddCount = isOptA ? 0 : addApplicants;
                           const basePrice = pkgItem.price || 0;
                           const addCost = pkgItem.isFixedPrice ? 0 : (effectiveAddCount * (pkgItem.additionalApplicantPrice || 500));
@@ -2947,14 +2947,14 @@ export const ClientPortalDocs = () => {
                                 includes: Array.isArray(pkg.includes) ? pkg.includes : []
                               }))
                             : DEFAULT_PACKAGES;
-                          const activePkg = packagesList.find(p => p.code === selectedPackage || p.id === selectedPackage) || packagesList[0];
+                          const activePkg = packagesList.find(p => p.code === selectedPackage || p.id === selectedPackage || (isOptionAPackage(selectedPackage) && isOptionAPackage(p))) || packagesList[0];
                           const activePkgCode = activePkg.code || activePkg.id;
-                          const isOptA = activePkgCode === 'OPTION_A' || activePkgCode === 'opt_a';
+                          const isOptA = isOptionAPackage(activePkg) || activePkgCode === 'OPTION_A' || activePkgCode === 'opt_a';
                           const effectiveAddCount = isOptA ? 0 : addApplicants;
                           const baseFee = activePkg.price || 0;
                           const addFee = activePkg.isFixedPrice ? 0 : (effectiveAddCount * (activePkg.additionalApplicantPrice || 500));
                           const totalBase = baseFee + addFee;
-                          const creditEligible = (activePkgCode !== 'OPTION_A' && activePkgCode !== 'opt_a') && assessmentCredit > 0;
+                          const creditEligible = !isOptA && assessmentCredit > 0;
                           const creditDeduction = creditEligible ? 250 : 0;
                           const subtotalExclVat = Math.max(0, totalBase - creditDeduction);
                           const vat5 = subtotalExclVat * 0.05;
@@ -2962,9 +2962,9 @@ export const ClientPortalDocs = () => {
 
                           return (
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Selected Package:</Typography>
-                                <Typography variant="caption" sx={{ fontWeight: 800, color: '#051A3B' }}>{activePkg.code}</Typography>
+                                <Typography variant="caption" sx={{ fontWeight: 800, color: '#051A3B', textAlign: 'right', maxWidth: '65%' }}>{activePkg.name}</Typography>
                               </Box>
 
                               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
