@@ -343,6 +343,7 @@ export const LeadSelfFillForm = () => {
   const [lookupOpen, setLookupOpen] = useState(false);
   const [lookupEmail, setLookupEmail] = useState("");
   const [isExistingLead, setIsExistingLead] = useState(false);
+  const [isClientRebook, setIsClientRebook] = useState(false);
   const [customizationSettings, setCustomizationSettings] = useState(null);
   const [companySettings, setCompanySettings] = useState(null);
   const [countryCode, setCountryCode] = useState("+971");
@@ -470,7 +471,13 @@ export const LeadSelfFillForm = () => {
     const isCancel = params.get("cancel") === "true" || isRouteCancel;
     const cId = params.get("consultationId");
 
-    const leadIdParam = params.get("clientId") || params.get("leadId") || params.get("id") || "";
+    const clientIdParam = params.get("clientId") || "";
+    const leadIdParam = clientIdParam || params.get("leadId") || params.get("id") || "";
+    const isRebookParam = params.get("rebook") === "true" || !!clientIdParam;
+    if (isRebookParam) {
+      setIsClientRebook(true);
+    }
+
     const paidParam = params.get("paid") === "true";
     const activeTokenOrId = cId || tokenParam || idParam;
 
@@ -480,6 +487,10 @@ export const LeadSelfFillForm = () => {
           const res = await axios.get(`${API_URL}/leads/${leadIdParam}/public-details`);
           if (res.data) {
             const d = res.data;
+            setIsExistingLead(true);
+            if (d.isClient || clientIdParam) {
+              setIsClientRebook(true);
+            }
             if (d.phone) {
               const parsed = parsePhone(d.phone);
               setCountryCode(parsed.countryCode);
@@ -487,6 +498,7 @@ export const LeadSelfFillForm = () => {
             }
             setForm((prev) => ({
               ...prev,
+              id: d.id || d.clientId || leadIdParam,
               firstName: d.firstName || prev.firstName,
               lastName: d.lastName || prev.lastName,
               email: d.email || prev.email,
@@ -1210,6 +1222,17 @@ export const LeadSelfFillForm = () => {
                 </div>
               )}
 
+              {isClientRebook && !rescheduleConsultationId && (
+                <div style={{ background: "rgba(99, 102, 241, 0.2)", border: "1px solid rgba(99, 102, 241, 0.5)", borderRadius: "12px", padding: "14px 18px", marginBottom: "20px" }}>
+                  <div style={{ color: "#a5b4fc", fontWeight: 700, fontSize: "15px", marginBottom: "4px" }}>
+                    👋 Welcome Back{form.firstName ? `, ${form.firstName}` : ""}!
+                  </div>
+                  <div style={{ color: "rgba(255, 255, 255, 0.8)", fontSize: "13px", lineHeight: "1.5" }}>
+                    You are scheduling a <strong>Follow-up Consultation</strong> with your assigned Case Officer. Your personal details are pre-filled & locked. Please select your preferred date & time below.
+                  </div>
+                </div>
+              )}
+
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
                 <h2
                   style={{
@@ -1219,7 +1242,7 @@ export const LeadSelfFillForm = () => {
                     margin: 0,
                   }}
                 >
-                  {rescheduleConsultationId ? "Reschedule Assessment 🔄" : "Book Assessment 📅"}
+                  {rescheduleConsultationId ? "Reschedule Assessment 🔄" : (isClientRebook ? "Schedule Follow-up Meeting 📅" : "Book Assessment 📅")}
                 </h2>
               </div>
 
@@ -1231,7 +1254,7 @@ export const LeadSelfFillForm = () => {
                   lineHeight: 1.6,
                 }}
               >
-                Please provide your details and choose a convenient date/time for your Free 20-Minute Eligibility Assessment.
+                {isClientRebook ? "Select your preferred date and time slot below to schedule a follow-up consultation with your Case Officer." : "Please provide your details and choose a convenient date/time for your Free 20-Minute Eligibility Assessment."}
               </p>
 
               <style>{`
@@ -1405,7 +1428,7 @@ export const LeadSelfFillForm = () => {
                     onChange={(val) => handleChange("countryOfResidence", val)}
                     options={ALL_COUNTRIES}
                     placeholder="Select Country"
-                    disabled={false}
+                    disabled={isExistingLead}
                     labelStyle={labelStyle}
                     inputStyle={inputStyle}
                   />
