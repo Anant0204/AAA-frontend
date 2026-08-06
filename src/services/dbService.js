@@ -471,7 +471,7 @@ export const dbService = {
   receiveSocialMessage: async ({ conversationId, message, isActive }) => {
     return { success: true };
   },
-  sendSocialMessage: async ({ conversationId, phone, message }) => {
+  sendSocialMessage: async ({ conversationId, phone, message, templateName }) => {
     try {
       let targetPhone = phone;
       if (!targetPhone && conversationId) {
@@ -495,7 +495,8 @@ export const dbService = {
       const sendRes = await apiClient.post('/social/messages/send', {
         phone: targetPhone || conversationId,
         text: textContent,
-        mediaUrl: mediaUrl
+        mediaUrl: mediaUrl,
+        templateName: templateName
       });
       return sendRes.data;
     } catch (e) {

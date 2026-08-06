@@ -373,7 +373,7 @@ export const SocialInbox = () => {
       sendSocialMessageMutation.mutate({
         conversationId: activeConvId,
         phone: activeConv.phone,
-        templateName: 'aaa_greeting',
+        templateName: val,
         message: newMsg
       });
       

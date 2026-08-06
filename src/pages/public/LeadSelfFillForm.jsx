@@ -424,6 +424,7 @@ export const LeadSelfFillForm = () => {
   // Save form draft to localStorage whenever form values change
   useEffect(() => {
     try {
+      if (step !== 1) return; // Do not save draft if on success screen or outside main step
       const hasContent = form.firstName || form.lastName || form.email || localNumber || form.meetingNotes || serviceCategory !== "visa";
       if (hasContent) {
         const draftData = {
@@ -441,7 +442,7 @@ export const LeadSelfFillForm = () => {
     } catch (e) {
       console.warn("Failed to save form draft to localStorage:", e);
     }
-  }, [form, serviceCategory, countryCode, localNumber, selectedMultiLangs, otherLangInput, totalApplicantsDisplay]);
+  }, [form, serviceCategory, countryCode, localNumber, selectedMultiLangs, otherLangInput, totalApplicantsDisplay, step]);
 
   const parsePhone = (phoneStr) => {
     if (!phoneStr) return { countryCode: "+971", localNumber: "" };
@@ -554,26 +555,6 @@ export const LeadSelfFillForm = () => {
         }
       }
 
-      // 3. Fallback mock / cache record if requested ID contains 12018 or CID
-      if (!data && (activeTokenOrId.includes('12018') || activeTokenOrId.toLowerCase().includes('cid'))) {
-        data = {
-          bookingId: activeTokenOrId,
-          consultationId: activeTokenOrId,
-          clientId: activeTokenOrId,
-          firstName: 'abc',
-          lastName: 'def',
-          email: 'abc@gmail.com',
-          phone: '+917047687998',
-          nationality: 'Pakistani',
-          countryOfResidence: 'Pakistan',
-          service: 'Digital Nomad Visa (DNV)',
-          currentDate: '2026-07-28',
-          currentTime: '14:53',
-          status: 'Scheduled',
-          canReschedule: true,
-          canCancel: true
-        };
-      }
 
       if (data) {
         if (!isCancel) {
@@ -1022,6 +1003,25 @@ export const LeadSelfFillForm = () => {
           setConfirmedMeetingLink("https://zoom.us/j/" + Math.floor(100000000 + Math.random() * 900000000));
         }
         localStorage.removeItem("aaa_lead_booking_draft");
+        setForm({
+          firstName: "",
+          lastName: "",
+          email: "",
+          phone: "",
+          nationality: "",
+          countryOfResidence: "",
+          preferredLanguage: "English",
+          serviceId: "dnv",
+          applicantsCount: "Main Only",
+          dependentsDetails: [],
+          meetingPreferredDate: "",
+          meetingPreferredTime: "",
+          meetingPreferredLanguage: "English",
+          meetingNotes: "",
+          preferableAreaInSpain: "",
+          budget: "€100k - €250k"
+        });
+        setLocalNumber("");
         setStep(2);
       }
     } catch (err) {
@@ -1591,25 +1591,8 @@ export const LeadSelfFillForm = () => {
                       textAlign: "center",
                     }}
                   >
-                    <div style={{ color: "#a78bfa", fontWeight: 700, fontSize: "15px", marginBottom: "12px" }}>
-                      🌐 Official Spanish Sworn Translation Rates
-                    </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "10px", marginBottom: "14px" }}>
-                      {((companySettings?.swornTranslationRates && Array.isArray(companySettings.swornTranslationRates) && companySettings.swornTranslationRates.length > 0)
-                        ? companySettings.swornTranslationRates
-                        : [
-                            { name: "English to Spanish", rate: 0.15 },
-                            { name: "Arabic to Spanish", rate: 0.25 },
-                            { name: "Urdu to Spanish", rate: 0.40 }
-                          ]
-                      ).map((r, idx) => (
-                        <div key={idx} style={{ background: "rgba(139, 92, 246, 0.15)", border: "1px solid rgba(139, 92, 246, 0.4)", padding: "6px 14px", borderRadius: "20px", color: "#fff", fontSize: "13px", fontWeight: 600 }}>
-                          {r.name}: <span style={{ color: "#facc15", fontWeight: 800 }}>€{r.rate} / word</span>
-                        </div>
-                      ))}
-                    </div>
-                    <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "13px", margin: 0, lineHeight: 1.6 }}>
-                      For Spanish Sworn Translation services, you will be redirected to our translation quote tool where you can upload your PDF document for an instant word count and price estimation.
+                    <p style={{ color: "rgba(255,255,255,0.85)", fontSize: "14px", margin: 0, lineHeight: 1.6 }}>
+                      For Spanish Sworn Translation services, click below to proceed to our translation quote tool where you can view rates, upload your PDF document, and get an instant word count and price estimation.
                     </p>
                   </div>
                 )}
