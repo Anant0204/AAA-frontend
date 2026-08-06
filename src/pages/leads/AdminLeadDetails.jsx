@@ -536,17 +536,20 @@ export const AdminLeadDetails = () => {
                   {/* Dedicated Uploaded Sworn Translation Document Card */}
                   {isSwornTranslationLead && (
                     <Box className="col-span-12">
-                      <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #CBD5E1', bgcolor: '#F8FAFC', mb: 2 }}>
-                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1, color: '#1E293B' }}>
+                      <Paper sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 3, border: '1px solid #CBD5E1', bgcolor: '#F8FAFC', mb: 2.5 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1, color: '#1E293B', fontSize: { xs: '1rem', sm: '1.15rem' } }}>
                           📄 Uploaded Sworn Translation Document
                         </Typography>
                         
-                        <Box className="grid grid-cols-12 gap-3">
-                          <Box className="col-span-12 sm:col-span-6 md:col-span-4">
-                            <Typography variant="caption" color="text.secondary" display="block">Document File</Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 700, color: '#0F172A', mb: 1 }}>
-                              {lead.qualificationData?.documentName || lead.documents?.[0]?.name || 'Translation_Document.pdf'}
-                            </Typography>
+                        <Box className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                          {/* 1. Document File & Action Buttons */}
+                          <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                            <Box>
+                              <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600 }}>Document File</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 700, color: '#0F172A', mb: 1, wordBreak: 'break-word' }}>
+                                {lead.qualificationData?.documentName || lead.documents?.[0]?.name || 'Translation_Document.pdf'}
+                              </Typography>
+                            </Box>
                             {(() => {
                               const API_BASE = (import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1').replace('/api/v1', '').replace(/\/$/, '');
                               const docRawUrl = lead.qualificationData?.documentUrl || lead.documents?.[0]?.url;
@@ -554,7 +557,7 @@ export const AdminLeadDetails = () => {
                               const docFileName = lead.qualificationData?.documentName || lead.documents?.[0]?.name || 'Translation_Document.pdf';
 
                               return documentFullUrl ? (
-                                <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
+                                <Stack direction={{ xs: 'column', sm: 'row', md: 'column', lg: 'row' }} spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
                                   <Button
                                     size="small"
                                     variant="contained"
@@ -563,7 +566,7 @@ export const AdminLeadDetails = () => {
                                     href={documentFullUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    sx={{ fontSize: '0.75rem' }}
+                                    sx={{ fontSize: '0.75rem', px: 1.5, py: 0.6, textTransform: 'none', fontWeight: 600 }}
                                   >
                                     View PDF
                                   </Button>
@@ -576,7 +579,7 @@ export const AdminLeadDetails = () => {
                                     download={docFileName}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    sx={{ fontSize: '0.75rem' }}
+                                    sx={{ fontSize: '0.75rem', px: 1.5, py: 0.6, textTransform: 'none', fontWeight: 600 }}
                                   >
                                     Download PDF
                                   </Button>
@@ -585,23 +588,26 @@ export const AdminLeadDetails = () => {
                             })()}
                           </Box>
 
-                          <Box className="col-span-12 sm:col-span-6 md:col-span-3">
-                            <Typography variant="caption" color="text.secondary" display="block">Language Pair</Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {/* 2. Language Pair */}
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600 }}>Language Pair</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 700, color: '#1E293B', display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
                               🌐 {lead.sourceLanguage || lead.qualificationData?.sourceLanguage || 'English'} ➔ {lead.targetLanguage || lead.qualificationData?.targetLanguage || 'Spanish'}
                             </Typography>
                           </Box>
 
-                          <Box className="col-span-12 sm:col-span-6 md:col-span-2">
-                            <Typography variant="caption" color="text.secondary" display="block">Word Count</Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {/* 3. Word Count */}
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600 }}>Word Count</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 700, color: '#1E293B', display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
                               📊 {lead.wordCount || lead.qualificationData?.wordCount || 0} words
                             </Typography>
                           </Box>
 
-                          <Box className="col-span-12 sm:col-span-6 md:col-span-3">
-                            <Typography variant="caption" color="text.secondary" display="block">Quoted Price (5% VAT Included)</Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 700, color: 'success.main', fontSize: '1.1rem' }}>
+                          {/* 4. Quoted Price */}
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 600 }}>Quoted Price (5% VAT Included)</Typography>
+                            <Typography variant="h6" sx={{ fontWeight: 800, color: '#059669', fontSize: { xs: '1.1rem', sm: '1.25rem' }, mt: 0.5 }}>
                               €{lead.qualificationData?.estimatedPrice || '15.00'}
                             </Typography>
                           </Box>
@@ -643,14 +649,24 @@ export const AdminLeadDetails = () => {
                     </Typography>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
                       {lead.qualificationData ? (
-                        Object.entries(lead.qualificationData).map(([key, value]) => (
-                          <Box key={key}>
-                            <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
-                              {key.replace(/([A-Z])/g, ' $1')}
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{value}</Typography>
-                          </Box>
-                        ))
+                        Object.entries(lead.qualificationData)
+                          .filter(([key]) => key !== 'documentUrl')
+                          .map(([key, value]) => {
+                            let displayValue = String(value);
+                            if (key === 'uploadedAt' && value) {
+                              displayValue = dayjs(value).isValid() ? dayjs(value).format('MMM DD, YYYY hh:mm A') : String(value);
+                            }
+                            return (
+                              <Box key={key} sx={{ wordBreak: 'break-word' }}>
+                                <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize', fontWeight: 600 }}>
+                                  {key.replace(/([A-Z])/g, ' $1')}
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 600, color: '#1E293B' }}>
+                                  {displayValue}
+                                </Typography>
+                              </Box>
+                            );
+                          })
                       ) : (
                         <Typography variant="body2" color="text.secondary">
                           No initial WhatsApp qualification forms completed yet.
