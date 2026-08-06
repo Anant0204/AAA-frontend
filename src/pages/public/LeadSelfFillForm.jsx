@@ -1538,46 +1538,7 @@ export const LeadSelfFillForm = () => {
                   </>
                 )}
 
-                {/* Section: Property Preferences (only for property category) */}
-                {serviceCategory === 'property' && (
-                  <>
-                    <div className="lead-form-grid-2col" style={{ marginBottom: "28px" }}>
-                      <div>
-                        <label style={labelStyle}>Preferable Area in Spain *</label>
-                        <select
-                          required={serviceCategory === 'property'}
-                          value={form.preferableAreaInSpain}
-                          onChange={(e) => handleChange("preferableAreaInSpain", e.target.value)}
-                          style={{ ...inputStyle, color: "#fff" }}
-                        >
-                          <option value="" disabled style={{ background: "#24243e" }}>Select Area in Spain</option>
-                          <option value="Madrid" style={{ background: "#24243e" }}>Madrid</option>
-                          <option value="Barcelona" style={{ background: "#24243e" }}>Barcelona</option>
-                          <option value="Malaga" style={{ background: "#24243e" }}>Malaga & Costa del Sol</option>
-                          <option value="Valencia" style={{ background: "#24243e" }}>Valencia</option>
-                          <option value="Alicante" style={{ background: "#24243e" }}>Alicante & Costa Blanca</option>
-                          <option value="Balearic Islands" style={{ background: "#24243e" }}>Balearic Islands (Mallorca, Ibiza)</option>
-                          <option value="Canary Islands" style={{ background: "#24243e" }}>Canary Islands</option>
-                          <option value="Costa Brava" style={{ background: "#24243e" }}>Costa Brava (Girona)</option>
-                          <option value="Marbella" style={{ background: "#24243e" }}>Marbella & Andalusia</option>
-                          <option value="Other" style={{ background: "#24243e" }}>Other / Not Decided</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label style={labelStyle}>Investment Budget *</label>
-                        <select
-                          value={form.budget}
-                          onChange={(e) => handleChange("budget", e.target.value)}
-                          style={{ ...inputStyle, color: "#fff" }}
-                        >
-                          <option value="€100k - €250k" style={{ background: "#24243e" }}>€100,000 – €250,000</option>
-                          <option value="€250k - €500k" style={{ background: "#24243e" }}>€250,000 – €500,000</option>
-                          <option value="€500k+ (Golden Visa)" style={{ background: "#24243e" }}>€500,000+ (Golden Visa)</option>
-                        </select>
-                      </div>
-                    </div>
-                  </>
-                )}
+
 
                 {/* Section: Sworn Translation redirect notice */}
                 {serviceCategory === 'translation' && (

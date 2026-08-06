@@ -484,6 +484,29 @@ export const ClientPortalDocs = () => {
 
   const [wizardDeps, setWizardDeps] = useState([]);
 
+  const handleApplicantsCountChange = (newCount) => {
+    const validCount = Math.max(0, newCount);
+    setAddApplicants(validCount);
+    setWizardDeps((prevDeps) => {
+      const updated = [...prevDeps];
+      if (validCount > updated.length) {
+        for (let i = updated.length; i < validCount; i++) {
+          updated.push({
+            firstName: '',
+            lastName: '',
+            relation: 'Spouse',
+            passportNumber: '',
+            nationality: ''
+          });
+        }
+        return updated;
+      } else if (validCount < updated.length) {
+        return updated.slice(0, validCount);
+      }
+      return updated;
+    });
+  };
+
   // Fetch client details
   // If clientId is provided in the URL, it's an Admin testing the portal, so they shouldn't fetch the /me profile
   const isClientRole = !clientId && localStorage.getItem('clientToken') !== null;
@@ -1075,6 +1098,7 @@ export const ClientPortalDocs = () => {
   const saveDependentsMutation = useMutation({
     mutationFn: (deps) => dbService.updateClientDependents(client.id, deps),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clientProfile'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       showAlert('Family member profiles saved successfully!', 'success');
     },
@@ -1564,7 +1588,7 @@ export const ClientPortalDocs = () => {
             ) : (
               <Box className="grid grid-cols-12 gap-4 col-span-12">
                 {/* Dependents Setup Wizard */}
-                {totalDependents > 0 && savedDeps.length < totalDependents && (
+                {(totalDependents > 0 || addApplicants > 0 || wizardDeps.length > 0) && (
                   <Box className="col-span-12" sx={{ mb: 2 }}>
                     <Paper
                       sx={{
@@ -1580,7 +1604,7 @@ export const ClientPortalDocs = () => {
                         👨‍👩‍👧‍👦 Complete Your Family Profiles
                       </Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 3, fontWeight: 500, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
-                        You have registered <strong>{totalDependents} co-applicant(s)</strong>. Please fill out their profiles to generate their checklists and unlock their document upload folders.
+                        You have registered <strong>{Math.max(totalDependents, addApplicants, wizardDeps.length)} co-applicant(s)</strong>. Please fill out their profiles to generate their checklists and unlock their document upload folders.
                       </Typography>
 
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
@@ -2723,20 +2747,19 @@ export const ClientPortalDocs = () => {
                         <Button
                           size="small"
                           variant="outlined"
-                          disabled={selectedPackage === 'OPTION_A' || addApplicants <= 0}
-                          onClick={() => setAddApplicants(prev => Math.max(0, prev - 1))}
+                          disabled={addApplicants <= 0}
+                          onClick={() => handleApplicantsCountChange(addApplicants - 1)}
                           sx={{ minWidth: 32, width: 32, height: 32, p: 0, fontWeight: 900, borderRadius: 1.5 }}
                         >
                           -
                         </Button>
                         <Typography variant="subtitle1" sx={{ fontWeight: 900, px: 1, minWidth: 24, textAlign: 'center' }}>
-                          {selectedPackage === 'OPTION_A' ? 0 : addApplicants}
+                          {addApplicants}
                         </Typography>
                         <Button
                           size="small"
                           variant="outlined"
-                          disabled={selectedPackage === 'OPTION_A'}
-                          onClick={() => setAddApplicants(prev => prev + 1)}
+                          onClick={() => handleApplicantsCountChange(addApplicants + 1)}
                           sx={{ minWidth: 32, width: 32, height: 32, p: 0, fontWeight: 900, borderRadius: 1.5 }}
                         >
                           +
