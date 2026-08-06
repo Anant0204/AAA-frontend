@@ -84,7 +84,7 @@ import { SERVICES } from '../../constants/mockData';
 
 // Initial Mock Conversations
 const QUICK_TEMPLATES = [
-  { id: 't1', label: 'Greet', text: 'Hello👋 \n\nWelcome to AAA Business Consultancy Services! \n\nWe’re here to help you with your Spain Visa, Residency & Relocation requirements. \n\nReply Hi to get started.' }
+  { id: 'aaa_greeting', label: 'Greet', text: 'Hello👋 \n\nWelcome to AAA Business Consultancy Services! \n\nWe’re here to help you with your Spain Visa, Residency & Relocation requirements. \n\nReply Hi to get started.' }
 ];
 
 const displayName = (name, phone) => {
