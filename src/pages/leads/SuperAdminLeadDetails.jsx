@@ -33,6 +33,8 @@ import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import ChatIcon from '@mui/icons-material/Chat';
 import QuickreplyIcon from '@mui/icons-material/Quickreply';
 import HistoryIcon from '@mui/icons-material/History';
+import DownloadIcon from '@mui/icons-material/Download';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
 // Components & Services
 import { dbService } from '../../services/dbService';
@@ -218,6 +220,7 @@ export const SuperAdminLeadDetails = () => {
   const roleConfig = (customizationSettings?.[currentUser?.id] || customizationSettings?.[currentUser?.role]) || {};
   const leadsActions = roleConfig.actions?.clients || { canCreate: true, canAssignAgent: true, canDelete: currentUser?.role === 'super_admin', canChangeVisaStatus: true };
 
+  const isSwornTranslationLead = (lead?.serviceType || lead?.serviceId || '').toLowerCase().includes('translation') || (lead?.serviceType || lead?.serviceId || '').toLowerCase().includes('sworn');
   const hasCompletedConsultation = lead ? consultations.some(c => c.leadId === lead.id && c.status === 'Completed') : false;
 
   // Mutations
@@ -620,134 +623,215 @@ export const SuperAdminLeadDetails = () => {
               scrollButtons="auto"
               sx={{ px: 2.5, pt: 0.5, borderBottom: '1px solid', borderColor: 'divider' }}
             >
-              <Tab value={0} label="Overview" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
-              <Tab value={1} label="Meetings / Consultations" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
-              <Tab value={2} icon={<WhatsAppIcon fontSize="small" />} iconPosition="start" label="Comms & Chat" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
-              <Tab value={3} icon={<HistoryIcon fontSize="small" />} iconPosition="start" label="Activity Log & Timeline" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
-              <Tab value={4} label="Zoom Recordings" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
-            </Tabs>
+                    <Tab value={0} label={isSwornTranslationLead ? "Documents & Lead Info" : "Overview"} sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
+                    {!isSwornTranslationLead && <Tab value={1} label="Meetings / Consultations" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />}
+                    <Tab value={2} icon={<WhatsAppIcon fontSize="small" />} iconPosition="start" label="Comms & Chat" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
+                    {!isSwornTranslationLead && <Tab value={3} icon={<HistoryIcon fontSize="small" />} iconPosition="start" label="Activity Log & Timeline" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />}
+                    {!isSwornTranslationLead && <Tab value={4} label="Zoom Recordings" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />}
+                  </Tabs>
 
-            <Box sx={{ p: 2.5, flex: 1 }}>
-              {/* TAB 0: Overview & Qualifications */}
-              {activeTab === 0 && (
-                <Box className="grid grid-cols-12 gap-4">
-                  <Box className="col-span-12 md:col-span-6">
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5, color: 'text.primary' }}>
-                      Personal & Contact Details
-                    </Typography>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">Phone Number</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{lead.phone}</Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">Nationality</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{lead.nationality}</Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">Country of Residence</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{lead.countryOfResidence || lead.country || '-'}</Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">Preferred Communication Language</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{lead.preferredLanguage}</Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">Applicants Included</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{lead.applicantsCount || 1} Person(s)</Typography>
-                      </Box>
-                      <Box sx={{ mt: 1, p: 1.5, bgcolor: '#F8FAFC', borderRadius: 2, border: '1px solid #E2E8F0' }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block', mb: 0.5 }}>
-                          📅 Next Scheduled Follow-Up Date
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                          <FollowUpDatePickerInput
-                            value={lead.nextFollowUpDate}
-                            onChange={(newDate) => {
-                              updateFollowUpMutation.mutate(newDate);
-                            }}
-                            style={{ width: '180px', padding: '4px 8px', border: '1px solid #CBD5E1', borderRadius: '6px', bgcolor: '#FFFFFF' }}
-                          />
-                          {lead.nextFollowUpDate && (
-                            <Typography variant="caption" sx={{ fontWeight: 700, color: (lead.nextFollowUpDate.split('T')[0] <= dayjs().format('YYYY-MM-DD')) ? '#B45309' : '#059669', bgcolor: (lead.nextFollowUpDate.split('T')[0] <= dayjs().format('YYYY-MM-DD')) ? '#FEF3C7' : '#D1FAE5', px: 1, py: 0.5, borderRadius: 1 }}>
-                              {(lead.nextFollowUpDate.split('T')[0] <= dayjs().format('YYYY-MM-DD')) ? '⚠️ Follow-up Due Today' : '✅ Saved & Fixed'}
-                            </Typography>
-                          )}
+                  <Box sx={{ p: 2.5, flex: 1 }}>
+                    {/* TAB 0: Overview & Qualifications */}
+                    {activeTab === 0 && (
+                      <Box className="grid grid-cols-12 gap-4">
+                        {/* Dedicated Uploaded Sworn Translation Document Card */}
+                        {isSwornTranslationLead && (
+                          <Box className="col-span-12">
+                            <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #CBD5E1', bgcolor: '#F8FAFC', mb: 2 }}>
+                              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1, color: '#1E293B' }}>
+                                📄 Uploaded Sworn Translation Document
+                              </Typography>
+                              
+                              <Box className="grid grid-cols-12 gap-3">
+                                <Box className="col-span-12 sm:col-span-6 md:col-span-4">
+                                  <Typography variant="caption" color="text.secondary" display="block">Document File</Typography>
+                                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#0F172A', mb: 1 }}>
+                                    {lead.qualificationData?.documentName || lead.documents?.[0]?.name || 'Translation_Document.pdf'}
+                                  </Typography>
+                                   {(() => {
+                                     const API_BASE = (import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1').replace('/api/v1', '').replace(/\/$/, '');
+                                     const docRawUrl = lead.qualificationData?.documentUrl || lead.documents?.[0]?.url;
+                                     const documentFullUrl = docRawUrl ? (docRawUrl.startsWith('http') ? docRawUrl : `${API_BASE}${docRawUrl.startsWith('/') ? '' : '/'}${docRawUrl}`) : null;
+                                     const docFileName = lead.qualificationData?.documentName || lead.documents?.[0]?.name || 'Translation_Document.pdf';
+
+                                     return documentFullUrl ? (
+                                       <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
+                                         <Button
+                                           size="small"
+                                           variant="contained"
+                                           color="primary"
+                                           startIcon={<VisibilityIcon />}
+                                           href={documentFullUrl}
+                                           target="_blank"
+                                           rel="noopener noreferrer"
+                                           sx={{ fontSize: '0.75rem' }}
+                                         >
+                                           View PDF
+                                         </Button>
+                                         <Button
+                                           size="small"
+                                           variant="outlined"
+                                           color="primary"
+                                           startIcon={<DownloadIcon />}
+                                           href={documentFullUrl}
+                                           download={docFileName}
+                                           target="_blank"
+                                           rel="noopener noreferrer"
+                                           sx={{ fontSize: '0.75rem' }}
+                                         >
+                                           Download PDF
+                                         </Button>
+                                       </Stack>
+                                     ) : null;
+                                   })()}
+                                </Box>
+
+                                <Box className="col-span-12 sm:col-span-6 md:col-span-3">
+                                  <Typography variant="caption" color="text.secondary" display="block">Language Pair</Typography>
+                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                    🌐 {lead.sourceLanguage || lead.qualificationData?.sourceLanguage || 'English'} ➔ {lead.targetLanguage || lead.qualificationData?.targetLanguage || 'Spanish'}
+                                  </Typography>
+                                </Box>
+
+                                <Box className="col-span-12 sm:col-span-6 md:col-span-2">
+                                  <Typography variant="caption" color="text.secondary" display="block">Word Count</Typography>
+                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                    📊 {lead.wordCount || lead.qualificationData?.wordCount || 0} words
+                                  </Typography>
+                                </Box>
+
+                                <Box className="col-span-12 sm:col-span-6 md:col-span-3">
+                                  <Typography variant="caption" color="text.secondary" display="block">Quoted Price (5% VAT Included)</Typography>
+                                  <Typography variant="body2" sx={{ fontWeight: 700, color: 'success.main', fontSize: '1.1rem' }}>
+                                    €{lead.qualificationData?.estimatedPrice || '15.00'}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            </Paper>
+                          </Box>
+                        )}
+
+                        <Box className="col-span-12 md:col-span-6">
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5, color: 'text.primary' }}>
+                            Personal & Contact Details
+                          </Typography>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+                            <Box>
+                              <Typography variant="caption" color="text.secondary">Phone Number</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>{lead.phone}</Typography>
+                            </Box>
+                            <Box>
+                              <Typography variant="caption" color="text.secondary">Nationality</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>{lead.nationality}</Typography>
+                            </Box>
+                            <Box>
+                              <Typography variant="caption" color="text.secondary">Country of Residence</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>{lead.countryOfResidence || lead.country || '-'}</Typography>
+                            </Box>
+                            <Box>
+                              <Typography variant="caption" color="text.secondary">Preferred Communication Language</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>{lead.preferredLanguage}</Typography>
+                            </Box>
+                            <Box>
+                              <Typography variant="caption" color="text.secondary">Applicants Included</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>{lead.applicantsCount || 1} Person(s)</Typography>
+                            </Box>
+                            <Box sx={{ mt: 1, p: 1.5, bgcolor: '#F8FAFC', borderRadius: 2, border: '1px solid #E2E8F0' }}>
+                              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block', mb: 0.5 }}>
+                                📅 Next Scheduled Follow-Up Date
+                              </Typography>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                <FollowUpDatePickerInput
+                                  value={lead.nextFollowUpDate}
+                                  onChange={(newDate) => {
+                                    updateFollowUpMutation.mutate(newDate);
+                                  }}
+                                  style={{ width: '180px', padding: '4px 8px', border: '1px solid #CBD5E1', borderRadius: '6px', bgcolor: '#FFFFFF' }}
+                                />
+                                {lead.nextFollowUpDate && (
+                                  <Typography variant="caption" sx={{ fontWeight: 700, color: (lead.nextFollowUpDate.split('T')[0] <= dayjs().format('YYYY-MM-DD')) ? '#B45309' : '#059669', bgcolor: (lead.nextFollowUpDate.split('T')[0] <= dayjs().format('YYYY-MM-DD')) ? '#FEF3C7' : '#D1FAE5', px: 1, py: 0.5, borderRadius: 1 }}>
+                                    {(lead.nextFollowUpDate.split('T')[0] <= dayjs().format('YYYY-MM-DD')) ? '⚠️ Follow-up Due Today' : '✅ Saved & Fixed'}
+                                  </Typography>
+                                )}
+                              </Box>
+                            </Box>
+                          </Box>
                         </Box>
-                      </Box>
-                    </Box>
-                  </Box>
 
-                  <Box className="col-span-12 md:col-span-6">
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5, color: 'text.primary' }}>
-                      Lead Qualification Data
-                    </Typography>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-                      {lead.qualificationData ? (
-                        Object.entries(lead.qualificationData).map(([key, value]) => (
-                          <Box key={key}>
-                            <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
-                              {key.replace(/([A-Z])/g, ' $1')}
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{value}</Typography>
-                          </Box>
-                        ))
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">
-                          No initial WhatsApp qualification forms completed yet.
-                        </Typography>
-                      )}
-                    </Box>
-                  </Box>
-
-                  {/* Property Investment Details — only for property service leads */}
-                  {(lead.serviceType || lead.serviceId || '').toLowerCase().includes('property') || (lead.serviceType || lead.serviceId || '').toLowerCase().includes('investment') ? (
-                    <Box className="col-span-12">
-                      <Divider sx={{ my: 1.5 }} />
-                      <Box sx={{ p: 2, borderRadius: 2, background: 'rgba(245, 158, 11, 0.06)', border: '1px solid rgba(245, 158, 11, 0.25)', mb: 1.5 }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
-                          🏠 Property Investment Details
-                        </Typography>
-                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-                          <Box>
-                            <Typography variant="caption" color="text.secondary">Preferable Area in Spain</Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              📍 {lead.preferableArea || (lead.qualificationData?.preferableAreaInSpain) || '—'}
-                            </Typography>
-                          </Box>
-                          <Box>
-                            <Typography variant="caption" color="text.secondary">Investment Budget</Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              💰 {lead.budget || (lead.qualificationData?.budget) || '—'}
-                            </Typography>
+                        <Box className="col-span-12 md:col-span-6">
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5, color: 'text.primary' }}>
+                            Lead Qualification Data
+                          </Typography>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+                            {lead.qualificationData ? (
+                              Object.entries(lead.qualificationData).map(([key, value]) => (
+                                <Box key={key}>
+                                  <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
+                                    {key.replace(/([A-Z])/g, ' $1')}
+                                  </Typography>
+                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{typeof value === 'object' ? JSON.stringify(value) : value}</Typography>
+                                </Box>
+                              ))
+                            ) : (
+                              <Typography variant="body2" color="text.secondary">
+                                No initial WhatsApp qualification forms completed yet.
+                              </Typography>
+                            )}
                           </Box>
                         </Box>
-                      </Box>
-                    </Box>
-                  ) : null}
 
-                  {/* Uploaded Translation Documents Section */}
-                  <Box className="col-span-12">
-                    <UploadedDocumentsCard documents={lead.documents || []} />
-                  </Box>
+                        {/* Property Investment Details — only for property service leads */}
+                        {((lead.serviceType || lead.serviceId || '').toLowerCase().includes('property') || (lead.serviceType || lead.serviceId || '').toLowerCase().includes('investment')) ? (
+                          <Box className="col-span-12">
+                            <Divider sx={{ my: 1.5 }} />
+                            <Box sx={{ p: 2, borderRadius: 2, background: 'rgba(245, 158, 11, 0.06)', border: '1px solid rgba(245, 158, 11, 0.25)', mb: 1.5 }}>
+                              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
+                                🏠 Property Investment Details
+                              </Typography>
+                              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+                                <Box>
+                                  <Typography variant="caption" color="text.secondary">Preferable Area in Spain</Typography>
+                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                    📍 {lead.preferableArea || (lead.qualificationData?.preferableAreaInSpain) || '—'}
+                                  </Typography>
+                                </Box>
+                                <Box>
+                                  <Typography variant="caption" color="text.secondary">Investment Budget</Typography>
+                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                    💰 {lead.budget || (lead.qualificationData?.budget) || '—'}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            </Box>
+                          </Box>
+                        ) : null}
 
-                  {/* Case History Timeline (Single Client ID Journey) */}
-                  <Box className="col-span-12">
-                    <CaseHistoryTimelineCard
-                      client={lead}
-                      cycles={lead.applicationCycles || []}
-                      onCreateCycle={async (data) => {
-                        await dbService.createApplicationCycle(data);
-                        queryClient.invalidateQueries({ queryKey: ['lead', id] });
-                        showAlert('New Application Cycle created under same Client ID!', 'success');
-                      }}
-                      onUpdateCycle={async (cycleId, data) => {
-                        await dbService.updateApplicationCycle(cycleId, data);
-                        queryClient.invalidateQueries({ queryKey: ['lead', id] });
-                        showAlert('Application Cycle updated!', 'success');
-                      }}
-                    />
-                  </Box>
+                        {/* Uploaded Translation Documents Section */}
+                        {!isSwornTranslationLead && (
+                          <Box className="col-span-12">
+                            <UploadedDocumentsCard documents={lead.documents || []} />
+                          </Box>
+                        )}
+
+                        {/* Case History Timeline (Single Client ID Journey) */}
+                        {!isSwornTranslationLead && (
+                          <Box className="col-span-12">
+                            <CaseHistoryTimelineCard
+                              client={lead}
+                              cycles={lead.applicationCycles || []}
+                              onCreateCycle={async (data) => {
+                                await dbService.createApplicationCycle(data);
+                                queryClient.invalidateQueries({ queryKey: ['lead', id] });
+                                showAlert('New Application Cycle created under same Client ID!', 'success');
+                              }}
+                              onUpdateCycle={async (cycleId, data) => {
+                                await dbService.updateApplicationCycle(cycleId, data);
+                                queryClient.invalidateQueries({ queryKey: ['lead', id] });
+                                showAlert('Application Cycle updated!', 'success');
+                              }}
+                            />
+                          </Box>
+                        )}
 
                   {/* Meeting Preferences Section (Hidden for Sworn Translation) */}
                   {!((lead.serviceType || lead.serviceId || '').toLowerCase().includes('translation') || (lead.serviceType || lead.serviceId || '').toLowerCase().includes('sworn')) && (

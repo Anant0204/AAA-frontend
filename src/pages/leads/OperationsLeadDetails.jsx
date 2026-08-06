@@ -27,6 +27,8 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import ChatIcon from '@mui/icons-material/Chat';
 import QuickreplyIcon from '@mui/icons-material/Quickreply';
+import DownloadIcon from '@mui/icons-material/Download';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
 // Components & Services
 import { dbService } from '../../services/dbService';
@@ -174,6 +176,8 @@ export const OperationsLeadDetails = () => {
       showAlert('Error reassigning consultant', 'error');
     }
   });
+
+  const isSwornTranslationLead = (lead?.serviceType || lead?.serviceId || '').toLowerCase().includes('translation') || (lead?.serviceType || lead?.serviceId || '').toLowerCase().includes('sworn');
 
   const convertLeadMutation = useMutation({
     mutationFn: async ({ lead, packageId, count }) => {
@@ -513,19 +517,95 @@ export const OperationsLeadDetails = () => {
               scrollButtons="auto"
               sx={{ px: 2.5, pt: 0.5, borderBottom: '1px solid', borderColor: 'divider' }}
             >
-              <Tab value={0} label="Overview" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
-              <Tab value={1} label="Meetings / Consultations" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
-              <Tab value={2} label="Payments & Invoices" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
-              <Tab value={3} label="Documents" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
-              <Tab value={4} label="Timeline" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
+              <Tab value={0} label={isSwornTranslationLead ? "Documents & Lead Info" : "Overview"} sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
+              {!isSwornTranslationLead && <Tab value={1} label="Meetings / Consultations" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />}
+              {!isSwornTranslationLead && <Tab value={2} label="Payments & Invoices" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />}
+              {!isSwornTranslationLead && <Tab value={3} label="Documents" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />}
+              {!isSwornTranslationLead && <Tab value={4} label="Timeline" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />}
               <Tab value={5} icon={<WhatsAppIcon fontSize="small" />} iconPosition="start" label="Comms & Chat" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
-              <Tab value={6} label="Zoom Recordings" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
+              {!isSwornTranslationLead && <Tab value={6} label="Zoom Recordings" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />}
             </Tabs>
 
             <Box sx={{ p: 2.5, flex: 1 }}>
               {/* TAB 0: Overview & Qualifications */}
               {activeTab === 0 && (
                 <Box className="grid grid-cols-12 gap-4">
+                  {/* Dedicated Uploaded Sworn Translation Document Card */}
+                  {isSwornTranslationLead && (
+                    <Box className="col-span-12">
+                      <Paper sx={{ p: 2.5, borderRadius: 3, border: '1px solid #CBD5E1', bgcolor: '#F8FAFC', mb: 2 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1, color: '#1E293B' }}>
+                          📄 Uploaded Sworn Translation Document
+                        </Typography>
+                        
+                        <Box className="grid grid-cols-12 gap-3">
+                          <Box className="col-span-12 sm:col-span-6 md:col-span-4">
+                            <Typography variant="caption" color="text.secondary" display="block">Document File</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 700, color: '#0F172A', mb: 1 }}>
+                              {lead.qualificationData?.documentName || lead.documents?.[0]?.name || 'Translation_Document.pdf'}
+                            </Typography>
+                            {(() => {
+                              const API_BASE = (import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1').replace('/api/v1', '').replace(/\/$/, '');
+                              const docRawUrl = lead.qualificationData?.documentUrl || lead.documents?.[0]?.url;
+                              const documentFullUrl = docRawUrl ? (docRawUrl.startsWith('http') ? docRawUrl : `${API_BASE}${docRawUrl.startsWith('/') ? '' : '/'}${docRawUrl}`) : null;
+                              const docFileName = lead.qualificationData?.documentName || lead.documents?.[0]?.name || 'Translation_Document.pdf';
+
+                              return documentFullUrl ? (
+                                <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
+                                  <Button
+                                    size="small"
+                                    variant="contained"
+                                    color="primary"
+                                    startIcon={<VisibilityIcon />}
+                                    href={documentFullUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    sx={{ fontSize: '0.75rem' }}
+                                  >
+                                    View PDF
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    color="primary"
+                                    startIcon={<DownloadIcon />}
+                                    href={documentFullUrl}
+                                    download={docFileName}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    sx={{ fontSize: '0.75rem' }}
+                                  >
+                                    Download PDF
+                                  </Button>
+                                </Stack>
+                              ) : null;
+                            })()}
+                          </Box>
+
+                          <Box className="col-span-12 sm:col-span-6 md:col-span-3">
+                            <Typography variant="caption" color="text.secondary" display="block">Language Pair</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              🌐 {lead.sourceLanguage || lead.qualificationData?.sourceLanguage || 'English'} ➔ {lead.targetLanguage || lead.qualificationData?.targetLanguage || 'Spanish'}
+                            </Typography>
+                          </Box>
+
+                          <Box className="col-span-12 sm:col-span-6 md:col-span-2">
+                            <Typography variant="caption" color="text.secondary" display="block">Word Count</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              📊 {lead.wordCount || lead.qualificationData?.wordCount || 0} words
+                            </Typography>
+                          </Box>
+
+                          <Box className="col-span-12 sm:col-span-6 md:col-span-3">
+                            <Typography variant="caption" color="text.secondary" display="block">Quoted Price (5% VAT Included)</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 700, color: 'success.main', fontSize: '1.1rem' }}>
+                              €{lead.qualificationData?.estimatedPrice || '15.00'}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Paper>
+                    </Box>
+                  )}
                   <Box className="col-span-12 md:col-span-6">
                     <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5, color: 'text.primary' }}>
                       Personal & Contact Details
