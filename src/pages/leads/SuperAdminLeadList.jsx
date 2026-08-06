@@ -343,7 +343,8 @@ export const SuperAdminLeadList = () => {
     queryFn: dbService.getCustomizationSettings
   });
 
-  const availableTimeSlots = getAvailableTimeSlots(customizationSettings);
+  const watchMeetingPreferredDate = watch('meetingPreferredDate');
+  const availableTimeSlots = getAvailableTimeSlots(customizationSettings, watchMeetingPreferredDate);
   const minBookingDate = getTomorrowMinDateStr();
 
   const roleConfig = (customizationSettings?.[currentUser?.id] || customizationSettings?.[currentUser?.role]) || {};
@@ -356,7 +357,6 @@ export const SuperAdminLeadList = () => {
   const watchServiceId = watch('serviceId');
   const watchSource = watch('source');
   const watchMeetingPreferredTime = watch('meetingPreferredTime');
-  const watchMeetingPreferredDate = watch('meetingPreferredDate');
 
   // Handle forms
   const handleCreateLead = (data) => {

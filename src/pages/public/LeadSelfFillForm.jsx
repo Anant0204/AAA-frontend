@@ -365,8 +365,6 @@ export const LeadSelfFillForm = () => {
 
   const [serviceCategory, setServiceCategory] = useState("visa"); // visa, case_assessment, property, translation
 
-  const availableTimeSlots = getAvailableTimeSlots(customizationSettings);
-
   // Form fields
   const [form, setForm] = useState({
     firstName: "",
@@ -386,6 +384,8 @@ export const LeadSelfFillForm = () => {
     preferableAreaInSpain: "",
     budget: "€100k - €250k"
   });
+
+  const availableTimeSlots = getAvailableTimeSlots(customizationSettings, form.meetingPreferredDate);
 
   // Multi-Language sub-selection state
   const [selectedMultiLangs, setSelectedMultiLangs] = useState(['English', 'Urdu']);

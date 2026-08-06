@@ -50,9 +50,15 @@ export function parseTimeToMinutes(timeStr, defaultMinutes) {
  * - bookingAllowedEnd (e.g. '15:00' or '03:00 PM')
  * - defaultMeetingDuration (e.g. 20 minutes)
  */
-export function getAvailableTimeSlots(customizationSettings) {
+export function getAvailableTimeSlots(customizationSettings, selectedDate) {
   const flow = customizationSettings?.flowAutomationSettings || {};
   const duration = parseInt(flow.defaultMeetingDuration, 10) || 20; // Default 20 mins
+
+  // Target day of the week (e.g., 'Monday', 'Tuesday', ...)
+  let targetDay = null;
+  if (selectedDate) {
+    targetDay = dayjs(selectedDate).format('dddd');
+  }
 
   // Determine windows list (support both new multi-window array & legacy single start/end string)
   let rawWindows = [];
@@ -60,11 +66,28 @@ export function getAvailableTimeSlots(customizationSettings) {
     rawWindows = flow.bookingWindows;
   } else if (flow.bookingAllowedStart || flow.bookingAllowedEnd) {
     rawWindows = [{
+      day: 'Everyday',
       startTime: flow.bookingAllowedStart || '09:00',
       endTime: flow.bookingAllowedEnd || '18:00'
     }];
   } else {
-    rawWindows = [{ startTime: '09:00', endTime: '18:00' }];
+    rawWindows = [{ day: 'Everyday', startTime: '09:00', endTime: '18:00' }];
+  }
+
+  // Filter windows matching the selected day of the week
+  if (targetDay) {
+    const dayFilteredWindows = rawWindows.filter((win) => {
+      if (!win.day || win.day === 'Everyday') return true;
+      if (Array.isArray(win.days)) return win.days.includes(targetDay);
+      return String(win.day).toLowerCase() === targetDay.toLowerCase();
+    });
+
+    const hasSpecificDayConfigs = rawWindows.some((w) => w.day && w.day !== 'Everyday');
+    if (dayFilteredWindows.length > 0) {
+      rawWindows = dayFilteredWindows;
+    } else if (hasSpecificDayConfigs) {
+      rawWindows = []; // No windows configured for this specific day
+    }
   }
 
   const slots = [];

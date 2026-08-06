@@ -509,7 +509,7 @@ export const SuperAdminCustomization = () => {
       nextStart = `${hS}:${mS}`;
       nextEnd = `${hE}:${mE}`;
     }
-    const updated = [...currentBookingWindows, { startTime: nextStart, endTime: nextEnd }];
+    const updated = [...currentBookingWindows, { day: lastWin?.day || 'Everyday', startTime: nextStart, endTime: nextEnd }];
     handleUpdateFlowSetting('bookingWindows', updated);
   };
 
@@ -538,12 +538,21 @@ export const SuperAdminCustomization = () => {
       }
     }
 
-    const sorted = [...windows].sort((a, b) => parseTimeMins(a.startTime) - parseTimeMins(b.startTime));
-    for (let i = 1; i < sorted.length; i++) {
-      const prev = sorted[i - 1];
-      const curr = sorted[i];
-      if (parseTimeMins(curr.startTime) < parseTimeMins(prev.endTime)) {
-        return `Booking Window (${curr.startTime} – ${curr.endTime}) overlaps with Window (${prev.startTime} – ${prev.endTime}). Please adjust window times.`;
+    const windowsByDay = {};
+    windows.forEach((win) => {
+      const dayKey = win.day || 'Everyday';
+      if (!windowsByDay[dayKey]) windowsByDay[dayKey] = [];
+      windowsByDay[dayKey].push(win);
+    });
+
+    for (const [dayKey, dayWins] of Object.entries(windowsByDay)) {
+      const sorted = [...dayWins].sort((a, b) => parseTimeMins(a.startTime) - parseTimeMins(b.startTime));
+      for (let i = 1; i < sorted.length; i++) {
+        const prev = sorted[i - 1];
+        const curr = sorted[i];
+        if (parseTimeMins(curr.startTime) < parseTimeMins(prev.endTime)) {
+          return `[${dayKey}] Window (${curr.startTime} – ${curr.endTime}) overlaps with Window (${prev.startTime} – ${prev.endTime}).`;
+        }
       }
     }
     return null;
@@ -2108,6 +2117,25 @@ export const SuperAdminCustomization = () => {
                           size="small"
                           sx={{ fontWeight: 700, backgroundColor: '#e0e7ff', color: '#4338ca', minWidth: 90 }}
                         />
+
+                        <FormControl size="small" sx={{ minWidth: 140 }}>
+                          <InputLabel shrink>Day</InputLabel>
+                          <Select
+                            value={win.day || 'Everyday'}
+                            label="Day"
+                            onChange={(e) => handleUpdateBookingWindow(idx, 'day', e.target.value)}
+                            sx={{ fontWeight: 700, fontSize: '0.85rem' }}
+                          >
+                            <MenuItem value="Everyday">Everyday 📅</MenuItem>
+                            <MenuItem value="Monday">Monday 🗓️</MenuItem>
+                            <MenuItem value="Tuesday">Tuesday 🗓️</MenuItem>
+                            <MenuItem value="Wednesday">Wednesday 🗓️</MenuItem>
+                            <MenuItem value="Thursday">Thursday 🗓️</MenuItem>
+                            <MenuItem value="Friday">Friday 🗓️</MenuItem>
+                            <MenuItem value="Saturday">Saturday 🗓️</MenuItem>
+                            <MenuItem value="Sunday">Sunday 🗓️</MenuItem>
+                          </Select>
+                        </FormControl>
 
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
                           <TextField
