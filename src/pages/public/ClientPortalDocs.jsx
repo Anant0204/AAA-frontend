@@ -3552,7 +3552,9 @@ export const ClientPortalDocs = () => {
                       {client ? `${client.firstName} ${client.lastName}` : 'Valued Client'}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>{client?.email || 'client@email.com'}</Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>Ref / Passport: {client?.passportNumber || client?.id || 'CLIENT-REF'}</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, color: '#1e293b' }}>
+                      Customer ID: {client?.clientCode || client?.clientCustomId || client?.cid || client?.id || 'CLIENT-ID'}
+                    </Typography>
                   </Grid>
 
                   <Grid item xs={12} sm={6} sx={{ textAlign: { sm: 'right' } }}>
