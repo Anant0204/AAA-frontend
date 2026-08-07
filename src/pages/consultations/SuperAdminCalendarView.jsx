@@ -24,6 +24,7 @@ import Chip from '@mui/material/Chip';
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import AddIcon from '@mui/icons-material/Add';
+import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 
@@ -52,6 +53,23 @@ const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
   const { showAlert } = useAlert();
+
+  const cleanupMutation = useMutation({
+    mutationFn: dbService.cleanupTestConsultations,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['consultations'] });
+      showAlert(data.message || 'Cleaned up test consultations', 'success');
+    },
+    onError: (err) => {
+      showAlert(err.response?.data?.message || 'Failed to cleanup test data', 'error');
+    }
+  });
+
+  const handleCleanupTestData = () => {
+    if (window.confirm('Are you sure you want to cleanup old test and orphan consultation records?')) {
+      cleanupMutation.mutate();
+    }
+  };
 
   const [cardInfo, setCardInfo] = useState(() => location.state?.cardInfo || null);
 
@@ -312,14 +330,28 @@ const navigate = useNavigate();
         subtitle="Manage upcoming consultation meetings, time allocations, and client booking schedules."
         action={
           (!isViewOnly && (currentUser?.role === 'super_admin' || calendarActions.canCreateMeeting !== false)) && (
-            <Button
-              variant="contained"
-              color="secondary"
-              startIcon={<AddIcon />}
-              onClick={() => setScheduleModalOpen(true)}
-            >
-              Book Appointment
-            </Button>
+            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+              {(currentUser?.role === 'super_admin' || currentUser?.role === 'admin') && (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  size="small"
+                  startIcon={<DeleteSweepIcon />}
+                  onClick={handleCleanupTestData}
+                  disabled={cleanupMutation.isPending}
+                >
+                  Clear Test Data
+                </Button>
+              )}
+              <Button
+                variant="contained"
+                color="secondary"
+                startIcon={<AddIcon />}
+                onClick={() => setScheduleModalOpen(true)}
+              >
+                Book Appointment
+              </Button>
+            </Box>
           )
         }
       />
@@ -663,8 +695,8 @@ const navigate = useNavigate();
                       {cell.dayNum}
                     </Typography>
                     {hasMeetings && (
-                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                        {cell.meetings.map((m) => (
+                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
+                        {cell.meetings.slice(0, 4).map((m) => (
                           <Box
                             key={m.id}
                             sx={{
@@ -677,6 +709,11 @@ const navigate = useNavigate();
                                   : (m.status === 'Cancelled' || m.status === 'No-Show' ? '#F59E0B' : 'secondary.main') }}
                           />
                         ))}
+                        {cell.meetings.length > 4 && (
+                          <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 800, color: 'text.secondary', ml: 0.2 }}>
+                            +{cell.meetings.length - 4}
+                          </Typography>
+                        )}
                       </Box>
                     )}
                   </Paper>

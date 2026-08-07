@@ -146,6 +146,10 @@ export const dbService = {
     const res = await apiClient.post('/consultations', cons);
     return res.data;
   },
+  cleanupTestConsultations: async () => {
+    const res = await apiClient.delete('/consultations/cleanup-test');
+    return res.data;
+  },
   updateConsultationStatus: async (consultationId, status) => {
     const res = await apiClient.patch(`/consultations/${consultationId}/outcome`, { status });
     return res.data;

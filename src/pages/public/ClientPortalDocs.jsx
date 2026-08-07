@@ -2715,19 +2715,19 @@ export const ClientPortalDocs = () => {
         {tabValue === 1 && client && client.serviceId !== 'sworn_translation' && client.serviceId !== 'translation' && client.serviceId !== 'sworn' && client.serviceType !== 'Spanish Sworn Translation' && (() => {
           return (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {isMainPackagePaid ? (
-                <Paper sx={{ p: 4, borderRadius: 3, border: '1px solid', borderColor: 'success.main', bgcolor: '#F0FDF4', boxShadow: 'none', textAlign: 'center' }}>
-                  <CheckCircleIcon color="success" sx={{ fontSize: 56, mb: 2 }} />
-                  <Typography variant="h5" sx={{ fontWeight: 800, mb: 1.5 }}>Visa Relocation Package Active & Paid</Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 500, mx: 'auto', mb: 3 }}>
-                    Your visa relocation package payment has been verified. You can now access your document checklist and upload your files under the <strong>Document Center</strong> tab.
+              {isMainPackagePaid && (
+                <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'success.main', bgcolor: '#F0FDF4', boxShadow: 'none', textAlign: 'center' }}>
+                  <CheckCircleIcon color="success" sx={{ fontSize: 44, mb: 1 }} />
+                  <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5, color: '#051A3B' }}>Visa Relocation Package Active & Paid</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 600, mx: 'auto', mb: 2 }}>
+                    Your active visa package payment has been verified. You can upload documents in the <strong>Document Center</strong> tab, or purchase additional packages/applicants below.
                   </Typography>
-                  <Button variant="contained" onClick={() => setTabValue(0)} sx={{ px: 4, py: 1.25, borderRadius: 2.5, fontWeight: 700, textTransform: 'none', bgcolor: '#051A3B', color: 'white', '&:hover': { bgcolor: '#C59B27' } }}>
+                  <Button variant="contained" size="small" onClick={() => setTabValue(0)} sx={{ px: 3, py: 0.75, borderRadius: 2, fontWeight: 700, textTransform: 'none', bgcolor: '#051A3B', color: 'white', '&:hover': { bgcolor: '#C59B27' } }}>
                     Go to Document Center
                   </Button>
                 </Paper>
-              ) : (
-                <Paper sx={{ p: 4, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
+              )}
+              <Paper sx={{ p: 4, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2, mb: 3 }}>
                     <Box>
                       <Typography variant="h5" sx={{ fontWeight: 800, color: '#051A3B', fontFamily: 'Outfit, sans-serif' }}>
@@ -2806,7 +2806,7 @@ export const ClientPortalDocs = () => {
                           const isCreditApplicable = !isOptA && assessmentCredit > 0;
                           const finalCardPrice = isCreditApplicable ? Math.max(0, totalBaseBeforeCredit - assessmentCredit) : totalBaseBeforeCredit;
 
-                          const isOptADisabled = isOptA && isOptAPaid;
+                          const isOptADisabled = isOptA && (isOptAPaid || isMainPackagePaid);
 
                           return (
                             <Card
@@ -3100,7 +3100,6 @@ export const ClientPortalDocs = () => {
                     </Grid>
                   </Grid>
                 </Paper>
-              )}
             </Box>
           );
         })()}

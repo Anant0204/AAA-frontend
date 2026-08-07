@@ -558,8 +558,8 @@ const navigate = useNavigate();
                       {cell.dayNum}
                     </Typography>
                     {hasMeetings && (
-                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                        {cell.meetings.map((m) => (
+                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
+                        {cell.meetings.slice(0, 4).map((m) => (
                           <Box
                             key={m.id}
                             sx={{
@@ -572,6 +572,11 @@ const navigate = useNavigate();
                                   : (m.status === 'Cancelled' || m.status === 'No-Show' ? '#F59E0B' : 'secondary.main') }}
                           />
                         ))}
+                        {cell.meetings.length > 4 && (
+                          <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 800, color: 'text.secondary', ml: 0.2 }}>
+                            +{cell.meetings.length - 4}
+                          </Typography>
+                        )}
                       </Box>
                     )}
                   </Paper>
