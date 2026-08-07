@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -520,6 +521,26 @@ export const SuperAdminCustomization = () => {
     }
     const updated = currentBookingWindows.filter((_, idx) => idx !== index);
     handleUpdateFlowSetting('bookingWindows', updated);
+  };
+
+  const currentHolidays = Array.isArray(localSettings?.flowAutomationSettings?.holidays)
+    ? localSettings.flowAutomationSettings.holidays
+    : [];
+
+  const handleAddHoliday = () => {
+    const todayStr = dayjs().format('YYYY-MM-DD');
+    const updated = [...currentHolidays, { date: todayStr, title: 'Office Closed / Public Holiday' }];
+    handleUpdateFlowSetting('holidays', updated);
+  };
+
+  const handleUpdateHoliday = (index, field, value) => {
+    const updated = currentHolidays.map((item, idx) => (idx === index ? { ...item, [field]: value } : item));
+    handleUpdateFlowSetting('holidays', updated);
+  };
+
+  const handleRemoveHoliday = (index) => {
+    const updated = currentHolidays.filter((_, idx) => idx !== index);
+    handleUpdateFlowSetting('holidays', updated);
   };
 
   const validateBookingWindows = (windows) => {
@@ -2197,6 +2218,135 @@ export const SuperAdminCustomization = () => {
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
                   Restricts clients from scheduling assessments outside of these business hours in the self-fill booking forms. You can define multiple non-overlapping time windows per day (e.g. 11:00 AM – 1:00 PM & 4:00 PM – 6:00 PM).
                 </Typography>
+              </Paper>
+
+              {/* Holidays & Office Closed Dates Card */}
+              <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, boxShadow: 'none', mt: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#051A3B', display: 'flex', alignItems: 'center', gap: 1, fontFamily: 'Outfit, sans-serif' }}>
+                      🏖️ Holidays & Office Closed Dates (Blocked Dates)
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Clients will not be able to book consultations on these specific blocked dates.
+                    </Typography>
+                  </Box>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<AddIcon />}
+                    onClick={handleAddHoliday}
+                    sx={{
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      fontWeight: 700,
+                      borderColor: '#ef4444',
+                      color: '#ef4444',
+                      '&:hover': { borderColor: '#dc2626', backgroundColor: 'rgba(239, 68, 68, 0.04)' }
+                    }}
+                  >
+                    Add Holiday Date
+                  </Button>
+                </Box>
+
+                {currentHolidays.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', p: 1 }}>
+                    No holiday dates currently configured. All business days are available for client booking.
+                  </Typography>
+                ) : (
+                  <Stack spacing={2}>
+                    {currentHolidays.map((h, idx) => (
+                      <Box
+                        key={idx}
+                        sx={{
+                          p: 2,
+                          borderRadius: 2.5,
+                          border: '1px solid #fecaca',
+                          backgroundColor: '#fff5f5',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 2,
+                          flexWrap: { xs: 'wrap', sm: 'nowrap' }
+                        }}
+                      >
+                        <Chip
+                          label={`Holiday ${idx + 1}`}
+                          size="small"
+                          sx={{ fontWeight: 700, backgroundColor: '#fee2e2', color: '#dc2626', minWidth: 90 }}
+                        />
+
+                        <Box sx={{ position: 'relative', minWidth: 200 }}>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block', mb: 0.5 }}>
+                            Holiday Date (DD/MM/YYYY)
+                          </Typography>
+                          <Box
+                            sx={{
+                              p: '8px 12px',
+                              borderRadius: '8px',
+                              border: '1px solid #cbd5e1',
+                              bgcolor: '#ffffff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              cursor: 'pointer',
+                              fontSize: '0.875rem',
+                              fontWeight: 600,
+                              color: h.date ? '#0f172a' : '#94a3b8',
+                              height: '40px'
+                            }}
+                          >
+                            <span>
+                              {h.date
+                                ? dayjs(h.date).isValid()
+                                  ? dayjs(h.date).format('DD/MM/YYYY')
+                                  : h.date
+                                : 'DD/MM/YYYY'}
+                            </span>
+                            <span style={{ fontSize: '14px', opacity: 0.7 }}>📅</span>
+                          </Box>
+                          <input
+                            type="date"
+                            value={h.date || ''}
+                            onClick={(e) => {
+                              if (e.target.showPicker) {
+                                try { e.target.showPicker(); } catch (err) {}
+                              }
+                            }}
+                            onChange={(e) => handleUpdateHoliday(idx, 'date', e.target.value)}
+                            style={{
+                              position: 'absolute',
+                              bottom: 0,
+                              left: 0,
+                              width: '100%',
+                              height: '40px',
+                              opacity: 0,
+                              cursor: 'pointer'
+                            }}
+                          />
+                        </Box>
+
+                        <TextField
+                          label="Holiday Name / Closure Reason"
+                          placeholder="e.g. Independence Day / Office Maintenance"
+                          value={h.title || ''}
+                          onChange={(e) => handleUpdateHoliday(idx, 'title', e.target.value)}
+                          fullWidth
+                          size="small"
+                        />
+
+                        <IconButton
+                          color="error"
+                          size="small"
+                          onClick={() => handleRemoveHoliday(idx)}
+                          sx={{ border: '1px solid #fca5a5' }}
+                          title="Remove Holiday"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    ))}
+                  </Stack>
+                )}
               </Paper>
             </Box>
           </Box>

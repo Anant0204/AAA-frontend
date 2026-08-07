@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import dayjs from "dayjs";
 import { getServicesForCountry, ALL_COUNTRIES } from "../../constants/countryServices";
-import { getAvailableTimeSlots } from "../../utils/bookingTimeSlots";
+import { getAvailableTimeSlots, getHolidayInfo } from "../../utils/bookingTimeSlots";
 import { dbService } from "../../services/dbService";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://aaa-consultancy-backend-production.up.railway.app/api/v1";
@@ -386,6 +386,7 @@ export const LeadSelfFillForm = () => {
   });
 
   const availableTimeSlots = getAvailableTimeSlots(customizationSettings, form.meetingPreferredDate);
+  const holidayInfo = getHolidayInfo(customizationSettings, form.meetingPreferredDate);
 
   // Multi-Language sub-selection state
   const [selectedMultiLangs, setSelectedMultiLangs] = useState(['English', 'Urdu']);
@@ -1598,9 +1599,14 @@ export const LeadSelfFillForm = () => {
                               try { e.target.showPicker(); } catch (err) {}
                             }
                           }}
-                          onChange={(e) =>
-                            handleChange("meetingPreferredDate", e.target.value)
-                          }
+                          onChange={(e) => {
+                            const newDate = e.target.value;
+                            setForm((prev) => ({
+                              ...prev,
+                              meetingPreferredDate: newDate,
+                              meetingPreferredTime: ""
+                            }));
+                          }}
                           style={{
                             position: "absolute",
                             top: 0,
@@ -1612,9 +1618,31 @@ export const LeadSelfFillForm = () => {
                           }}
                         />
                       </div>
+                      {holidayInfo && (
+                        <div
+                          style={{
+                            marginTop: "10px",
+                            padding: "12px 16px",
+                            borderRadius: "10px",
+                            background: "rgba(239, 68, 68, 0.18)",
+                            border: "1px solid rgba(239, 68, 68, 0.4)",
+                            color: "#fca5a5",
+                            fontSize: "13px",
+                            fontWeight: 600,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "10px"
+                          }}
+                        >
+                          <span style={{ fontSize: "18px" }}>🏖️</span>
+                          <div>
+                            <strong>Office Closed / Holiday:</strong> {holidayInfo.title}. Please select another date for booking.
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    <div style={{ marginBottom: "14px" }}>
+                    <div style={{ marginBottom: "14px", opacity: holidayInfo ? 0.7 : 1 }}>
                       <label style={labelStyle}>TIME SLOT *</label>
                       <div style={{ position: "relative", width: "100%" }}>
                         <div
@@ -1624,19 +1652,24 @@ export const LeadSelfFillForm = () => {
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "space-between",
-                            color: (form.meetingPreferredTime && !form.meetingPreferredTime.toLowerCase().includes("tbd") && !form.meetingPreferredTime.toLowerCase().includes("flexible")) ? "#fff" : "rgba(255, 255, 255, 0.4)",
-                            pointerEvents: "none"
+                            color: holidayInfo ? "#fca5a5" : ((form.meetingPreferredTime && !form.meetingPreferredTime.toLowerCase().includes("tbd") && !form.meetingPreferredTime.toLowerCase().includes("flexible")) ? "#fff" : "rgba(255, 255, 255, 0.4)"),
+                            background: holidayInfo ? "rgba(239, 68, 68, 0.12)" : inputStyle.background,
+                            border: holidayInfo ? "1px solid rgba(239, 68, 68, 0.35)" : inputStyle.border,
+                            cursor: holidayInfo ? "not-allowed" : "pointer"
                           }}
                         >
                           <span>
-                            {(form.meetingPreferredTime && !form.meetingPreferredTime.toLowerCase().includes("tbd") && !form.meetingPreferredTime.toLowerCase().includes("flexible"))
-                              ? `⏰ ${form.meetingPreferredTime} (UAE)`
-                              : "Select Time Slot (UAE)"}
+                            {holidayInfo
+                              ? `🚫 Office Closed (${holidayInfo.title})`
+                              : ((form.meetingPreferredTime && !form.meetingPreferredTime.toLowerCase().includes("tbd") && !form.meetingPreferredTime.toLowerCase().includes("flexible"))
+                                  ? `⏰ ${form.meetingPreferredTime} (UAE)`
+                                  : "Select Time Slot (UAE)")}
                           </span>
-                          <span style={{ fontSize: "10px", opacity: 0.6 }}>▼</span>
+                          <span style={{ fontSize: "10px", opacity: 0.6 }}>{holidayInfo ? "🔒" : "▼"}</span>
                         </div>
                         <select
-                          required={serviceCategory !== "translation"}
+                          disabled={Boolean(holidayInfo)}
+                          required={serviceCategory !== "translation" && !holidayInfo}
                           value={(form.meetingPreferredTime && !form.meetingPreferredTime.toLowerCase().includes("tbd") && !form.meetingPreferredTime.toLowerCase().includes("flexible")) ? form.meetingPreferredTime : ""}
                           onChange={(e) =>
                             handleChange("meetingPreferredTime", e.target.value)
@@ -1648,11 +1681,13 @@ export const LeadSelfFillForm = () => {
                             width: "100%",
                             height: "100%",
                             opacity: 0,
-                            cursor: "pointer"
+                            cursor: holidayInfo ? "not-allowed" : "pointer"
                           }}
                         >
-                          <option value="" disabled style={{ background: "#24243e" }}>Select Time Slot (UAE)</option>
-                          {availableTimeSlots.map((slot) => (
+                          <option value="" disabled style={{ background: "#24243e" }}>
+                            {holidayInfo ? `🚫 Office Closed: ${holidayInfo.title}` : "Select Time Slot (UAE)"}
+                          </option>
+                          {!holidayInfo && availableTimeSlots.map((slot) => (
                             <option key={slot.value} value={slot.value} style={{ background: "#24243e", color: "#fff" }}>
                               {slot.label}
                             </option>

@@ -45,6 +45,55 @@ export function parseTimeToMinutes(timeStr, defaultMinutes) {
 }
 
 /**
+ * Robustly normalize any date string (YYYY-MM-DD, DD/MM/YYYY, MM/DD/YYYY, Date object) to YYYY-MM-DD
+ */
+export function normalizeDateToYYYYMMDD(dateVal) {
+  if (!dateVal) return '';
+  const str = String(dateVal).trim();
+  
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    return str;
+  }
+  
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
+    const parts = str.split('/');
+    const p0 = parseInt(parts[0], 10);
+    const p1 = parseInt(parts[1], 10);
+    const year = parts[2];
+    
+    if (p0 > 12) {
+      return `${year}-${String(p1).padStart(2, '0')}-${String(p0).padStart(2, '0')}`;
+    } else if (p1 > 12) {
+      return `${year}-${String(p0).padStart(2, '0')}-${String(p1).padStart(2, '0')}`;
+    } else {
+      return `${year}-${String(p1).padStart(2, '0')}-${String(p0).padStart(2, '0')}`;
+    }
+  }
+
+  const d = dayjs(dateVal);
+  return d.isValid() ? d.format('YYYY-MM-DD') : str;
+}
+
+/**
+ * Check if selected date is a configured Holiday/Closed Office Date
+ */
+export function getHolidayInfo(customizationSettings, selectedDate) {
+  if (!selectedDate) return null;
+  const flow = customizationSettings?.flowAutomationSettings || {};
+  const holidays = Array.isArray(flow.holidays) ? flow.holidays : [];
+  if (holidays.length === 0) return null;
+
+  const targetDateStr = normalizeDateToYYYYMMDD(selectedDate);
+  const found = holidays.find((h) => {
+    if (!h.date) return false;
+    const hDateStr = normalizeDateToYYYYMMDD(h.date);
+    return hDateStr === targetDateStr;
+  });
+
+  return found ? { isHoliday: true, date: targetDateStr, title: found.title || 'Office Closed / Public Holiday' } : null;
+}
+
+/**
  * Dynamically generate time slots based on Super Admin Customization Settings:
  * - bookingAllowedStart (e.g. '12:00' or '12:00 PM')
  * - bookingAllowedEnd (e.g. '15:00' or '03:00 PM')
@@ -53,6 +102,11 @@ export function parseTimeToMinutes(timeStr, defaultMinutes) {
 export function getAvailableTimeSlots(customizationSettings, selectedDate) {
   const flow = customizationSettings?.flowAutomationSettings || {};
   const duration = parseInt(flow.defaultMeetingDuration, 10) || 20; // Default 20 mins
+
+  // If selectedDate is a configured holiday, return no slots available
+  if (selectedDate && getHolidayInfo(customizationSettings, selectedDate)) {
+    return [];
+  }
 
   // Target day of the week (e.g., 'Monday', 'Tuesday', ...)
   let targetDay = null;
@@ -132,8 +186,11 @@ export function getAvailableTimeSlots(customizationSettings, selectedDate) {
     }
   });
 
-  // Fallback: If duration configuration results in empty list, generate 20-min slots from 9 to 18
-  if (slots.length === 0) {
+  // Fallback: Only generate fallback slots if NO custom booking windows OR day configs exist at all
+  const hasCustomConfig = Array.isArray(flow.bookingWindows) && flow.bookingWindows.length > 0;
+  const isHolidayDate = Boolean(selectedDate && getHolidayInfo(customizationSettings, selectedDate));
+
+  if (slots.length === 0 && !hasCustomConfig && !isHolidayDate) {
     let currentFallback = 9 * 60;
     const endFallback = 18 * 60;
     while (currentFallback + 20 <= endFallback) {
