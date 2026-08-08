@@ -108,39 +108,46 @@ export function getAvailableTimeSlots(customizationSettings, selectedDate) {
     return [];
   }
 
-  // Target day of the week (e.g., 'Monday', 'Tuesday', ...)
-  let targetDay = null;
-  if (selectedDate) {
-    targetDay = dayjs(selectedDate).format('dddd');
-  }
+  // Target date normalized (e.g. '2026-08-10')
+  const targetDateStr = selectedDate ? normalizeDateToYYYYMMDD(selectedDate) : null;
+  let targetDay = selectedDate ? dayjs(selectedDate).format('dddd') : null;
 
-  // Determine windows list (support both new multi-window array & legacy single start/end string)
+  // Determine windows list (support both date-wise array & legacy fallback)
   let rawWindows = [];
   if (Array.isArray(flow.bookingWindows) && flow.bookingWindows.length > 0) {
     rawWindows = flow.bookingWindows;
   } else if (flow.bookingAllowedStart || flow.bookingAllowedEnd) {
     rawWindows = [{
-      day: 'Everyday',
+      date: dayjs().format('YYYY-MM-DD'),
       startTime: flow.bookingAllowedStart || '09:00',
       endTime: flow.bookingAllowedEnd || '18:00'
     }];
   } else {
-    rawWindows = [{ day: 'Everyday', startTime: '09:00', endTime: '18:00' }];
+    rawWindows = [{ date: dayjs().format('YYYY-MM-DD'), startTime: '09:00', endTime: '18:00' }];
   }
 
-  // Filter windows matching the selected day of the week
-  if (targetDay) {
-    const dayFilteredWindows = rawWindows.filter((win) => {
-      if (!win.day || win.day === 'Everyday') return true;
-      if (Array.isArray(win.days)) return win.days.includes(targetDay);
-      return String(win.day).toLowerCase() === targetDay.toLowerCase();
+  // Filter windows matching the selected date (or fallback to legacy day of week)
+  if (targetDateStr) {
+    const dateMatchedWindows = rawWindows.filter((win) => {
+      if (!win.date) return false;
+      return normalizeDateToYYYYMMDD(win.date) === targetDateStr;
     });
 
-    const hasSpecificDayConfigs = rawWindows.some((w) => w.day && w.day !== 'Everyday');
-    if (dayFilteredWindows.length > 0) {
-      rawWindows = dayFilteredWindows;
-    } else if (hasSpecificDayConfigs) {
-      rawWindows = []; // No windows configured for this specific day
+    if (dateMatchedWindows.length > 0) {
+      rawWindows = dateMatchedWindows;
+    } else {
+      const hasDateConfigs = rawWindows.some((w) => Boolean(w.date));
+      if (hasDateConfigs) {
+        rawWindows = []; // No windows configured for this specific date
+      } else if (targetDay) {
+        // Fallback for legacy day-wise saved configurations
+        const dayFilteredWindows = rawWindows.filter((win) => {
+          if (!win.day || win.day === 'Everyday') return true;
+          if (Array.isArray(win.days)) return win.days.includes(targetDay);
+          return String(win.day).toLowerCase() === targetDay.toLowerCase();
+        });
+        rawWindows = dayFilteredWindows;
+      }
     }
   }
 
