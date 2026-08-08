@@ -480,6 +480,7 @@ export const SuperAdminCustomization = () => {
       return flow.bookingWindows;
     }
     return [{
+      date: dayjs().format('YYYY-MM-DD'),
       startTime: flow.bookingAllowedStart || '09:00',
       endTime: flow.bookingAllowedEnd || '18:00'
     }];
@@ -497,20 +498,25 @@ export const SuperAdminCustomization = () => {
 
   const handleAddBookingWindow = () => {
     const lastWin = currentBookingWindows[currentBookingWindows.length - 1];
-    let nextStart = '14:00';
-    let nextEnd = '17:00';
+    let nextStart = '09:00';
+    let nextEnd = '18:00';
+    let nextDate = lastWin?.date || dayjs().format('YYYY-MM-DD');
     if (lastWin && lastWin.endTime) {
       const lastEndMins = parseTimeMins(lastWin.endTime);
-      const newStartMins = Math.min(23 * 60, lastEndMins + 60);
-      const newEndMins = Math.min(23 * 60 + 59, newStartMins + 120);
-      const hS = String(Math.floor(newStartMins / 60)).padStart(2, '0');
-      const mS = String(newStartMins % 60).padStart(2, '0');
-      const hE = String(Math.floor(newEndMins / 60)).padStart(2, '0');
-      const mE = String(newEndMins % 60).padStart(2, '0');
-      nextStart = `${hS}:${mS}`;
-      nextEnd = `${hE}:${mE}`;
+      if (lastEndMins < 20 * 60) {
+        const newStartMins = Math.min(23 * 60, lastEndMins + 60);
+        const newEndMins = Math.min(23 * 60 + 59, newStartMins + 120);
+        const hS = String(Math.floor(newStartMins / 60)).padStart(2, '0');
+        const mS = String(newStartMins % 60).padStart(2, '0');
+        const hE = String(Math.floor(newEndMins / 60)).padStart(2, '0');
+        const mE = String(newEndMins % 60).padStart(2, '0');
+        nextStart = `${hS}:${mS}`;
+        nextEnd = `${hE}:${mE}`;
+      } else {
+        nextDate = dayjs(nextDate).add(1, 'day').format('YYYY-MM-DD');
+      }
     }
-    const updated = [...currentBookingWindows, { day: lastWin?.day || 'Everyday', startTime: nextStart, endTime: nextEnd }];
+    const updated = [...currentBookingWindows, { date: nextDate, startTime: nextStart, endTime: nextEnd }];
     handleUpdateFlowSetting('bookingWindows', updated);
   };
 
@@ -549,30 +555,33 @@ export const SuperAdminCustomization = () => {
     }
     for (let i = 0; i < windows.length; i++) {
       const win = windows[i];
+      if (!win.date) {
+        return `Window ${i + 1} must have a valid date selected.`;
+      }
       if (!win.startTime || !win.endTime) {
-        return `Window ${i + 1} has invalid or empty time values.`;
+        return `Window ${i + 1} (${win.date}) has invalid or empty time values.`;
       }
       const startMins = parseTimeMins(win.startTime);
       const endMins = parseTimeMins(win.endTime);
       if (startMins >= endMins) {
-        return `Window ${i + 1}: Start time (${win.startTime}) must be strictly before End time (${win.endTime}).`;
+        return `Window ${i + 1} (${win.date}): Start time (${win.startTime}) must be strictly before End time (${win.endTime}).`;
       }
     }
 
-    const windowsByDay = {};
+    const windowsByDate = {};
     windows.forEach((win) => {
-      const dayKey = win.day || 'Everyday';
-      if (!windowsByDay[dayKey]) windowsByDay[dayKey] = [];
-      windowsByDay[dayKey].push(win);
+      const dateKey = win.date || win.day || 'Everyday';
+      if (!windowsByDate[dateKey]) windowsByDate[dateKey] = [];
+      windowsByDate[dateKey].push(win);
     });
 
-    for (const [dayKey, dayWins] of Object.entries(windowsByDay)) {
-      const sorted = [...dayWins].sort((a, b) => parseTimeMins(a.startTime) - parseTimeMins(b.startTime));
+    for (const [dateKey, dateWins] of Object.entries(windowsByDate)) {
+      const sorted = [...dateWins].sort((a, b) => parseTimeMins(a.startTime) - parseTimeMins(b.startTime));
       for (let i = 1; i < sorted.length; i++) {
         const prev = sorted[i - 1];
         const curr = sorted[i];
         if (parseTimeMins(curr.startTime) < parseTimeMins(prev.endTime)) {
-          return `[${dayKey}] Window (${curr.startTime} – ${curr.endTime}) overlaps with Window (${prev.startTime} – ${prev.endTime}).`;
+          return `[Date ${dateKey}] Window (${curr.startTime} – ${curr.endTime}) overlaps with Window (${prev.startTime} – ${prev.endTime}).`;
         }
       }
     }
@@ -585,6 +594,7 @@ export const SuperAdminCustomization = () => {
     let windows = flow.bookingWindows;
     if (!Array.isArray(windows) || windows.length === 0) {
       windows = [{
+        date: dayjs().format('YYYY-MM-DD'),
         startTime: flow.bookingAllowedStart || '09:00',
         endTime: flow.bookingAllowedEnd || '18:00'
       }];
@@ -596,14 +606,19 @@ export const SuperAdminCustomization = () => {
       return;
     }
 
-    const sortedWindows = [...windows].sort((a, b) => parseTimeMins(a.startTime) - parseTimeMins(b.startTime));
+    const sortedWindows = [...windows].sort((a, b) => {
+      const dA = a.date || '';
+      const dB = b.date || '';
+      if (dA !== dB) return dA.localeCompare(dB);
+      return parseTimeMins(a.startTime) - parseTimeMins(b.startTime);
+    });
     const updatedSettings = {
       ...localSettings,
       flowAutomationSettings: {
         ...flow,
         bookingWindows: sortedWindows,
-        bookingAllowedStart: sortedWindows[0].startTime,
-        bookingAllowedEnd: sortedWindows[sortedWindows.length - 1].endTime
+        bookingAllowedStart: sortedWindows[0]?.startTime || '09:00',
+        bookingAllowedEnd: sortedWindows[sortedWindows.length - 1]?.endTime || '18:00'
       }
     };
 
@@ -2139,24 +2154,15 @@ export const SuperAdminCustomization = () => {
                           sx={{ fontWeight: 700, backgroundColor: '#e0e7ff', color: '#4338ca', minWidth: 90 }}
                         />
 
-                        <FormControl size="small" sx={{ minWidth: 140 }}>
-                          <InputLabel shrink>Day</InputLabel>
-                          <Select
-                            value={win.day || 'Everyday'}
-                            label="Day"
-                            onChange={(e) => handleUpdateBookingWindow(idx, 'day', e.target.value)}
-                            sx={{ fontWeight: 700, fontSize: '0.85rem' }}
-                          >
-                            <MenuItem value="Everyday">Everyday 📅</MenuItem>
-                            <MenuItem value="Monday">Monday 🗓️</MenuItem>
-                            <MenuItem value="Tuesday">Tuesday 🗓️</MenuItem>
-                            <MenuItem value="Wednesday">Wednesday 🗓️</MenuItem>
-                            <MenuItem value="Thursday">Thursday 🗓️</MenuItem>
-                            <MenuItem value="Friday">Friday 🗓️</MenuItem>
-                            <MenuItem value="Saturday">Saturday 🗓️</MenuItem>
-                            <MenuItem value="Sunday">Sunday 🗓️</MenuItem>
-                          </Select>
-                        </FormControl>
+                        <TextField
+                          type="date"
+                          label="Booking Date"
+                          value={win.date || dayjs().format('YYYY-MM-DD')}
+                          onChange={(e) => handleUpdateBookingWindow(idx, 'date', e.target.value)}
+                          size="small"
+                          sx={{ minWidth: 165, fontWeight: 700 }}
+                          InputLabelProps={{ shrink: true }}
+                        />
 
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
                           <TextField
@@ -2216,7 +2222,7 @@ export const SuperAdminCustomization = () => {
                 })()}
 
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
-                  Restricts clients from scheduling assessments outside of these business hours in the self-fill booking forms. You can define multiple non-overlapping time windows per day (e.g. 11:00 AM – 1:00 PM & 4:00 PM – 6:00 PM).
+                  Restricts clients from scheduling assessments outside of these specific date-wise business hours in the self-fill booking forms. You can define specific time bounds for any date (e.g. 2026-08-10: 09:00 AM – 01:00 PM & 04:00 PM – 06:00 PM).
                 </Typography>
               </Paper>
 

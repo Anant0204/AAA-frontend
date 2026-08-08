@@ -90,7 +90,11 @@ export const LeadList = () => {
     queryFn: dbService.getCustomizationSettings
   });
 
-  const availableTimeSlots = getAvailableTimeSlots(customizationSettings);
+  const watchServiceId = watch('serviceId');
+  const watchSource = watch('source');
+  const watchMeetingPreferredTime = watch('meetingPreferredTime');
+  const watchMeetingPreferredDate = watch('meetingPreferredDate');
+  const availableTimeSlots = getAvailableTimeSlots(customizationSettings, watchMeetingPreferredDate);
   const minBookingDate = getTomorrowMinDateStr();
 
   // Filters & State
@@ -269,10 +273,7 @@ export const LeadList = () => {
     queryFn: dbService.getLeadStages
   });
 
-  const watchServiceId = watch('serviceId');
-  const watchSource = watch('source');
-  const watchMeetingPreferredTime = watch('meetingPreferredTime');
-  const watchMeetingPreferredDate = watch('meetingPreferredDate');
+
 
   // Handle forms
   const handleCreateLead = (data) => {
