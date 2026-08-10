@@ -36,6 +36,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
 import { SERVICES, PACKAGES } from '../../constants/mockData';
 import { getPackageDisplayName } from '../../utils/packageHelper';
+import { maskIBAN } from '../../utils/ibanValidator';
 
 export const ClientDetails = () => {
   const { id } = useParams();
@@ -59,6 +60,7 @@ export const ClientDetails = () => {
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [selectedVisaStatus, setSelectedVisaStatus] = useState('');
   const [selectedBillingStatus, setSelectedBillingStatus] = useState('');
+  const [selectedPackageId, setSelectedPackageId] = useState('');
 
   // Fetch client details
   const { data: clients = [], isLoading } = useQuery({
@@ -106,11 +108,12 @@ export const ClientDetails = () => {
 
   // Mutations
   const updateStatusMutation = useMutation({
-    mutationFn: ({ clientId, visaStatus, status }) =>
-      dbService.updateClientVisaStatus(clientId, visaStatus, status),
+    mutationFn: ({ clientId, visaStatus, status, packageId }) =>
+      dbService.updateClientVisaStatus(clientId, visaStatus, status, null, packageId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
-      showAlert('Client status updated', 'success');
+      queryClient.invalidateQueries({ queryKey: ['client', id] });
+      showAlert('Client status & package updated successfully', 'success');
       setStatusModalOpen(false);
     } });
 
@@ -155,6 +158,7 @@ export const ClientDetails = () => {
   const handleOpenStatusModal = () => {
     setSelectedVisaStatus(client.visaStatus);
     setSelectedBillingStatus(client.status);
+    setSelectedPackageId(client.packageId || '');
     setStatusModalOpen(true);
   };
 
@@ -162,7 +166,9 @@ export const ClientDetails = () => {
     updateStatusMutation.mutate({
       clientId: client.id,
       visaStatus: selectedVisaStatus,
-      status: selectedBillingStatus });
+      status: selectedBillingStatus,
+      packageId: selectedPackageId
+    });
   };
 
   const handleDocUploaded = (docData) => {
@@ -502,50 +508,75 @@ export const ClientDetails = () => {
                     Invoices & Retainers
                   </Typography>
 
-                  {clientPayments.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 3 }}>
-                      No invoices found.
-                    </Typography>
-                  ) : (
-                    clientPayments.map((pay) => (
-                      <Paper
-                        key={pay.id}
-                        sx={{
-                          p: 2,
-                          mb: 2,
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          boxShadow: 'none',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center' }}
-                      >
-                        <Box sx={{ display: 'flex', gap: 3 }}>
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" display="block">Invoice ID</Typography>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{pay.id}</Typography>
+                    {clientPayments.length === 0 ? (
+                      <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 3 }}>
+                        No invoices found.
+                      </Typography>
+                    ) : (
+                      clientPayments.map((pay) => (
+                        <Paper
+                          key={pay.id}
+                          sx={{
+                            p: 2.5,
+                            mb: 2,
+                            borderRadius: 2.5,
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            boxShadow: 'none',
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: 2 }}
+                        >
+                          <Box sx={{ display: 'flex', gap: { xs: 2, sm: 4, md: 6 }, flexWrap: 'wrap', alignItems: 'center' }}>
+                            <Box sx={{ minWidth: { xs: '100%', sm: 160 } }}>
+                              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem' }} display="block">
+                                Invoice ID
+                              </Typography>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#051A3B' }}>
+                                {pay.invoiceNumber || pay.invoiceNo || `INV-2026-${(pay.id || '').replace(/-/g, '').slice(-6).toUpperCase()}`}
+                              </Typography>
+                            </Box>
+                            <Box sx={{ minWidth: 120 }}>
+                              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem' }} display="block">
+                                Due Date
+                              </Typography>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#374151' }}>
+                                {(() => {
+                                  if (!pay.dueDate) return 'N/A';
+                                  try {
+                                    const d = new Date(pay.dueDate);
+                                    return isNaN(d.getTime()) ? String(pay.dueDate).split('T')[0] : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                                  } catch (e) {
+                                    return String(pay.dueDate).split('T')[0];
+                                  }
+                                })()}
+                              </Typography>
+                            </Box>
+                            <Box sx={{ minWidth: 90 }}>
+                              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem' }} display="block">
+                                Amount
+                              </Typography>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#051A3B' }}>
+                                €{Number(pay.amount - (pay.discount || 0)).toFixed(2)}
+                              </Typography>
+                            </Box>
                           </Box>
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" display="block">Due Date</Typography>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{pay.dueDate}</Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <StatusBadge status={pay.status} />
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() => navigate(`/payments/invoice-details/${pay.id}`)}
+                              sx={{ borderRadius: 2, fontWeight: 700, textTransform: 'none' }}
+                            >
+                              View details
+                            </Button>
                           </Box>
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" display="block">Amount</Typography>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>€{pay.amount - pay.discount}</Typography>
-                          </Box>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                          <StatusBadge status={pay.status} />
-                          <Button
-                            size="small"
-                            onClick={() => navigate(`/payments/invoice-details/${pay.id}`)}
-                          >
-                            View details
-                          </Button>
-                        </Box>
-                      </Paper>
-                    ))
-                  )}
+                        </Paper>
+                      ))
+                    )}
 
                   {/* REFUND & GUARANTEE CLAIMS HISTORY CARD */}
                   <Box sx={{ mt: 4 }}>
@@ -613,7 +644,9 @@ export const ClientDetails = () => {
                             {ref.bankIban && (
                               <Box className="col-span-12" sx={{ mt: 0.5 }}>
                                 <Typography variant="caption" color="text.secondary" display="block">Bank Payout Info</Typography>
-                                <Typography variant="caption" sx={{ fontWeight: 700 }}>Name: {ref.bankAccountName || 'N/A'} | IBAN: {ref.bankIban}</Typography>
+                                <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                                  Name: {ref.bankAccountName || 'N/A'} | IBAN: <span style={{ fontFamily: 'monospace' }}>{maskIBAN(ref.bankIban)}</span>
+                                </Typography>
                               </Box>
                             )}
                           </Box>
@@ -799,6 +832,47 @@ export const ClientDetails = () => {
               {billingStatuses.map((st) => (
                 <MenuItem key={st} value={st}>
                   {st}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth size="small">
+            <InputLabel id="client-package-select-label">Assigned Client Package</InputLabel>
+            <Select
+              labelId="client-package-select-label"
+              value={selectedPackageId || ''}
+              onChange={(e) => setSelectedPackageId(e.target.value)}
+              label="Assigned Client Package"
+              MenuProps={{
+                anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
+                transformOrigin: { vertical: 'top', horizontal: 'left' },
+                PaperProps: { style: { maxHeight: 280 } }
+              }}
+              sx={{ borderRadius: 2 }}
+            >
+              <MenuItem value="">
+                <em>-- No Package Assigned --</em>
+              </MenuItem>
+              {dbPackages.map((pkg) => (
+                <MenuItem key={pkg.id || pkg.code} value={pkg.id || pkg.code}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {pkg.name || pkg.title}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                      {pkg.price !== undefined && (
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                          €{Number(pkg.price).toLocaleString()}
+                        </Typography>
+                      )}
+                      {pkg.isRefundable ? (
+                        <Chip size="small" label="100% Refundable" color="success" sx={{ height: 20, fontSize: '0.68rem', fontWeight: 700 }} />
+                      ) : (
+                        <Chip size="small" label="Non-Refundable" color="default" sx={{ height: 20, fontSize: '0.68rem', fontWeight: 600 }} />
+                      )}
+                    </Box>
+                  </Box>
                 </MenuItem>
               ))}
             </Select>

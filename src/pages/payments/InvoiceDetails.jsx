@@ -108,6 +108,16 @@ export const InvoiceDetails = () => {
     );
   }
 
+  const formatInvoiceDate = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    try {
+      const d = new Date(dateStr);
+      return isNaN(d.getTime()) ? String(dateStr).split('T')[0] : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    } catch (e) {
+      return String(dateStr).split('T')[0];
+    }
+  };
+
   const invoiceNumber = invoice.invoiceNumber || invoice.invoiceNo || `INV-2026-${(invoice.id || '').replace(/-/g, '').slice(-6).toUpperCase()}`;
   const customerId = client?.clientCode || client?.displayId || client?.clientCustomId || client?.cid || (client?.id ? 'CID-' + client.id.slice(-5).toUpperCase() : (invoice?.clientId ? 'CID-' + invoice.clientId.slice(-5).toUpperCase() : 'CID-12001'));
 
@@ -192,8 +202,8 @@ export const InvoiceDetails = () => {
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(71, 85, 105);
-      doc.text(`Date Issued: ${new Date(invoice.billingDate).toLocaleDateString()}`, 130, 46);
-      doc.text(`Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`, 130, 52);
+      doc.text(`Date Issued: ${formatInvoiceDate(invoice.billingDate || invoice.createdAt)}`, 130, 46);
+      doc.text(`Due Date: ${formatInvoiceDate(invoice.dueDate)}`, 130, 52);
       doc.text(`Status: ${invoice.status}`, 130, 58);
 
       // Client info box
@@ -384,10 +394,10 @@ export const InvoiceDetails = () => {
               Invoice #: {invoiceNumber}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Date: {invoice.billingDate}
+              Date: {formatInvoiceDate(invoice.billingDate || invoice.createdAt)}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Due Date: {invoice.dueDate}
+              Due Date: {formatInvoiceDate(invoice.dueDate)}
             </Typography>
             <Box sx={{ mt: 1.5, display: 'flex', justifyContent: { sm: 'flex-end' } }}>
               <StatusBadge status={invoice.status} />

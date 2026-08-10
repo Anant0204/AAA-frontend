@@ -58,6 +58,7 @@ import FileUploader from '../../components/FileUploader';
 import StatusBadge from '../../components/StatusBadge';
 import AppModal from '../../components/AppModal';
 import { useAlert } from '../../contexts/AlertContext';
+import { validateIBAN, normalizeIBAN, maskIBAN } from '../../utils/ibanValidator';
 import spainSevillePlaza from '../../assets/spain_seville_plaza.png';
 import spainRelocationLifestyle from '../../assets/spain_relocation_lifestyle.png';
 import { SERVICES } from '../../constants/mockData';
@@ -639,11 +640,14 @@ export const ClientPortalDocs = () => {
         const saved = client.dependentsDetails || [];
         for (let i = 0; i < totalDeps; i++) {
           const rawRel = saved[i]?.relation || 'Spouse';
-          const relation = rawRel.startsWith('Other:') ? rawRel.replace(/^Other:\s*/, '') : rawRel;
+          const isStandard = ['Spouse', 'Child', 'Parent'].includes(rawRel);
+          const relationType = isStandard ? rawRel : 'Other';
+          const customRelation = isStandard ? '' : (rawRel.startsWith('Other:') ? rawRel.replace(/^Other:\s*/, '') : (rawRel === 'Other' ? '' : rawRel));
           initialDeps.push({
             firstName: saved[i]?.firstName || '',
             lastName: saved[i]?.lastName || '',
-            relation: relation,
+            relation: relationType,
+            customRelation: customRelation,
             passportNumber: saved[i]?.passportNumber || '',
             nationality: saved[i]?.nationality || ''
           });
@@ -1176,14 +1180,21 @@ export const ClientPortalDocs = () => {
         showAlert(`Please fill in all details for Co-Applicant ${i + 1}`, 'warning');
         return;
       }
+      if (dep.relation === 'Other' && !dep.customRelation?.trim()) {
+        showAlert(`Please specify the exact relationship for Co-Applicant ${i + 1} (e.g. Brother, Sister, Cousin)`, 'warning');
+        return;
+      }
     }
-    const formattedDeps = wizardDeps.map(dep => ({
-      firstName: dep.firstName.trim(),
-      lastName: dep.lastName.trim(),
-      relation: dep.relation.trim(),
-      passportNumber: (dep.passportNumber || '').trim(),
-      nationality: dep.nationality.trim()
-    }));
+    const formattedDeps = wizardDeps.map(dep => {
+      const finalRelation = dep.relation === 'Other' ? (dep.customRelation || '').trim() || 'Other' : dep.relation.trim();
+      return {
+        firstName: dep.firstName.trim(),
+        lastName: dep.lastName.trim(),
+        relation: finalRelation,
+        passportNumber: (dep.passportNumber || '').trim(),
+        nationality: dep.nationality.trim()
+      };
+    });
     saveDependentsMutation.mutate(formattedDeps);
   };
 
@@ -1292,55 +1303,23 @@ export const ClientPortalDocs = () => {
 
   // Document categories checklist default fallback
   const DEFAULT_CHECKLISTS = {
-    dnv: {
-      main: ['Passport (Copy)', 'Employment Verification Letter', 'Remote Income Bank Statements', 'Social Security Certificate'],
-      spouse: ['Passport (Copy)', 'Marriage Certificate'],
-      minorChild: ['Passport (Copy)', 'Birth Certificate', 'School Enrollment Confirmation'],
-      adultChild: ['Passport (Copy)', 'Proof of Financial Dependency', 'Clean Criminal Record Certificate'],
-      parent: ['Passport (Copy)', 'Proof of Financial Dependency', 'Medical Insurance Certificate'],
-      other: ['Passport (Copy)', 'Relationship Verification Certificate']
-    },
-    nlv: {
-      main: ['Passport (Copy)', 'Spanish Health Insurance Policy', 'Clean Criminal Record Certificate', 'Savings Bank Statements'],
-      spouse: ['Passport (Copy)', 'Marriage Certificate'],
-      minorChild: ['Passport (Copy)', 'Birth Certificate'],
-      adultChild: ['Passport (Copy)', 'Proof of Financial Dependency', 'Clean Criminal Record Certificate'],
-      parent: ['Passport (Copy)', 'Proof of Financial Dependency', 'Spanish Health Insurance Policy'],
-      other: ['Passport (Copy)', 'Relationship Verification Certificate']
-    },
-    study: {
-      main: ['Passport (Copy)', 'Complutense Admission Letter', 'Medical Certificate', 'Sufficient Funds Guarantee'],
-      spouse: ['Passport (Copy)', 'Marriage Certificate'],
-      minorChild: ['Passport (Copy)', 'Birth Certificate'],
-      adultChild: ['Passport (Copy)', 'Proof of Financial Dependency'],
-      parent: ['Passport (Copy)', 'Proof of Financial Dependency'],
-      other: ['Passport (Copy)']
-    },
-    property: {
-      main: ['Passport (Copy)', 'Property Purchase Escrow Registry', 'Spanish Bank Account Certificate'],
-      spouse: ['Passport (Copy)', 'Marriage Certificate'],
-      minorChild: ['Passport (Copy)', 'Birth Certificate'],
-      adultChild: ['Passport (Copy)', 'Proof of Financial Dependency'],
-      parent: ['Passport (Copy)', 'Proof of Financial Dependency'],
-      other: ['Passport (Copy)']
-    },
-    family: {
-      main: ['Passport (Copy)', 'Relationship Verification Certificate', 'Sufficient Income Proof'],
-      spouse: ['Passport (Copy)', 'Marriage Certificate'],
-      minorChild: ['Passport (Copy)', 'Birth Certificate'],
-      adultChild: ['Passport (Copy)', 'Proof of Financial Dependency', 'Clean Criminal Record Certificate'],
-      parent: ['Passport (Copy)', 'Proof of Financial Dependency', 'Medical Insurance Certificate'],
-      other: ['Passport (Copy)', 'Relationship Verification Certificate']
-    }
+    dnv: { main: ['Passport (Copy)'] },
+    nlv: { main: ['Passport (Copy)'] },
+    study: { main: ['Passport (Copy)'] },
+    property: { main: ['Passport (Copy)'] },
+    family: { main: ['Passport (Copy)'] }
   };
 
   const getRequiredDocsForPerson = (person) => {
-    const checklists = customizationSettings?.documentChecklists || DEFAULT_CHECKLISTS;
     const serviceKey = (client.serviceId || '').toLowerCase();
-    const serviceChecklist = checklists[serviceKey] || checklists.dnv || {};
+    const checklists = customizationSettings?.documentChecklists?.[serviceKey] || {};
 
     if (person === 'Main Applicant') {
-      return serviceChecklist.main || ['Passport (Copy)'];
+      const configured = checklists.main;
+      if (Array.isArray(configured) && configured.length > 0) {
+        return configured;
+      }
+      return ['Passport (Copy)'];
     }
 
     // Parse dependent name
@@ -1350,27 +1329,34 @@ export const ClientPortalDocs = () => {
     });
 
     if (!match) {
-      return serviceChecklist.other || ['Passport (Copy)'];
+      const configured = checklists.other;
+      return (Array.isArray(configured) && configured.length > 0) ? configured : ['Passport (Copy)'];
     }
 
     const relation = (match.relation || '').toLowerCase();
     const age = parseInt(match.age, 10);
 
+    let configuredList = null;
     if (relation === 'spouse') {
-      return serviceChecklist.spouse || ['Passport (Copy)', 'Marriage Certificate'];
-    }
-    if (relation === 'child') {
+      configuredList = checklists.spouse;
+    } else if (relation === 'child') {
       const ageThreshold = customizationSettings?.flowAutomationSettings?.adultAgeThreshold || 18;
       if (!isNaN(age) && age >= Number(ageThreshold)) {
-        return serviceChecklist.adultChild || ['Passport (Copy)', 'Proof of Financial Dependency', 'Clean Criminal Record Certificate'];
+        configuredList = checklists.adultChild;
       } else {
-        return serviceChecklist.minorChild || ['Passport (Copy)', 'Birth Certificate'];
+        configuredList = checklists.minorChild;
       }
+    } else if (relation === 'parent') {
+      configuredList = checklists.parent;
+    } else {
+      configuredList = checklists.other;
     }
-    if (relation === 'parent') {
-      return serviceChecklist.parent || ['Passport (Copy)', 'Proof of Financial Dependency'];
+
+    if (Array.isArray(configuredList) && configuredList.length > 0) {
+      return configuredList;
     }
-    return serviceChecklist.other || ['Passport (Copy)'];
+
+    return ['Passport (Copy)'];
   };
 
   // Generate dependent sections
@@ -1678,48 +1664,41 @@ export const ClientPortalDocs = () => {
                             </Typography>
                             <Chip label="Primary Applicant" size="small" sx={{ bgcolor: 'rgba(5, 26, 59, 0.08)', color: '#051A3B', fontWeight: 800, fontSize: '0.75rem' }} />
                           </Box>
-                          <Grid container spacing={2}>
-                            <Grid item xs={12} sm={6} md={3}>
-                              <TextField
-                                label="First Name"
-                                size="small"
-                                fullWidth
-                                value={client?.firstName || ''}
-                                disabled
-                                sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}
-                              />
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={3}>
-                              <TextField
-                                label="Last Name"
-                                size="small"
-                                fullWidth
-                                value={client?.lastName || ''}
-                                disabled
-                                sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}
-                              />
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={3}>
-                              <TextField
-                                label="Relationship"
-                                size="small"
-                                fullWidth
-                                value="Main Applicant"
-                                disabled
-                                sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}
-                              />
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={3}>
-                              <TextField
-                                label="Nationality"
-                                size="small"
-                                fullWidth
-                                value={client?.nationality || 'N/A'}
-                                disabled
-                                sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}
-                              />
-                            </Grid>
-                          </Grid>
+                          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, mt: 1 }}>
+                            <TextField
+                              label="First Name"
+                              size="small"
+                              fullWidth
+                              value={client?.firstName || ''}
+                              disabled
+                              sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}
+                            />
+                            <TextField
+                              label="Last Name"
+                              size="small"
+                              fullWidth
+                              value={client?.lastName || ''}
+                              disabled
+                              sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}
+                            />
+                            <TextField
+                              label="Relationship"
+                              size="small"
+                              fullWidth
+                              value="Main Applicant"
+                              disabled
+                              sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}
+                            />
+                            <TextField
+                              label="Nationality"
+                              size="small"
+                              fullWidth
+                              value={client?.nationality || 'N/A'}
+                              disabled
+                              sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}
+                              inputProps={{ style: { fontWeight: 600 } }}
+                            />
+                          </Box>
                         </Paper>
 
                         {/* Co-Applicants Cards */}
@@ -1728,80 +1707,115 @@ export const ClientPortalDocs = () => {
                             <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#051A3B', mb: 2, fontFamily: 'Outfit, sans-serif' }}>
                               Co-Applicant {idx + 1} Details
                             </Typography>
-                            <Grid container spacing={2}>
-                              <Grid item xs={12} sm={6} md={3}>
-                                <TextField
-                                  label="First Name"
-                                  size="small"
-                                  fullWidth
-                                  value={dep.firstName}
+                            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+                              <TextField
+                                label="First Name"
+                                size="small"
+                                fullWidth
+                                value={dep.firstName}
+                                onChange={(e) => {
+                                  const newDeps = [...wizardDeps];
+                                  newDeps[idx].firstName = e.target.value;
+                                  setWizardDeps(newDeps);
+                                }}
+                              />
+                              <TextField
+                                label="Last Name"
+                                size="small"
+                                fullWidth
+                                value={dep.lastName}
+                                onChange={(e) => {
+                                  const newDeps = [...wizardDeps];
+                                  newDeps[idx].lastName = e.target.value;
+                                  setWizardDeps(newDeps);
+                                }}
+                              />
+                              <FormControl fullWidth size="small">
+                                <InputLabel id={`rel-select-label-${idx}`}>Relationship</InputLabel>
+                                <Select
+                                  labelId={`rel-select-label-${idx}`}
+                                  label="Relationship"
+                                  value={dep.relation || 'Spouse'}
                                   onChange={(e) => {
                                     const newDeps = [...wizardDeps];
-                                    newDeps[idx].firstName = e.target.value;
+                                    newDeps[idx].relation = e.target.value;
+                                    if (e.target.value !== 'Other') {
+                                      newDeps[idx].customRelation = '';
+                                    }
                                     setWizardDeps(newDeps);
                                   }}
-                                />
-                              </Grid>
-                              <Grid item xs={12} sm={6} md={3}>
-                                <TextField
-                                  label="Last Name"
-                                  size="small"
-                                  fullWidth
-                                  value={dep.lastName}
-                                  onChange={(e) => {
-                                    const newDeps = [...wizardDeps];
-                                    newDeps[idx].lastName = e.target.value;
-                                    setWizardDeps(newDeps);
-                                  }}
-                                />
-                              </Grid>
-                              <Grid item xs={12} sm={6} md={3}>
-                                <FormControl fullWidth size="small">
-                                   <InputLabel id={`rel-select-label-${idx}`}>Relationship</InputLabel>
-                                   <Select
-                                     labelId={`rel-select-label-${idx}`}
-                                     label="Relationship"
-                                     value={dep.relation || ''}
-                                     onChange={(e) => {
-                                       const newDeps = [...wizardDeps];
-                                       newDeps[idx].relation = e.target.value;
-                                       setWizardDeps(newDeps);
-                                     }}
-                                   >
-                                     <MenuItem value="Spouse">Spouse</MenuItem>
-                                     <MenuItem value="Child">Child</MenuItem>
-                                     <MenuItem value="Parent">Parent</MenuItem>
-                                     <MenuItem value="Other">Other</MenuItem>
-                                   </Select>
-                                 </FormControl>
-                              </Grid>
-                              <Grid item xs={12} sm={6} md={3}>
-                                <Autocomplete
-                                  fullWidth
-                                  options={ALL_COUNTRIES}
-                                  value={dep.nationality || ''}
-                                  onChange={(event, newValue) => {
-                                    const newDeps = [...wizardDeps];
-                                    newDeps[idx].nationality = newValue || '';
-                                    setWizardDeps(newDeps);
-                                  }}
-                                  onInputChange={(event, newInputValue) => {
-                                    const newDeps = [...wizardDeps];
-                                    newDeps[idx].nationality = newInputValue || '';
-                                    setWizardDeps(newDeps);
-                                  }}
-                                  renderInput={(params) => (
-                                    <TextField
-                                      {...params}
-                                      label="Nationality"
-                                      size="small"
-                                      fullWidth
-                                      placeholder="Select country..."
-                                    />
-                                  )}
-                                />
-                              </Grid>
-                            </Grid>
+                                >
+                                  <MenuItem value="Spouse">Spouse</MenuItem>
+                                  <MenuItem value="Child">Child</MenuItem>
+                                  <MenuItem value="Parent">Parent</MenuItem>
+                                  <MenuItem value="Other">Other</MenuItem>
+                                </Select>
+                              </FormControl>
+                              <Autocomplete
+                                fullWidth
+                                freeSolo
+                                autoHighlight
+                                clearOnBlur={false}
+                                options={ALL_COUNTRIES}
+                                value={dep.nationality || ''}
+                                isOptionEqualToValue={(option, value) => !value || option === value || option?.toLowerCase() === value?.toLowerCase()}
+                                onChange={(event, newValue) => {
+                                  const newDeps = [...wizardDeps];
+                                  newDeps[idx].nationality = newValue || '';
+                                  setWizardDeps(newDeps);
+                                }}
+                                sx={{
+                                  '& .MuiAutocomplete-inputRoot': {
+                                    pr: '40px !important'
+                                  },
+                                  '& .MuiAutocomplete-input': {
+                                    fontWeight: 600,
+                                    fontSize: '0.875rem'
+                                  }
+                                }}
+                                renderInput={(params) => (
+                                  <TextField
+                                    {...params}
+                                    label="Nationality"
+                                    size="small"
+                                    fullWidth
+                                    placeholder="Select or enter country"
+                                    InputLabelProps={{ ...params.InputLabelProps, shrink: true }}
+                                    inputProps={{
+                                      ...params.inputProps,
+                                      style: { fontWeight: 600 }
+                                    }}
+                                  />
+                                )}
+                              />
+
+                              {/* Custom Relationship Input when 'Other' is selected */}
+                              {dep.relation === 'Other' && (
+                                <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 2' } }}>
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    label="Specify Relationship *"
+                                    placeholder="e.g. Brother, Sister, Cousin, Relative, Guardian..."
+                                    value={dep.customRelation || ''}
+                                    onChange={(e) => {
+                                      const newDeps = [...wizardDeps];
+                                      newDeps[idx].customRelation = e.target.value;
+                                      setWizardDeps(newDeps);
+                                    }}
+                                    helperText="Specify the relationship to the main applicant (e.g. Brother, Sister, Cousin, Relative)"
+                                    InputLabelProps={{ shrink: true }}
+                                    inputProps={{ style: { fontWeight: 600 } }}
+                                    sx={{
+                                      bgcolor: '#FFFDF7',
+                                      '& .MuiOutlinedInput-root': {
+                                        borderRadius: 2
+                                      }
+                                    }}
+                                  />
+                                </Box>
+                              )}
+                            </Box>
                           </Paper>
                         ))}
 
@@ -1857,13 +1871,22 @@ export const ClientPortalDocs = () => {
                         const personDocs = clientDocuments.filter(d => d.belongsTo === person || (!d.belongsTo && person === 'Main Applicant'));
                         const docsNeeded = getRequiredDocsForPerson(person);
 
+                        // Dynamically combine required docs with any custom/other uploaded categories
+                        const uploadedCats = personDocs.map(d => d.category).filter(Boolean);
+                        const allDisplayDocs = [...docsNeeded];
+                        uploadedCats.forEach(cat => {
+                          if (!allDisplayDocs.includes(cat)) {
+                            allDisplayDocs.push(cat);
+                          }
+                        });
+
                         return (
                           <Box key={person} sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                             <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 1, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                               📁 {person === 'Main Applicant' ? `${person} (${client.firstName})` : person}
                             </Typography>
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2, pl: isRTL ? 0 : 2, pr: isRTL ? 2 : 0 }}>
-                              {docsNeeded.map((cat, idx) => {
+                              {allDisplayDocs.map((cat, idx) => {
                                 const isUploaded = personDocs.some(d => d.category === cat);
                                 return (
                                   <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
@@ -3234,64 +3257,72 @@ export const ClientPortalDocs = () => {
         })()}
 
         {/* Tab 2: Refund & Guarantee Claims */}
-        {tabValue === 2 && !isTranslationClient && (
-          <Box className="grid grid-cols-12 gap-4 items-stretch">
-            {/* Header Banner */}
-            <Box className="col-span-12">
-              <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid rgba(197, 155, 39, 0.3)', bgcolor: '#FAF6ED' }}>
-                <Typography variant="h6" sx={{ fontWeight: 800, color: '#051A3B', fontFamily: 'Outfit, sans-serif', mb: 0.5 }}>
-                  🛡️ Spain Visa 50% Money-Back Guarantee & Refund Center
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  If your visa application gets refused by the Spanish Embassy/Consulate, you can submit your official rejection resolution letter here to claim your 50% Money-Back Guarantee refund.
-                </Typography>
-              </Paper>
-            </Box>
+        {tabValue === 2 && !isTranslationClient && (() => {
+          const clientActivePkg = (dbPackages && dbPackages.length > 0)
+            ? dbPackages.find(p => (p.code || p.id) === (client?.packageId || selectedPackage))
+            : null;
+          const isRefundEligible = isRefundGuaranteePackage(clientActivePkg || client?.packageId || selectedPackage, client?.serviceType || client?.serviceId);
 
-            {!isRefundEligible ? (
+          return (
+            <Box className="grid grid-cols-12 gap-4 items-stretch">
+              {/* Header Banner */}
               <Box className="col-span-12">
-                <Paper
-                  sx={{
-                    p: 5,
-                    borderRadius: 3.5,
-                    border: '1.5px dashed #D97706',
-                    bgcolor: '#FFFBEB',
-                    textAlign: 'center',
-                    boxShadow: '0 4px 20px rgba(217, 119, 6, 0.08)'
-                  }}
-                >
-                  <LockIcon sx={{ fontSize: 64, color: '#D97706', mb: 2 }} />
-                  <Typography variant="h5" sx={{ fontWeight: 900, color: '#78350F', fontFamily: 'Outfit, sans-serif', mb: 1.5 }}>
-                    🔒 Refund & Guarantee Claims Policy Notice
+                <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid rgba(197, 155, 39, 0.3)', bgcolor: '#FAF6ED' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 800, color: '#051A3B', fontFamily: 'Outfit, sans-serif', mb: 0.5 }}>
+                    🛡️ Spain Visa 50% Money-Back Guarantee & Refund Center
                   </Typography>
-                  <Typography variant="body1" sx={{ color: '#92400E', maxWidth: 680, mx: 'auto', lineHeight: 1.6, mb: 3, fontWeight: 500 }}>
-                    Our 50% Money-Back Guarantee Policy applies exclusively to clients who have purchased the <strong>End-to-End Full Processing Package (Option B)</strong> or <strong>Premium Package (Option C)</strong>.
-                    <br /><br />
-                    Professional Case Assessment (€250), Administrative Relocation Package (Option D), and Tourist Visa Packages are <strong>non-refundable</strong>. Refund request eligibility automatically unlocks upon upgrading to Option B or Option C.
+                  <Typography variant="body2" color="text.secondary">
+                    {isRefundEligible
+                      ? 'Your enrolled service plan includes our 100% Refund Guarantee under our terms & conditions. If your visa application is refused, submit your rejection letter below.'
+                      : 'Your currently enrolled package operates under standard non-refundable terms without a refund guarantee clause.'}
                   </Typography>
-                  <Button
-                    variant="contained"
-                    onClick={() => setTabValue(1)}
-                    sx={{
-                      bgcolor: '#051A3B',
-                      color: '#C59B27',
-                      fontWeight: 900,
-                      borderRadius: 2.5,
-                      px: 4,
-                      py: 1.3,
-                      fontSize: '0.95rem',
-                      textTransform: 'none',
-                      fontFamily: 'Outfit, sans-serif',
-                      '&:hover': { bgcolor: '#C59B27', color: '#051A3B' }
-                    }}
-                  >
-                    View Relocation Packages & Upgrade →
-                  </Button>
                 </Paper>
               </Box>
-            ) : (
-              <>
-                {/* Refund Claim Form Card */}
+
+              {!isRefundEligible ? (
+                <Box className="col-span-12">
+                  <Paper
+                    sx={{
+                      p: 5,
+                      borderRadius: 3.5,
+                      border: '1.5px dashed #D97706',
+                      bgcolor: '#FFFBEB',
+                      textAlign: 'center',
+                      boxShadow: '0 4px 20px rgba(217, 119, 6, 0.08)'
+                    }}
+                  >
+                    <LockIcon sx={{ fontSize: 64, color: '#D97706', mb: 2 }} />
+                    <Typography variant="h5" sx={{ fontWeight: 900, color: '#78350F', fontFamily: 'Outfit, sans-serif', mb: 1.5 }}>
+                      🔒 Refund & Guarantee Claims Policy Notice
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: '#92400E', maxWidth: 680, mx: 'auto', lineHeight: 1.6, mb: 3, fontWeight: 500 }}>
+                      Your currently enrolled package (<strong>{clientActivePkg?.name || clientActivePkg?.title || client?.packageId || 'Selected Package'}</strong>) is <strong>non-refundable</strong> according to Company Terms & Conditions.
+                      <br /><br />
+                      The 100% Refund Guarantee applies exclusively to clients enrolled in eligible refundable processing packages (such as Full Professional Processing or Premium Package).
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      onClick={() => setTabValue(1)}
+                      sx={{
+                        bgcolor: '#051A3B',
+                        color: '#C59B27',
+                        fontWeight: 900,
+                        borderRadius: 2.5,
+                        px: 4,
+                        py: 1.3,
+                        fontSize: '0.95rem',
+                        textTransform: 'none',
+                        fontFamily: 'Outfit, sans-serif',
+                        '&:hover': { bgcolor: '#C59B27', color: '#051A3B' }
+                      }}
+                    >
+                      View Relocation Packages & Upgrade →
+                    </Button>
+                  </Paper>
+                </Box>
+              ) : (
+                <>
+                  {/* Refund Claim Form Card */}
                 <Box className="col-span-12 md:col-span-7 flex flex-col h-full">
                   <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#051A3B', mb: 2 }}>
@@ -3409,26 +3440,64 @@ export const ClientPortalDocs = () => {
                       </Box>
 
                       {/* Bank Details for Refund Payout */}
-                      <Grid container spacing={1.5}>
-                        <Grid item xs={12} sm={6}>
-                          <TextField
-                            fullWidth
-                            size="small"
-                            label="Bank Account Holder Name"
-                            value={claimBankName}
-                            onChange={(e) => setClaimBankName(e.target.value)}
-                          />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                          <TextField
-                            fullWidth
-                            size="small"
-                            label="IBAN / Account Number"
-                            value={claimBankIban}
-                            onChange={(e) => setClaimBankIban(e.target.value)}
-                          />
-                        </Grid>
-                      </Grid>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Bank Account Holder Name"
+                          placeholder="Full Legal Name on Account"
+                          value={claimBankName}
+                          onChange={(e) => setClaimBankName(e.target.value)}
+                        />
+
+                        {(() => {
+                          const ibanCheck = validateIBAN(claimBankIban);
+                          const isTouched = Boolean(claimBankIban && claimBankIban.trim().length > 0);
+                          const isValid = ibanCheck.valid;
+
+                          return (
+                            <TextField
+                              fullWidth
+                              size="small"
+                              label="IBAN (International Bank Account Number)"
+                              placeholder="e.g. ES91 2100 0418 4502 0005 1332"
+                              value={claimBankIban}
+                              onChange={(e) => {
+                                // Clean input: uppercase, allow alphanumeric and space
+                                const clean = e.target.value.toUpperCase().replace(/[^A-Z0-9\s]/g, '');
+                                setClaimBankIban(clean);
+                              }}
+                              error={isTouched && !isValid}
+                              helperText={
+                                isTouched ? (
+                                  isValid ? (
+                                    <span style={{ color: '#16A34A', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                      ✓ Valid IBAN ({ibanCheck.countryCode})
+                                    </span>
+                                  ) : (
+                                    <span style={{ color: '#DC2626', fontWeight: 600 }}>
+                                      ✕ Please enter a valid IBAN
+                                    </span>
+                                  )
+                                ) : (
+                                  'Enter a valid country-format IBAN'
+                                )
+                              }
+                              InputProps={{
+                                endAdornment: isTouched && (
+                                  <InputAdornment position="end">
+                                    {isValid ? (
+                                      <CheckCircleIcon sx={{ color: '#16A34A', fontSize: 20 }} />
+                                    ) : (
+                                      <CloseIcon sx={{ color: '#DC2626', fontSize: 20 }} />
+                                    )}
+                                  </InputAdornment>
+                                )
+                              }}
+                            />
+                          );
+                        })()}
+                      </Box>
 
                       {/* Reason / Remarks */}
                       <Box>
@@ -3446,31 +3515,46 @@ export const ClientPortalDocs = () => {
                         />
                       </Box>
 
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        size="large"
-                        disabled={createRefundMutation.isPending}
-                        onClick={() => {
-                          if (!claimProofUrl) {
-                            showAlert('Please upload your official Embassy Rejection Letter before submitting your claim.', 'warning');
-                            return;
-                          }
-                          createRefundMutation.mutate({
-                            clientId: client?.id || clientId,
-                            clientEmail: client?.email || '',
-                            category: claimCategory || 'Visa Rejection (50% Guarantee)',
-                            reason: claimReason,
-                            proofUrl: claimProofUrl,
-                            bankAccountName: claimBankName,
-                            bankIban: claimBankIban,
-                            amount: ((Array.isArray(allPayments) ? allPayments.filter(p => p && (p.clientId === clientId || p.clientId === client?.id) && (p.status === 'Paid' || p.status === 'Payment Completed')).reduce((s, p) => s + (Number(p.amount) || 0), 0) : 0)) * ((customizationSettings?.refundGuaranteePercentage ?? 50) / 100)
-                          });
-                        }}
-                        sx={{ mt: 1, py: 1.2, fontWeight: 800 }}
-                      >
-                        Submit Refund Claim
-                      </Button>
+                      {(() => {
+                        const ibanCheck = validateIBAN(claimBankIban);
+                        const isFormReady = Boolean(claimBankIban && ibanCheck.valid && claimBankName.trim());
+
+                        return (
+                          <Button
+                            variant="contained"
+                            color="primary"
+                            size="large"
+                            disabled={createRefundMutation.isPending || !isFormReady}
+                            onClick={() => {
+                              if (!claimBankName || !claimBankName.trim()) {
+                                showAlert('Please enter the Bank Account Holder Name.', 'warning');
+                                return;
+                              }
+                              if (!claimBankIban || !ibanCheck.valid) {
+                                showAlert('Please enter a structurally valid IBAN for your refund.', 'error');
+                                return;
+                              }
+                              if (!claimProofUrl) {
+                                showAlert('Please upload your official Embassy Rejection Letter before submitting your claim.', 'warning');
+                                return;
+                              }
+                              createRefundMutation.mutate({
+                                clientId: client?.id || clientId,
+                                clientEmail: client?.email || '',
+                                category: claimCategory || 'Visa Rejection (50% Guarantee)',
+                                reason: claimReason,
+                                proofUrl: claimProofUrl,
+                                bankAccountName: claimBankName.trim(),
+                                bankIban: ibanCheck.normalizedIBAN,
+                                amount: ((Array.isArray(allPayments) ? allPayments.filter(p => p && (p.clientId === clientId || p.clientId === client?.id) && (p.status === 'Paid' || p.status === 'Payment Completed')).reduce((s, p) => s + (Number(p.amount) || 0), 0) : 0)) * ((customizationSettings?.refundGuaranteePercentage ?? 50) / 100)
+                              });
+                            }}
+                            sx={{ mt: 1, py: 1.2, fontWeight: 800 }}
+                          >
+                            Submit Refund Claim
+                          </Button>
+                        );
+                      })()}
                     </Box>
                   </Paper>
                 </Box>
@@ -3549,7 +3633,8 @@ export const ClientPortalDocs = () => {
               </>
             )}
           </Box>
-        )}
+          );
+        })()}
       </Box>
 
       {/* Modal: Translation Payment Simulation */}

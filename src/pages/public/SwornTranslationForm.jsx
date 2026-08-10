@@ -2,35 +2,47 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+import { NATIONALITIES } from '../../constants/nationalities';
+
 const API_URL = import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1';
 
-const LANGUAGES = [
-  { value: 'English', label: 'English 🇺🇸' },
-  { value: 'Arabic', label: 'Arabic 🇦🇪' },
-  { value: 'Urdu', label: 'Urdu 🇵🇰' },
-  { value: 'Multi-Language', label: 'Multi-Language / Custom 🌐' }
+const getLanguageFlag = (langName) => {
+  const lower = (langName || '').toLowerCase().trim();
+  if (lower.includes('english')) return '🇺🇸';
+  if (lower.includes('arabic')) return '🇦🇪';
+  if (lower.includes('urdu')) return '🇵🇰';
+  if (lower.includes('french')) return '🇫🇷';
+  if (lower.includes('german')) return '🇩🇪';
+  if (lower.includes('hindi')) return '🇮🇳';
+  if (lower.includes('russian')) return '🇷🇺';
+  if (lower.includes('italian')) return '🇮🇹';
+  if (lower.includes('portuguese')) return '🇵🇹';
+  if (lower.includes('chinese')) return '🇨🇳';
+  if (lower.includes('turkish')) return '🇹🇷';
+  if (lower.includes('spanish')) return '🇪🇸';
+  if (lower.includes('dutch')) return '🇳🇱';
+  if (lower.includes('japanese')) return '🇯🇵';
+  if (lower.includes('bengali')) return '🇧🇩';
+  if (lower.includes('persian') || lower.includes('farsi')) return '🇮🇷';
+  return '🌐';
+};
+
+const DEFAULT_LANGUAGES = [
+  { value: 'English', label: 'English 🇺🇸', rate: 0.15 },
+  { value: 'Arabic', label: 'Arabic 🇦🇪', rate: 0.25 },
+  { value: 'Urdu', label: 'Urdu 🇵🇰', rate: 0.40 }
 ];
 
-const NATIONALITIES = [
-  "Pakistani",
-  "Indian",
-  "Bangladeshi",
-  "Egyptian",
-  "Moroccan",
-  "Algerian",
-  "Saudi Arabian",
-  "Emirati",
-  "Nigerian",
-  "British",
-  "American",
-  "Canadian",
-  "Filipino",
-  "Indonesian",
-  "Syrian",
-  "Lebanese",
-  "Jordanian",
-  "Yemeni",
-  "Other"
+const DOCUMENT_CATEGORIES = [
+  'Passport',
+  'Birth Certificate',
+  'Marriage Certificate',
+  'Clean Criminal Record Certificate',
+  'Academic Transcript / Diploma',
+  'Bank Statement / Financial Proof',
+  'Medical Certificate',
+  'Power of Attorney',
+  'Other'
 ];
 
 const COUNTRY_CODES = [
@@ -249,14 +261,35 @@ const SwornTranslationForm = () => {
     email: prefilled.email || '',
     phone: prefilled.phone || '',
     nationality: prefilled.nationality || '',
-    sourceLanguage: 'English',
     targetLanguage: 'Spanish'
   });
 
   const [countryCode, setCountryCode] = useState("+971");
   const [localNumber, setLocalNumber] = useState("");
 
-  React.useEffect(() => {
+  // Multiple Documents State
+  const [documents, setDocuments] = useState([
+    {
+      id: 'doc-1',
+      file: null,
+      documentLanguage: 'English',
+      otherLanguage: '',
+      category: 'Passport',
+      customCategory: '',
+      isDragActive: false
+    }
+  ]);
+
+  const [status, setStatus] = useState(null);
+  const [quote, setQuote] = useState(null);
+  const [error, setError] = useState(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+
+  // Dynamic Translation Rates & Selectable Languages state
+  const [availableLanguages, setAvailableLanguages] = useState(DEFAULT_LANGUAGES);
+  const [translationRates, setTranslationRates] = useState(DEFAULT_LANGUAGES);
+
+  useEffect(() => {
     if (location.state?.prefilledLead) {
       const pf = location.state.prefilledLead;
       setFormData((prev) => ({
@@ -270,13 +303,49 @@ const SwornTranslationForm = () => {
     }
   }, [location.state]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (formData.phone) {
       const { countryCode: cCode, localNumber: lNum } = parsePhone(formData.phone);
       if (cCode !== countryCode) setCountryCode(cCode);
       if (lNum !== localNumber) setLocalNumber(lNum);
     }
   }, [formData.phone]);
+
+  useEffect(() => {
+    const fetchCompanySettings = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/settings/company`);
+        const companyData = res.data?.data || res.data || {};
+        let rates = companyData.swornTranslationRates;
+        if (typeof rates === 'string') {
+          try { rates = JSON.parse(rates); } catch (e) {}
+        }
+        if (Array.isArray(rates) && rates.length > 0) {
+          const formatted = rates.map(r => {
+            const rawName = r.name || r.label || r.value || 'Language';
+            const flag = getLanguageFlag(rawName);
+            return {
+              id: r.id || `lang_${rawName}`,
+              value: rawName,
+              label: `${rawName} ${flag}`,
+              name: rawName,
+              rate: parseFloat(r.rate) || 0.15
+            };
+          });
+          setAvailableLanguages(formatted);
+          setTranslationRates(formatted);
+        } else {
+          setAvailableLanguages(DEFAULT_LANGUAGES);
+          setTranslationRates(DEFAULT_LANGUAGES);
+        }
+      } catch (err) {
+        console.warn('Failed to load dynamic translation rates:', err.message);
+        setAvailableLanguages(DEFAULT_LANGUAGES);
+        setTranslationRates(DEFAULT_LANGUAGES);
+      }
+    };
+    fetchCompanySettings();
+  }, []);
 
   const handleCountryCodeChange = (newCode) => {
     setCountryCode(newCode);
@@ -292,62 +361,6 @@ const SwornTranslationForm = () => {
     setFormData((prev) => ({ ...prev, phone: combined }));
   };
 
-  const [file, setFile] = useState(null);
-  const [category, setCategory] = useState('Passport');
-  const [customCategory, setCustomCategory] = useState('');
-  const [status, setStatus] = useState(null);
-  const [quote, setQuote] = useState(null);
-  const [error, setError] = useState(null);
-  const [isDragActive, setIsDragActive] = useState(false);
-  const [termsAccepted, setTermsAccepted] = useState(false);
-
-  // Multi-Language sub-selection state
-  const [selectedMultiLangs, setSelectedMultiLangs] = useState(['English', 'Urdu']);
-  const [otherLangInput, setOtherLangInput] = useState('');
-
-  // Dynamic Translation Rates state
-  const [translationRates, setTranslationRates] = useState([
-    { name: 'English to Spanish', rate: 0.15 },
-    { name: 'Arabic to Spanish', rate: 0.25 },
-    { name: 'Urdu to Spanish', rate: 0.40 }
-  ]);
-
-  useEffect(() => {
-    const fetchCompanySettings = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/settings/company`);
-        const companyData = res.data?.data || res.data || {};
-        let rates = companyData.swornTranslationRates;
-        if (typeof rates === 'string') {
-          try { rates = JSON.parse(rates); } catch (e) {}
-        }
-        if (Array.isArray(rates) && rates.length > 0) {
-          setTranslationRates(rates);
-        } else if (rates && typeof rates === 'object') {
-          const converted = [];
-          if (rates.englishToSpanish !== undefined) converted.push({ name: 'English to Spanish', rate: rates.englishToSpanish });
-          if (rates.arabicToSpanish !== undefined) converted.push({ name: 'Arabic to Spanish', rate: rates.arabicToSpanish });
-          if (rates.urduToSpanish !== undefined) converted.push({ name: 'Urdu to Spanish', rate: rates.urduToSpanish });
-          if (converted.length > 0) setTranslationRates(converted);
-        }
-      } catch (err) {
-        console.warn('Failed to load dynamic translation rates:', err.message);
-      }
-    };
-    fetchCompanySettings();
-  }, []);
-
-  const getFinalSourceLanguage = () => {
-    if (formData.sourceLanguage !== 'Multi-Language') {
-      return formData.sourceLanguage;
-    }
-    const langs = selectedMultiLangs.map((l) =>
-      l === 'Other' ? (otherLangInput.trim() || 'Other') : l
-    );
-    if (langs.length === 0) return 'Multi-Language';
-    return `Multi-Language (${langs.join(', ')})`;
-  };
-
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
@@ -355,9 +368,36 @@ const SwornTranslationForm = () => {
     });
   };
 
-  const handleFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+  // Multi-document management
+  const handleAddDocument = () => {
+    setDocuments((prev) => [
+      ...prev,
+      {
+        id: `doc-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        file: null,
+        documentLanguage: 'English',
+        otherLanguage: '',
+        category: 'Passport',
+        customCategory: '',
+        isDragActive: false
+      }
+    ]);
+    setQuote(null);
+  };
+
+  const handleRemoveDocument = (index) => {
+    if (documents.length <= 1) return;
+    setDocuments((prev) => prev.filter((_, i) => i !== index));
+    setQuote(null);
+  };
+
+  const handleUpdateDoc = (index, field, value) => {
+    setDocuments((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+    if (field === 'file') {
       setQuote(null);
     }
   };
@@ -368,8 +408,11 @@ const SwornTranslationForm = () => {
       setError('Please fill in all personal details first.');
       return;
     }
-    if (!file) {
-      setError('Please upload a PDF document.');
+
+    // Verify all documents have files
+    const missingFileIdx = documents.findIndex(d => !d.file);
+    if (missingFileIdx !== -1) {
+      setError(`Please upload a PDF document for Document #${missingFileIdx + 1}.`);
       return;
     }
 
@@ -377,24 +420,71 @@ const SwornTranslationForm = () => {
       setStatus('loading');
       setError(null);
 
-      const formDataUpload = new FormData();
-      formDataUpload.append('document', file);
-      formDataUpload.append('firstName', formData.firstName);
-      formDataUpload.append('lastName', formData.lastName);
-      formDataUpload.append('email', formData.email);
-      formDataUpload.append('phone', formData.phone);
-      formDataUpload.append('nationality', formData.nationality);
-      formDataUpload.append('sourceLanguage', getFinalSourceLanguage());
-      formDataUpload.append('targetLanguage', formData.targetLanguage);
+      // Process each document individually with field name 'document' for 100% backend compatibility
+      const docPromises = documents.map(async (doc, idx) => {
+        let finalLang = doc.documentLanguage;
+        if (doc.documentLanguage === 'Other' && doc.otherLanguage?.trim()) {
+          finalLang = doc.otherLanguage.trim();
+        }
+        let finalCat = doc.category;
+        if (doc.category === 'Other' && doc.customCategory?.trim()) {
+          finalCat = `Other: ${doc.customCategory.trim()}`;
+        }
 
-      const res = await axios.post(`${API_URL}/booking/translation/upload`, formDataUpload, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        const singleForm = new FormData();
+        singleForm.append('document', doc.file);
+        singleForm.append('category', finalCat);
+        singleForm.append('sourceLanguage', finalLang);
+        singleForm.append('targetLanguage', formData.targetLanguage);
+        singleForm.append('firstName', formData.firstName);
+        singleForm.append('lastName', formData.lastName);
+        singleForm.append('email', formData.email);
+        singleForm.append('phone', formData.phone);
+        singleForm.append('nationality', formData.nationality);
+
+        const res = await axios.post(`${API_URL}/booking/translation/upload`, singleForm, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        const resData = res.data?.data || {};
+        const wordCount = Number(resData.wordCount) || 0;
+        const rate = Number(resData.rate) || (
+          translationRates.find(r => (r.name || r.value || '').toLowerCase().includes(finalLang.toLowerCase()))?.rate || 0.15
+        );
+        const subtotal = Number(resData.subtotal) || parseFloat((wordCount * rate).toFixed(2));
+        const vat = Number(resData.vat) || parseFloat((subtotal * 0.05).toFixed(2));
+        const estimatedPrice = Number(resData.estimatedPrice) || parseFloat((subtotal + vat).toFixed(2));
+
+        return {
+          index: idx,
+          name: doc.file.name,
+          category: finalCat,
+          documentLanguage: finalLang,
+          wordCount,
+          rate,
+          subtotal,
+          vat,
+          estimatedPrice
+        };
       });
 
-      if (res.data.success) {
-        setQuote(res.data.data);
-        setStatus('success');
-      }
+      const docResults = await Promise.all(docPromises);
+
+      const totalWordCount = docResults.reduce((sum, d) => sum + d.wordCount, 0);
+      const totalSubtotal = parseFloat(docResults.reduce((sum, d) => sum + d.subtotal, 0).toFixed(2));
+      const totalVat = parseFloat((totalSubtotal * 0.05).toFixed(2));
+      const totalEstimatedPrice = parseFloat((totalSubtotal + totalVat).toFixed(2));
+
+      setQuote({
+        documents: docResults,
+        totalWordCount,
+        wordCount: totalWordCount,
+        subtotal: totalSubtotal,
+        vat: totalVat,
+        estimatedPrice: totalEstimatedPrice,
+        currency: 'EUR'
+      });
+      setStatus('success');
     } catch (err) {
       console.error(err);
       setStatus('error');
@@ -408,32 +498,47 @@ const SwornTranslationForm = () => {
       return;
     }
     if (!quote) return;
-    if (!file) {
-      setError('Please upload a PDF document.');
-      return;
-    }
 
     try {
       setStatus('loading');
       setError(null);
 
       const formDataCheckout = new FormData();
-      formDataCheckout.append('document', file);
-
-      let finalCategory = category;
-      if (category === 'Other') {
-        finalCategory = `Other: ${customCategory || 'General Document'}`;
+      if (documents[0] && documents[0].file) {
+        formDataCheckout.append('document', documents[0].file);
       }
-      formDataCheckout.append('category', finalCategory);
+
       formDataCheckout.append('firstName', formData.firstName);
       formDataCheckout.append('lastName', formData.lastName);
       formDataCheckout.append('email', formData.email);
       formDataCheckout.append('phone', formData.phone);
       formDataCheckout.append('nationality', formData.nationality);
-      formDataCheckout.append('sourceLanguage', getFinalSourceLanguage());
       formDataCheckout.append('targetLanguage', formData.targetLanguage);
-      formDataCheckout.append('wordCount', quote.wordCount);
-      formDataCheckout.append('estimatedPrice', quote.estimatedPrice);
+      formDataCheckout.append('wordCount', quote.totalWordCount || quote.wordCount || 0);
+      formDataCheckout.append('estimatedPrice', quote.estimatedPrice || 0);
+
+      const metadata = (quote.documents || documents).map((doc, idx) => {
+        const matchingDocState = documents[idx] || {};
+        let finalLang = doc.documentLanguage || matchingDocState.documentLanguage || 'English';
+        if (matchingDocState.documentLanguage === 'Other' && matchingDocState.otherLanguage?.trim()) {
+          finalLang = matchingDocState.otherLanguage.trim();
+        }
+        let finalCat = doc.category || matchingDocState.category || 'Passport';
+        if (matchingDocState.category === 'Other' && matchingDocState.customCategory?.trim()) {
+          finalCat = `Other: ${matchingDocState.customCategory.trim()}`;
+        }
+        return {
+          index: idx,
+          name: doc.name || matchingDocState.file?.name || `Document_${idx + 1}.pdf`,
+          documentLanguage: finalLang,
+          category: finalCat,
+          wordCount: doc.wordCount || 0
+        };
+      });
+
+      formDataCheckout.append('documentsMetadata', JSON.stringify(metadata));
+      formDataCheckout.append('category', metadata.map(m => m.category).join(', '));
+      formDataCheckout.append('sourceLanguage', metadata.map(m => m.documentLanguage).join(', '));
 
       const res = await axios.post(`${API_URL}/booking/translation/checkout`, formDataCheckout, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -456,15 +561,15 @@ const SwornTranslationForm = () => {
         rel="stylesheet"
       />
 
-      <div style={{ width: '100%', maxWidth: '600px' }}>
+      <div style={{ width: '100%', maxWidth: '660px' }}>
         {/* Header Block */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
           <div
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '10px',
-              marginBottom: '12px',
+              marginBottom: '8px',
             }}
           >
             <div
@@ -489,12 +594,9 @@ const SwornTranslationForm = () => {
                 letterSpacing: '-0.5px',
               }}
             >
-              AAA Visa
+              Certified Spanish Sworn Translation
             </span>
           </div>
-          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px', margin: 0 }}>
-            Certified Spanish Sworn Translation
-          </p>
         </div>
 
         {/* Card Panel */}
@@ -504,7 +606,7 @@ const SwornTranslationForm = () => {
               Sworn Translation Quote
             </h2>
             <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px', margin: '0 0 16px' }}>
-              Upload your PDF document to get an instant word count and estimated price.
+              Upload your PDF documents and select each document's language for an instant price quote.
             </p>
           </div>
 
@@ -606,7 +708,7 @@ const SwornTranslationForm = () => {
               </div>
             </div>
 
-            {/* Grid: Nationality & Source Language */}
+            {/* Grid: Nationality & Target Language */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               <div>
                 <SearchableCountrySelect
@@ -625,256 +727,288 @@ const SwornTranslationForm = () => {
                 />
               </div>
               <div>
-                <label style={labelStyle}>Source Language *</label>
-                <select
-                  name="sourceLanguage"
-                  value={formData.sourceLanguage}
-                  onChange={handleInputChange}
-                  style={{ ...inputStyle, color: '#fff' }}
-                >
-                  {LANGUAGES.map((lang) => (
-                    <option key={lang.value} value={lang.value} style={{ background: '#24243e', color: '#fff' }}>
-                      {lang.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Sub-selection for Multi-Language */}
-            {formData.sourceLanguage === 'Multi-Language' && (
-              <div
-                style={{
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid rgba(118, 75, 162, 0.4)',
-                  borderRadius: '12px',
-                  padding: '14px 16px',
-                  marginTop: '-4px',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <label style={{ ...labelStyle, color: '#a78bfa', margin: 0, fontSize: '13px', fontWeight: 600 }}>
-                    Select Document Languages (Choose multiple) *
-                  </label>
-                  <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
-                    {selectedMultiLangs.length} selected
-                  </span>
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
-                  {[
-                    { value: 'English', label: 'English 🇺🇸' },
-                    { value: 'Arabic', label: 'Arabic 🇦🇪' },
-                    { value: 'Urdu', label: 'Urdu 🇵🇰' }
-                  ].map((lang) => {
-                    const isSelected = selectedMultiLangs.includes(lang.value);
-                    return (
-                      <button
-                        key={lang.value}
-                        type="button"
-                        onClick={() => {
-                          if (isSelected) {
-                            if (selectedMultiLangs.length > 1) {
-                              setSelectedMultiLangs(selectedMultiLangs.filter((l) => l !== lang.value));
-                            }
-                          } else {
-                            setSelectedMultiLangs([...selectedMultiLangs, lang.value]);
-                          }
-                        }}
-                        style={{
-                          padding: '7px 14px',
-                          borderRadius: '20px',
-                          border: isSelected ? '1px solid #8b5cf6' : '1px solid rgba(255,255,255,0.15)',
-                          background: isSelected ? 'linear-gradient(135deg, #667eea, #764ba2)' : 'rgba(255,255,255,0.06)',
-                          color: '#fff',
-                          fontSize: '13px',
-                          fontWeight: 500,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          transition: 'all 0.2s ease',
-                          boxShadow: isSelected ? '0 2px 8px rgba(118, 75, 162, 0.4)' : 'none'
-                        }}
-                      >
-                        <span style={{ fontWeight: 'bold' }}>{isSelected ? '✓' : '+'}</span>
-                        <span>{lang.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Target Language (Static Spanish) */}
-            <div>
-              <label style={labelStyle}>Target Language</label>
-              <input
-                type="text"
-                readOnly
-                value="Spanish (Español) 🇪🇸"
-                style={{
-                  ...inputStyle,
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  color: 'rgba(255, 255, 255, 0.4)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  cursor: 'not-allowed'
-                }}
-              />
-            </div>
-
-            {/* File Upload Box */}
-            <div>
-              <label style={labelStyle}>Upload PDF Document *</label>
-              <div
-                onDragOver={(e) => { e.preventDefault(); setIsDragActive(true); }}
-                onDragLeave={() => setIsDragActive(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDragActive(false);
-                  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                    setFile(e.dataTransfer.files[0]);
-                    setQuote(null);
-                  }
-                }}
-                onClick={() => document.getElementById('landing-file-input').click()}
-                style={{
-                  border: isDragActive ? '2px dashed #38ef7d' : '2px dashed rgba(255,255,255,0.2)',
-                  borderRadius: '12px',
-                  padding: '30px 20px',
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  backgroundColor: isDragActive ? 'rgba(56, 239, 125, 0.05)' : 'rgba(255,255,255,0.02)',
-                  transition: 'all 0.2s ease',
-                }}
-              >
+                <label style={labelStyle}>Target Language</label>
                 <input
-                  id="landing-file-input"
-                  type="file"
-                  accept="application/pdf"
-                  onChange={handleFileChange}
-                  style={{ display: 'none' }}
+                  type="text"
+                  readOnly
+                  value="Spanish (Español) 🇪🇸"
+                  style={{
+                    ...inputStyle,
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    color: 'rgba(255, 255, 255, 0.5)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    cursor: 'not-allowed'
+                  }}
                 />
-                <span style={{ fontSize: '32px', display: 'block', marginBottom: '8px' }}>📁</span>
-                <span style={{ color: '#fff', fontSize: '14px', fontWeight: 600, display: 'block' }}>
-                  {isDragActive ? 'Drop your file here' : 'Drag & drop your file here, or click to browse'}
-                </span>
-                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', display: 'block', marginTop: '4px' }}>
-                  Supports PDF (Max 10MB)
-                </span>
               </div>
             </div>
 
-            {/* Uploaded File Category Selector directly above button */}
-            {file && (
-              <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <span style={labelStyle}>Uploaded File & Category:</span>
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                  padding: '14px',
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: '12px',
-                  color: '#fff',
-                  textAlign: 'left'
-                }}>
+            {/* Documents Section Header */}
+            <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <label style={{ ...labelStyle, fontSize: '13px', color: '#a78bfa', margin: 0 }}>
+                Upload Documents & Select Languages *
+              </label>
+              <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
+                {documents.length} {documents.length === 1 ? 'document' : 'documents'}
+              </span>
+            </div>
+
+            {/* List of Documents */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {documents.map((doc, idx) => (
+                <div
+                  key={doc.id}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '14px',
+                    padding: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
+                  }}
+                >
+                  {/* Document Card Header */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '18px' }}>📄</span>
-                      <div>
-                        <span style={{ display: 'block', fontSize: '13px', fontWeight: 600, maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {file.name}
-                        </span>
-                        <span style={{ display: 'block', fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
-                          {(file.size / 1024).toFixed(1)} KB
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setFile(null);
-                        setQuote(null);
-                      }}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: 'rgba(255,255,255,0.4)',
-                        fontSize: '16px',
-                        cursor: 'pointer',
-                        padding: '4px',
-                        transition: 'color 0.2s',
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-
-                  {/* Category Selection Dropdown */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.5)', fontWeight: 600 }}>Select Category:</label>
-                    <select
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        borderRadius: '8px',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        background: 'rgba(0,0,0,0.2)',
+                      <span style={{
+                        background: 'linear-gradient(135deg, #667eea, #764ba2)',
                         color: '#fff',
-                        fontSize: '12px',
-                        outline: 'none',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <option value="Passport" style={{ background: '#1c1e22' }}>Passport</option>
-                      <option value="Birth Certificate" style={{ background: '#1c1e22' }}>Birth Certificate</option>
-                      <option value="Marriage Certificate" style={{ background: '#1c1e22' }}>Marriage Certificate</option>
-                      <option value="Criminal Record Certificate" style={{ background: '#1c1e22' }}>Criminal Record Certificate</option>
-                      <option value="Academic Transcript / Diploma" style={{ background: '#1c1e22' }}>Academic Transcript / Diploma</option>
-                      <option value="Bank Statement" style={{ background: '#1c1e22' }}>Bank Statement</option>
-                      <option value="Other" style={{ background: '#1c1e22' }}>Other (specify below)</option>
-                    </select>
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: '6px'
+                      }}>
+                        #{idx + 1}
+                      </span>
+                      <span style={{ fontSize: '14px', fontWeight: 600, color: '#fff' }}>
+                        Document {idx + 1}
+                      </span>
+                    </div>
+
+                    {documents.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveDocument(idx)}
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.15)',
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                          color: '#f87171',
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        ✕ Remove
+                      </button>
+                    )}
                   </div>
 
-                  {/* Custom Category Input if "Other" is selected */}
-                  {category === 'Other' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.5)', fontWeight: 600 }}>Specify Document Category:</label>
+                  {/* Document Language Dropdown */}
+                  <div>
+                    <label style={{ ...labelStyle, fontSize: '11px', color: '#cbd5e1' }}>
+                      Document Language *
+                    </label>
+                    <select
+                      value={doc.documentLanguage}
+                      onChange={(e) => handleUpdateDoc(idx, 'documentLanguage', e.target.value)}
+                      style={{ ...inputStyle, color: '#fff', padding: '9px 12px' }}
+                    >
+                      {availableLanguages.map((lang) => (
+                        <option key={lang.value || lang.name} value={lang.value || lang.name} style={{ background: '#24243e', color: '#fff' }}>
+                          {lang.label || `${lang.name} ${getLanguageFlag(lang.name)}`}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Custom Language input if "Other" is chosen */}
+                    {doc.documentLanguage === 'Other' && (
                       <input
                         type="text"
-                        value={customCategory}
-                        onChange={(e) => setCustomCategory(e.target.value)}
-                        placeholder="e.g. Health Certificate"
-                        style={{
-                          width: '100%',
-                          padding: '8px 12px',
-                          borderRadius: '8px',
-                          border: '1px solid rgba(255,255,255,0.1)',
-                          background: 'rgba(0,0,0,0.2)',
-                          color: '#fff',
-                          fontSize: '12px',
-                          outline: 'none',
-                          boxSizing: 'border-box'
-                        }}
+                        placeholder="Please specify document language (e.g. Dutch, Tagalog)"
+                        value={doc.otherLanguage}
+                        onChange={(e) => handleUpdateDoc(idx, 'otherLanguage', e.target.value)}
+                        style={{ ...inputStyle, marginTop: '8px', padding: '8px 12px', fontSize: '12px' }}
                       />
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+                    )}
+                  </div>
 
-            <div style={{ paddingTop: '10px' }}>
+                  {/* Document Category Dropdown */}
+                  <div>
+                    <label style={{ ...labelStyle, fontSize: '11px', color: '#cbd5e1' }}>
+                      Document Category
+                    </label>
+                    <select
+                      value={doc.category}
+                      onChange={(e) => handleUpdateDoc(idx, 'category', e.target.value)}
+                      style={{ ...inputStyle, color: '#fff', padding: '9px 12px' }}
+                    >
+                      {DOCUMENT_CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat} style={{ background: '#24243e', color: '#fff' }}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Custom Category if "Other" is chosen */}
+                    {doc.category === 'Other' && (
+                      <input
+                        type="text"
+                        placeholder="Specify document name / type"
+                        value={doc.customCategory}
+                        onChange={(e) => handleUpdateDoc(idx, 'customCategory', e.target.value)}
+                        style={{ ...inputStyle, marginTop: '8px', padding: '8px 12px', fontSize: '12px' }}
+                      />
+                    )}
+                  </div>
+
+                  {/* File Upload Box */}
+                  <div>
+                    <label style={{ ...labelStyle, fontSize: '11px', color: '#cbd5e1' }}>
+                      Upload PDF File *
+                    </label>
+
+                    {doc.file ? (
+                      /* Uploaded file preview card */
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '12px 14px',
+                          background: 'rgba(56, 239, 125, 0.08)',
+                          border: '1px solid rgba(56, 239, 125, 0.25)',
+                          borderRadius: '10px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                          <span style={{ fontSize: '22px' }}>📄</span>
+                          <div style={{ minWidth: 0 }}>
+                            <span style={{
+                              display: 'block',
+                              color: '#fff',
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {doc.file.name}
+                            </span>
+                            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>
+                              {(doc.file.size / 1024).toFixed(1)} KB · PDF
+                            </span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateDoc(idx, 'file', null)}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'rgba(255,255,255,0.6)',
+                            fontSize: '16px',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            transition: 'color 0.2s'
+                          }}
+                          title="Change file"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      /* Drag and Drop Box */
+                      <div
+                        onDragOver={(e) => { e.preventDefault(); handleUpdateDoc(idx, 'isDragActive', true); }}
+                        onDragLeave={() => handleUpdateDoc(idx, 'isDragActive', false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          handleUpdateDoc(idx, 'isDragActive', false);
+                          if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                            handleUpdateDoc(idx, 'file', e.dataTransfer.files[0]);
+                          }
+                        }}
+                        onClick={() => document.getElementById(`file-input-${doc.id}`).click()}
+                        style={{
+                          border: doc.isDragActive ? '2px dashed #38ef7d' : '2px dashed rgba(255,255,255,0.2)',
+                          borderRadius: '10px',
+                          padding: '20px 14px',
+                          textAlign: 'center',
+                          cursor: 'pointer',
+                          backgroundColor: doc.isDragActive ? 'rgba(56, 239, 125, 0.05)' : 'rgba(255,255,255,0.02)',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <input
+                          id={`file-input-${doc.id}`}
+                          type="file"
+                          accept="application/pdf"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              handleUpdateDoc(idx, 'file', e.target.files[0]);
+                            }
+                          }}
+                          style={{ display: 'none' }}
+                        />
+                        <span style={{ fontSize: '24px', display: 'block', marginBottom: '4px' }}>📁</span>
+                        <span style={{ color: '#fff', fontSize: '13px', fontWeight: 600, display: 'block' }}>
+                          {doc.isDragActive ? 'Drop PDF file here' : 'Click to browse or drag PDF here'}
+                        </span>
+                        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', display: 'block', marginTop: '2px' }}>
+                          Supports PDF (Max 10MB)
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Add Another Document Button */}
+            <div>
+              <button
+                type="button"
+                onClick={handleAddDocument}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px dashed rgba(167, 139, 250, 0.5)',
+                  borderRadius: '12px',
+                  color: '#c4b5fd',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <span>➕</span> Add Another Document
+              </button>
+            </div>
+
+            <div style={{ paddingTop: '8px' }}>
               <button
                 type="submit"
-                disabled={status === 'loading' || !file}
-                style={btnPrimaryStyle}
+                disabled={status === 'loading' || documents.some(d => !d.file)}
+                style={{
+                  ...btnPrimaryStyle,
+                  opacity: documents.some(d => !d.file) ? 0.5 : 1,
+                  cursor: documents.some(d => !d.file) ? 'not-allowed' : 'pointer'
+                }}
               >
-                {status === 'loading' ? 'Calculating words...' : '🔍 Get Instant Quote'}
+                {status === 'loading' ? 'Calculating words & price...' : '🔍 Get Instant Quote'}
               </button>
             </div>
           </form>
@@ -889,9 +1023,11 @@ const SwornTranslationForm = () => {
 
           {status === 'success' && quote && (
             <div style={successCardStyle}>
-              <h3 style={{ color: '#fff', fontSize: '15px', fontWeight: 700, margin: '0 0 16px', textAlign: 'center' }}>
-                📊 Your Estimated Quote
+              <h3 style={{ color: '#fff', fontSize: '16px', fontWeight: 700, margin: '0 0 16px', textAlign: 'center' }}>
+                📊 Your Sworn Translation Quote
               </h3>
+
+              {/* Translation Rates Reference */}
               <div style={{
                 background: 'rgba(255, 255, 255, 0.04)',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -919,31 +1055,85 @@ const SwornTranslationForm = () => {
                   )}
                 </ul>
                 <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.4)', display: 'block', marginTop: '6px' }}>
-                  * Delivery within maximum 7 working days from payment confirmation.
+                  * Official Spain Sworn certification included. Delivered within max 7 working days.
                 </span>
               </div>
 
+              {/* Itemized Document Breakdown */}
+              {quote.documents && quote.documents.length > 0 && (
+                <div style={{ marginBottom: '16px' }}>
+                  <span style={{ ...labelStyle, fontSize: '11px', color: '#cbd5e1', marginBottom: '8px' }}>
+                    Itemized Documents Breakdown:
+                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {quote.documents.map((doc, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          borderRadius: '10px',
+                          padding: '10px 14px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          fontSize: '12px'
+                        }}
+                      >
+                        <div style={{ minWidth: 0, flex: 1, paddingRight: '10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ color: '#fff', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {doc.name}
+                            </span>
+                            <span style={{
+                              background: 'rgba(102, 126, 234, 0.2)',
+                              color: '#a78bfa',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              fontSize: '10px',
+                              fontWeight: 600
+                            }}>
+                              {doc.category || 'Document'}
+                            </span>
+                          </div>
+                          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', display: 'block', marginTop: '2px' }}>
+                            {doc.documentLanguage || doc.sourceLanguage} ➔ Spanish · {doc.wordCount} words (@€{Number(doc.rate || 0.15).toFixed(2)}/word)
+                          </span>
+                        </div>
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <span style={{ color: '#38ef7d', fontWeight: 700, fontSize: '14px' }}>
+                            €{Number(doc.estimatedPrice || doc.subtotal || 0).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Total Summary Cards */}
               {(() => {
                 const subtotal = quote.subtotal ? Number(quote.subtotal) : Number((quote.estimatedPrice / 1.05).toFixed(2));
                 const vat = quote.vat ? Number(quote.vat) : Number((quote.estimatedPrice - subtotal).toFixed(2));
                 const total = quote.estimatedPrice ? Number(quote.estimatedPrice) : Number((subtotal + vat).toFixed(2));
+                const words = quote.totalWordCount || quote.wordCount || 0;
 
                 return (
                   <>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '12px' }}>
-                      <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                        <span style={{ display: 'block', color: 'rgba(255,255,255,0.5)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>Word Count</span>
-                        <span style={{ color: '#fff', fontSize: '18px', fontWeight: 800 }}>{quote.wordCount} words</span>
+                      <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <span style={{ display: 'block', color: 'rgba(255,255,255,0.5)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>Total Word Count</span>
+                        <span style={{ color: '#fff', fontSize: '20px', fontWeight: 800 }}>{words} words</span>
                       </div>
-                      <div style={{ textAlign: 'center', background: 'rgba(56, 239, 125, 0.06)', padding: '12px', borderRadius: '10px', border: '1px solid rgba(56, 239, 125, 0.2)' }}>
+                      <div style={{ textAlign: 'center', background: 'rgba(56, 239, 125, 0.06)', padding: '14px', borderRadius: '10px', border: '1px solid rgba(56, 239, 125, 0.2)' }}>
                         <span style={{ display: 'block', color: 'rgba(56, 239, 125, 0.7)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>Total Incl. 5% VAT</span>
-                        <span style={{ color: '#38ef7d', fontSize: '18px', fontWeight: 800 }}>
+                        <span style={{ color: '#38ef7d', fontSize: '20px', fontWeight: 800 }}>
                           {new Intl.NumberFormat('en-IE', { style: 'currency', currency: quote.currency || 'EUR' }).format(total)}
                         </span>
                       </div>
                     </div>
 
-                    {/* VAT Breakdown */}
+                    {/* Subtotal & VAT Breakdown */}
                     <div style={{
                       background: 'rgba(255, 255, 255, 0.02)',
                       border: '1px solid rgba(255, 255, 255, 0.06)',
@@ -956,7 +1146,7 @@ const SwornTranslationForm = () => {
                       justifyContent: 'space-between'
                     }}>
                       <span>Subtotal: <strong>€{subtotal.toFixed(2)}</strong></span>
-                      <span>+ 5% VAT: <strong>€{vat.toFixed(2)}</strong></span>
+                      <span>+ 5% Official VAT: <strong>€{vat.toFixed(2)}</strong></span>
                     </div>
                   </>
                 );
@@ -1010,7 +1200,7 @@ const SwornTranslationForm = () => {
   );
 };
 
-// ── Theme Style Definitions (Twin to Intake Form) ──
+// ── Theme Style Definitions ──
 const wrapperStyle = {
   minHeight: '100vh',
   background: 'linear-gradient(135deg, #0f0c29, #302b63, #24243e)',
@@ -1026,7 +1216,7 @@ const cardStyle = {
   backdropFilter: 'blur(20px)',
   border: '1px solid rgba(255,255,255,0.12)',
   borderRadius: '20px',
-  padding: '36px',
+  padding: '32px',
   boxShadow: '0 25px 50px rgba(0,0,0,0.4)',
   boxSizing: 'border-box'
 };

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import dayjs from "dayjs";
 import { getServicesForCountry, ALL_COUNTRIES } from "../../constants/countryServices";
+import { NATIONALITIES } from "../../constants/nationalities";
 import { getAvailableTimeSlots, getHolidayInfo } from "../../utils/bookingTimeSlots";
 import { dbService } from "../../services/dbService";
 
@@ -75,50 +76,6 @@ const LANGUAGES = [
   { value: "Basque", label: "Basque 🇪🇸" },
   { value: "Galician", label: "Galician 🇪🇸" },
   { value: "Other", label: "Other Language 🌐" }
-];
-
-const NATIONALITIES = [
-  "Pakistani",
-  "Indian",
-  "Bangladeshi",
-  "Egyptian",
-  "Moroccan",
-  "Algerian",
-  "Saudi Arabian",
-  "Emirati",
-  "Nigerian",
-  "British",
-  "American",
-  "Canadian",
-  "Filipino",
-  "Indonesian",
-  "Syrian",
-  "Lebanese",
-  "Jordanian",
-  "Yemeni",
-  "Other",
-];
-
-const COUNTRIES = [
-  "United Arab Emirates",
-  "Spain",
-  "Pakistan",
-  "India",
-  "Saudi Arabia",
-  "United Kingdom",
-  "United States",
-  "Canada",
-  "Egypt",
-  "Morocco",
-  "Algerian",
-  "Bangladesh",
-  "Philippines",
-  "Indonesia",
-  "Syria",
-  "Lebanon",
-  "Jordan",
-  "Yemen",
-  "Other"
 ];
 
 const COUNTRY_CODES = [

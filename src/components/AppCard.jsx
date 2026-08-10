@@ -54,7 +54,7 @@ export const AppCard = ({
         </>
       )}
       <CardContent
-        className={`flex-grow flex flex-col min-w-0 overflow-hidden ${noPadding ? 'p-0!' : 'p-2! pb-4!'}`}
+        className={`flex-grow flex flex-col min-w-0 ${noPadding ? 'p-0!' : 'p-2! pb-4!'}`}
       >
         {children}
       </CardContent>

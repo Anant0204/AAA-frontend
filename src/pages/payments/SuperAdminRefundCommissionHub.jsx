@@ -46,6 +46,7 @@ import PageHeader from '../../components/PageHeader';
 import AppModal from '../../components/AppModal';
 import { useAlert } from '../../contexts/AlertContext';
 import useAuth from '../../hooks/useAuth';
+import { validateIBAN, normalizeIBAN, maskIBAN } from '../../utils/ibanValidator';
 
 export const SuperAdminRefundCommissionHub = () => {
   const [tabValue, setTabValue] = useState(0);
@@ -178,13 +179,23 @@ export const SuperAdminRefundCommissionHub = () => {
       }
     }
 
+    let normalizedIban = undefined;
+    if (refundBankIban && refundBankIban.trim()) {
+      const ibanCheck = validateIBAN(refundBankIban);
+      if (!ibanCheck.valid) {
+        showAlert(`Invalid IBAN: ${ibanCheck.error || 'Please provide a valid IBAN'}`, 'error');
+        return;
+      }
+      normalizedIban = ibanCheck.normalizedIBAN;
+    }
+
     createRefundMutation.mutate({
       clientId: selectedClientId,
       category: refundCategory,
       reason: refundReason,
       amount: refundCategory === 'Visa Rejection' ? undefined : Number(refundAmount),
       bankAccountName: refundBankName || undefined,
-      bankIban: refundBankIban || undefined,
+      bankIban: normalizedIban,
       bankSwift: refundBankSwift || undefined,
       proofUrl: proofUrl || undefined
     });
@@ -579,14 +590,37 @@ export const SuperAdminRefundCommissionHub = () => {
             onChange={(e) => setRefundBankName(e.target.value)}
           />
 
-          <TextField
-            label="IBAN / Account Number (Optional)"
-            fullWidth
-            size="small"
-            placeholder="e.g. ES91 2100 0418 4502 0005 1332"
-            value={refundBankIban}
-            onChange={(e) => setRefundBankIban(e.target.value)}
-          />
+          {(() => {
+            const ibanCheck = validateIBAN(refundBankIban);
+            const isTouched = Boolean(refundBankIban && refundBankIban.trim().length > 0);
+            const isValid = ibanCheck.valid;
+
+            return (
+              <TextField
+                label="IBAN (International Bank Account Number)"
+                fullWidth
+                size="small"
+                placeholder="e.g. ES91 2100 0418 4502 0005 1332"
+                value={refundBankIban}
+                onChange={(e) => {
+                  const clean = e.target.value.toUpperCase().replace(/[^A-Z0-9\s]/g, '');
+                  setRefundBankIban(clean);
+                }}
+                error={isTouched && !isValid}
+                helperText={
+                  isTouched ? (
+                    isValid ? (
+                      <span style={{ color: '#16A34A', fontWeight: 700 }}>✓ Valid IBAN ({ibanCheck.countryCode})</span>
+                    ) : (
+                      <span style={{ color: '#DC2626', fontWeight: 600 }}>✕ {ibanCheck.error || 'Please enter a valid IBAN'}</span>
+                    )
+                  ) : (
+                    'Optional for manual payout. Validated via ISO MOD-97.'
+                  )
+                }
+              />
+            );
+          })()}
 
           <TextField
             label="Reason for Refund"
@@ -785,8 +819,8 @@ export const SuperAdminRefundCommissionHub = () => {
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block', mb: 0.5 }}>
                   Client Bank Payout Details:
                 </Typography>
-                <Typography variant="caption" display="block">Name: <strong>{activeAuditRefund.bankAccountName}</strong></Typography>
-                <Typography variant="caption" display="block">IBAN: <strong>{activeAuditRefund.bankIban}</strong></Typography>
+                <Typography variant="caption" display="block">Name: <strong>{activeAuditRefund.bankAccountName || 'N/A'}</strong></Typography>
+                <Typography variant="caption" display="block">IBAN: <strong style={{ fontFamily: 'monospace', letterSpacing: '0.5px' }}>{maskIBAN(activeAuditRefund.bankIban)}</strong></Typography>
               </Box>
             )}
 

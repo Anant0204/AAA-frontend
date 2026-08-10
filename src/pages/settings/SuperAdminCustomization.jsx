@@ -477,7 +477,11 @@ export const SuperAdminCustomization = () => {
   const currentBookingWindows = (() => {
     const flow = localSettings?.flowAutomationSettings || {};
     if (Array.isArray(flow.bookingWindows) && flow.bookingWindows.length > 0) {
-      return flow.bookingWindows;
+      return flow.bookingWindows.map(w => ({
+        date: w.date || dayjs().format('YYYY-MM-DD'),
+        startTime: w.startTime || '09:00',
+        endTime: w.endTime || '18:00'
+      }));
     }
     return [{
       date: dayjs().format('YYYY-MM-DD'),
@@ -555,33 +559,36 @@ export const SuperAdminCustomization = () => {
     }
     for (let i = 0; i < windows.length; i++) {
       const win = windows[i];
-      if (!win.date) {
+      const winDate = win.date || dayjs().format('YYYY-MM-DD');
+      const dateDisplay = dayjs(winDate).isValid() ? dayjs(winDate).format('DD/MM/YYYY') : winDate;
+      if (!winDate) {
         return `Window ${i + 1} must have a valid date selected.`;
       }
       if (!win.startTime || !win.endTime) {
-        return `Window ${i + 1} (${win.date}) has invalid or empty time values.`;
+        return `Window ${i + 1} (${dateDisplay}) has invalid or empty time values.`;
       }
       const startMins = parseTimeMins(win.startTime);
       const endMins = parseTimeMins(win.endTime);
       if (startMins >= endMins) {
-        return `Window ${i + 1} (${win.date}): Start time (${win.startTime}) must be strictly before End time (${win.endTime}).`;
+        return `Window ${i + 1} (${dateDisplay}): Start time (${win.startTime}) must be strictly before End time (${win.endTime}).`;
       }
     }
 
     const windowsByDate = {};
     windows.forEach((win) => {
-      const dateKey = win.date || win.day || 'Everyday';
+      const dateKey = win.date || win.day || dayjs().format('YYYY-MM-DD');
       if (!windowsByDate[dateKey]) windowsByDate[dateKey] = [];
       windowsByDate[dateKey].push(win);
     });
 
     for (const [dateKey, dateWins] of Object.entries(windowsByDate)) {
       const sorted = [...dateWins].sort((a, b) => parseTimeMins(a.startTime) - parseTimeMins(b.startTime));
+      const dateDisplay = dayjs(dateKey).isValid() ? dayjs(dateKey).format('DD/MM/YYYY') : dateKey;
       for (let i = 1; i < sorted.length; i++) {
         const prev = sorted[i - 1];
         const curr = sorted[i];
         if (parseTimeMins(curr.startTime) < parseTimeMins(prev.endTime)) {
-          return `[Date ${dateKey}] Window (${curr.startTime} – ${curr.endTime}) overlaps with Window (${prev.startTime} – ${prev.endTime}).`;
+          return `[Date ${dateDisplay}] Window (${curr.startTime} – ${curr.endTime}) overlaps with Window (${prev.startTime} – ${prev.endTime}).`;
         }
       }
     }
@@ -2154,15 +2161,54 @@ export const SuperAdminCustomization = () => {
                           sx={{ fontWeight: 700, backgroundColor: '#e0e7ff', color: '#4338ca', minWidth: 90 }}
                         />
 
-                        <TextField
-                          type="date"
-                          label="Booking Date"
-                          value={win.date || dayjs().format('YYYY-MM-DD')}
-                          onChange={(e) => handleUpdateBookingWindow(idx, 'date', e.target.value)}
-                          size="small"
-                          sx={{ minWidth: 165, fontWeight: 700 }}
-                          InputLabelProps={{ shrink: true }}
-                        />
+                        <Box sx={{ position: 'relative', minWidth: 175 }}>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, display: 'block', mb: 0.5 }}>
+                            Booking Date (DD/MM/YYYY)
+                          </Typography>
+                          <Box
+                            sx={{
+                              p: '8px 12px',
+                              borderRadius: '8px',
+                              border: '1px solid #cbd5e1',
+                              bgcolor: '#ffffff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              cursor: 'pointer',
+                              fontSize: '0.875rem',
+                              fontWeight: 700,
+                              color: '#0f172a',
+                              height: '40px'
+                            }}
+                          >
+                            <span>
+                              {win.date && dayjs(win.date).isValid()
+                                ? dayjs(win.date).format('DD/MM/YYYY')
+                                : dayjs().format('DD/MM/YYYY')}
+                            </span>
+                            <span style={{ fontSize: '14px', opacity: 0.7 }}>📅</span>
+                          </Box>
+                          <input
+                            type="date"
+                            value={win.date && dayjs(win.date).isValid() ? dayjs(win.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD')}
+                            onClick={(e) => {
+                              if (e.target.showPicker) {
+                                try { e.target.showPicker(); } catch (err) {}
+                              }
+                            }}
+                            onChange={(e) => handleUpdateBookingWindow(idx, 'date', e.target.value)}
+                            style={{
+                              position: 'absolute',
+                              bottom: 0,
+                              left: 0,
+                              width: '100%',
+                              height: '40px',
+                              opacity: 0,
+                              cursor: 'pointer',
+                              zIndex: 2
+                            }}
+                          />
+                        </Box>
 
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
                           <TextField

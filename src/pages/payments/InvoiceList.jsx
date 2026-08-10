@@ -188,8 +188,34 @@ export const InvoiceList = () => {
       id: 'total',
       label: 'Grand Total',
       render: (row) => `€${row.amount - row.discount}` },
-    { id: 'billingDate', label: 'Billing Date', sortable: true },
-    { id: 'dueDate', label: 'Due Date', sortable: true },
+    {
+      id: 'billingDate',
+      label: 'Billing Date',
+      sortable: true,
+      render: (row) => {
+        if (!row.billingDate) return 'N/A';
+        try {
+          const d = new Date(row.billingDate);
+          return isNaN(d.getTime()) ? String(row.billingDate).split('T')[0] : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        } catch (e) {
+          return String(row.billingDate).split('T')[0];
+        }
+      }
+    },
+    {
+      id: 'dueDate',
+      label: 'Due Date',
+      sortable: true,
+      render: (row) => {
+        if (!row.dueDate) return 'N/A';
+        try {
+          const d = new Date(row.dueDate);
+          return isNaN(d.getTime()) ? String(row.dueDate).split('T')[0] : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        } catch (e) {
+          return String(row.dueDate).split('T')[0];
+        }
+      }
+    },
     { id: 'status', label: 'Payment Status', sortable: true },
   ];
 

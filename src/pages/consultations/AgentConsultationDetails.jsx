@@ -309,12 +309,12 @@ export const AgentConsultationDetails = () => {
         }
       />
 
-      <Box className="grid grid-cols-12 gap-2">
+      <Box className="grid grid-cols-12 gap-3 items-start">
         {/* Left pane: Details */}
-        <Box className="col-span-12 md:col-span-7 flex flex-col h-full">
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, height: '100%' }}>
+        <Box className="col-span-12 md:col-span-7 flex flex-col">
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {/* Session Info */}
-            <AppCard title="Session Details">
+            <AppCard title="Session Details" sx={{ height: 'auto' }}>
               <Box className="grid grid-cols-12 gap-2">
                 <Box className="col-span-12 sm:col-span-6">
                   <Typography variant="caption" color="text.secondary">Client / Lead Name</Typography>
@@ -371,7 +371,7 @@ export const AgentConsultationDetails = () => {
 
             {/* Recording Section */}
             {cons.status === 'Completed' && (
-              <AppCard title="Automated Meeting Recording (Zoom Cloud)">
+              <AppCard title="Automated Meeting Recording (Zoom Cloud)" sx={{ height: 'auto' }}>
                 {cons.recordingUrl ? (
                   cons.recordingUrl.includes('zoom.us') || cons.recordingUrl.includes('zoom.com') ? (
                     /* Zoom Cloud playback page (Opens in new tab) */
@@ -481,27 +481,50 @@ export const AgentConsultationDetails = () => {
             )}
 
             {/* Outcome and notes section */}
-            {cons.status === 'Completed' && cons.outcome && (
-              <AppCard title="Meeting Assessment Outcome">
+            {cons.status === 'Completed' && (cons.outcome || cons.internalNotes || cons.notes) && (
+              <AppCard title="Meeting Assessment Outcome" sx={{ height: 'auto' }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">Client Requested Service</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                      {cons.outcome.clientRequestedService}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">AAA Recommended Visa Pathway</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 600, color: 'secondary.main' }}>
-                      {cons.outcome.aaaRecommendedService}
-                    </Typography>
-                  </Box>
+                  {cons.outcome?.clientRequestedService && (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">Client Requested Service</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                        {cons.outcome.clientRequestedService}
+                      </Typography>
+                    </Box>
+                  )}
+                  {cons.outcome?.aaaRecommendedService && (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">AAA Recommended Visa Pathway</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, color: 'secondary.main' }}>
+                        {cons.outcome.aaaRecommendedService}
+                      </Typography>
+                    </Box>
+                  )}
                   <Divider />
                   <Box>
-                    <Typography variant="caption" color="text.secondary">Agent Notes & Recommendations</Typography>
-                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', bgcolor: 'background.neutral', p: 2, borderRadius: 2, mt: 0.5 }}>
-                      {cons.notes || 'No recommendations logged.'}
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block', mb: 0.5 }}>
+                      Agent Notes & Recommendations
                     </Typography>
+                    <Box
+                      sx={{
+                        whiteSpace: 'pre-wrap',
+                        bgcolor: '#F8FAFC',
+                        border: '1px solid #E2E8F0',
+                        p: 2,
+                        borderRadius: 2,
+                        mt: 0.5,
+                        color: '#0F172A',
+                        fontSize: '0.875rem',
+                        lineHeight: 1.6,
+                        fontWeight: 500
+                      }}
+                    >
+                      {cons.notes || cons.internalNotes || cons.outcome?.notes || cons.outcome?.agentNotes || cons.lead?.notes || (
+                        <span style={{ fontStyle: 'italic', color: '#94A3B8' }}>
+                          No recommendations or notes logged for this session.
+                        </span>
+                      )}
+                    </Box>
                   </Box>
                 </Box>
               </AppCard>
@@ -510,8 +533,8 @@ export const AgentConsultationDetails = () => {
         </Box>
 
         {/* Right pane: Host profile */}
-        <Box className="col-span-12 md:col-span-5 flex flex-col h-full">
-          <AppCard title="Assigned Spain Visa Expert">
+        <Box className="col-span-12 md:col-span-5 flex flex-col">
+          <AppCard title="Assigned Spain Visa Expert" sx={{ height: 'auto' }}>
             {consultant ? (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', py: 1, minWidth: 0, width: '100%' }}>
                 <Avatar src={consultant.avatar} sx={{ width: 64, height: 64, mb: 1, flexShrink: 0 }} />

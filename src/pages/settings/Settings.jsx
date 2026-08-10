@@ -198,19 +198,21 @@ export const Settings = () => {
     return currentUser.role === 'admin';
   };
 
-  const handleSaveTranslationRates = () => {
+  const handleSaveTranslationRates = async () => {
     if (!canEditRates()) {
       showAlert('You do not have permission to modify sworn translation rates.', 'error');
       return;
     }
-    updateGeneralSettingsMutation.mutate({
-      ...generalSettings,
-      swornTranslationRates: ratesForm
-    }, {
-      onSuccess: () => {
-        showAlert('Sworn translation per-word rates updated successfully!', 'success');
-      }
-    });
+    try {
+      await dbService.updateSettings({
+        ...generalSettings,
+        swornTranslationRates: ratesForm
+      });
+      queryClient.invalidateQueries({ queryKey: ['settings-general'] });
+      showAlert('Sworn translation languages & per-word rates saved successfully! These are now live on the client quote form.', 'success');
+    } catch (err) {
+      showAlert(err.response?.data?.message || 'Failed to save translation rates.', 'error');
+    }
   };
 
   const { data: services = [] } = useQuery({

@@ -207,8 +207,7 @@ export const ALL_COUNTRIES = [
   "Vietnam",
   "Yemen",
   "Zambia",
-  "Zimbabwe",
-  "Other"
+  "Zimbabwe"
 ];
 
 export const COUNTRY_SERVICES_MAPPING = {
