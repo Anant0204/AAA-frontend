@@ -47,6 +47,20 @@ import AppModal from '../../components/AppModal';
 import { useAlert } from '../../contexts/AlertContext';
 import useAuth from '../../hooks/useAuth';
 import { validateIBAN, normalizeIBAN, maskIBAN } from '../../utils/ibanValidator';
+const formatDateDDMMYYYY = (dateStr) => {
+  if (!dateStr) return 'N/A';
+  try {
+    if (typeof dateStr === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) return dateStr;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return String(dateStr);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch (e) {
+    return String(dateStr);
+  }
+};
 
 export const SuperAdminRefundCommissionHub = () => {
   const [tabValue, setTabValue] = useState(0);
@@ -432,7 +446,7 @@ export const SuperAdminRefundCommissionHub = () => {
                           <Chip label={ref.category} variant="outlined" color={ref.category === 'Visa Rejection' ? 'error' : 'default'} size="small" sx={{ fontWeight: 700 }} />
                         </TableCell>
                         <TableCell sx={{ fontWeight: 700, color: 'error.main' }}>€{ref.amount.toLocaleString()}</TableCell>
-                        <TableCell>{ref.date}</TableCell>
+                        <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{formatDateDDMMYYYY(ref.date || ref.createdAt)}</TableCell>
                         <TableCell>
                           <Chip
                             label={ref.status}
