@@ -314,9 +314,9 @@ export const SuperAdminRefundCommissionHub = () => {
                           <Chip label={agent.structure} color="primary" variant="outlined" size="small" sx={{ fontWeight: 700 }} />
                         </TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>{agent.packagesSold}</TableCell>
-                        <TableCell sx={{ fontWeight: 600 }}>€{agent.totalEarned.toLocaleString()}</TableCell>
-                        <TableCell sx={{ color: 'success.main', fontWeight: 600 }}>€{agent.totalPaid.toLocaleString()}</TableCell>
-                        <TableCell sx={{ color: 'warning.main', fontWeight: 700 }}>€{(agent.totalEarned - agent.totalPaid).toLocaleString()}</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>€{(Number(agent.totalEarned) || 0).toLocaleString()}</TableCell>
+                        <TableCell sx={{ color: 'success.main', fontWeight: 600 }}>€{(Number(agent.totalPaid) || 0).toLocaleString()}</TableCell>
+                        <TableCell sx={{ color: 'warning.main', fontWeight: 700 }}>€{((Number(agent.totalEarned) || 0) - (Number(agent.totalPaid) || 0)).toLocaleString()}</TableCell>
                         <TableCell align="right" sx={{ display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'flex-end' }}>
                           <Tooltip title="View Rate Change History">
                             <IconButton size="small" onClick={() => handleOpenHistoryModal(agent)} sx={{ color: 'primary.main' }}>
@@ -368,10 +368,10 @@ export const SuperAdminRefundCommissionHub = () => {
                         <TableCell sx={{ fontWeight: 600 }}>{row.paymentId}</TableCell>
                         <TableCell>{row.clientName}</TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>{row.agentName}</TableCell>
-                        <TableCell>€{row.amountPaid.toLocaleString()}</TableCell>
+                        <TableCell>€{(Number(row.amountPaid) || 0).toLocaleString()}</TableCell>
                         <TableCell>{row.structure}</TableCell>
                         <TableCell sx={{ fontWeight: 700, color: 'secondary.main' }}>
-                          €{row.commissionEarned.toLocaleString()}
+                          €{(Number(row.commissionEarned) || 0).toLocaleString()}
                         </TableCell>
                         <TableCell>
                           {row.commissionPending === 0 ? (
@@ -445,7 +445,7 @@ export const SuperAdminRefundCommissionHub = () => {
                         <TableCell>
                           <Chip label={ref.category} variant="outlined" color={ref.category === 'Visa Rejection' ? 'error' : 'default'} size="small" sx={{ fontWeight: 700 }} />
                         </TableCell>
-                        <TableCell sx={{ fontWeight: 700, color: 'error.main' }}>€{ref.amount.toLocaleString()}</TableCell>
+                        <TableCell sx={{ fontWeight: 700, color: 'error.main' }}>€{(Number(ref.amount) || 0).toLocaleString()}</TableCell>
                         <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{formatDateDDMMYYYY(ref.date || ref.createdAt)}</TableCell>
                         <TableCell>
                           <Chip
@@ -860,7 +860,7 @@ export const SuperAdminRefundCommissionHub = () => {
             {activeAuditRefund.status === 'Processed' && (
               <Box sx={{ p: 2.5, borderRadius: 3, bgcolor: '#DCFCE7', border: '1px solid #16A34A', textAlign: 'center', my: 2 }}>
                 <Typography variant="h6" sx={{ fontWeight: 900, color: '#15803D', fontFamily: 'Outfit, sans-serif' }}>
-                  ✅ REFUND PROCESSED SUCCESSFULLY (€{activeAuditRefund.amount.toLocaleString()})
+                  ✅ REFUND PROCESSED SUCCESSFULLY (€{(Number(activeAuditRefund?.amount) || 0).toLocaleString()})
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#166534', fontWeight: 600, mt: 0.5 }}>
                   Payment Method: <strong>{activeAuditRefund.payoutMethod || 'Stripe Automatic'}</strong> | Ref / UTR: <code>{activeAuditRefund.transactionRef}</code>
@@ -886,7 +886,7 @@ export const SuperAdminRefundCommissionHub = () => {
                     const requireConfirm = userRoleActions?.requireDoubleConfirmation !== false;
 
                     return (
-                      <Grid item xs={12}>
+                      <Grid xs={12}>
                         <Paper
                           variant="outlined"
                           sx={{
@@ -910,7 +910,7 @@ export const SuperAdminRefundCommissionHub = () => {
                             size="large"
                             disabled={updateRefundStatusMutation.isPending || activeAuditRefund?.status === 'Processed'}
                             onClick={() => {
-                              const finalAmt = Number(auditAmount) || activeAuditRefund.amount;
+                              const finalAmt = Number(auditAmount) || Number(activeAuditRefund?.amount) || 0;
                               const payoutPayload = {
                                 refundId: activeAuditRefund.id,
                                 status: 'Processed',
@@ -930,7 +930,7 @@ export const SuperAdminRefundCommissionHub = () => {
                             }}
                             sx={{ fontWeight: 800, py: 1.3 }}
                           >
-                            {activeAuditRefund?.status === 'Processed' ? '🔒 Refund Payout Completed' : `⚡ Process Refund Payout (€${(Number(auditAmount) || activeAuditRefund.amount).toLocaleString()})`}
+                            {activeAuditRefund?.status === 'Processed' ? '🔒 Refund Payout Completed' : `⚡ Process Refund Payout (€${(Number(auditAmount) || Number(activeAuditRefund?.amount) || 0).toLocaleString()})`}
                           </Button>
                         </Paper>
                       </Grid>
@@ -948,7 +948,7 @@ export const SuperAdminRefundCommissionHub = () => {
                   placeholder="Internal audit observations..."
                   value={auditNotes}
                   onChange={(e) => setAuditNotes(e.target.value)}
-                  sx={{ mt: 1 }}
+                  sx={{ bgcolor: 'white', borderRadius: 1 }}
                 />
 
                 <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', mt: 1 }}>
@@ -996,7 +996,7 @@ export const SuperAdminRefundCommissionHub = () => {
                 Financial Transfer Warning
               </Typography>
               <Typography variant="body2" sx={{ color: '#B91C1C', lineHeight: 1.5 }}>
-                Are you sure you want to execute a refund payout of <strong style={{ fontSize: '1.1rem' }}>€{pendingPayoutAction.amount?.toLocaleString()}</strong> to Client <strong>{pendingPayoutAction.clientName}</strong>?
+                Are you sure you want to execute a refund payout of <strong style={{ fontSize: '1.1rem' }}>€{(Number(pendingPayoutAction.amount) || 0).toLocaleString()}</strong> to Client <strong>{pendingPayoutAction.clientName}</strong>?
               </Typography>
               <Typography variant="caption" sx={{ color: '#7F1D1D', display: 'block', mt: 1, fontWeight: 600 }}>
                 Payout Method: {pendingPayoutAction.payoutMethod} | Ref / UTR: {pendingPayoutAction.transactionRef}
