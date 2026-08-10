@@ -617,7 +617,7 @@ export const SuperAdminRefundCommissionHub = () => {
                         <TableCell>
                           <Chip label={ref.category} variant="outlined" color={ref.category === 'Visa Rejection' ? 'error' : 'default'} size="small" sx={{ fontWeight: 700 }} />
                         </TableCell>
-                        <TableCell sx={{ fontWeight: 700, color: 'error.main' }}>€{ref.amount.toLocaleString()}</TableCell>
+                        <TableCell sx={{ fontWeight: 700, color: 'error.main' }}>€{(Number(ref.amount) || 0).toLocaleString()}</TableCell>
                         <TableCell>{ref.date}</TableCell>
                         <TableCell>
                           <Chip
@@ -993,7 +993,7 @@ export const SuperAdminRefundCommissionHub = () => {
             {activeAuditRefund.status === 'Processed' && (
               <Box sx={{ p: 2.5, borderRadius: 3, bgcolor: '#DCFCE7', border: '1px solid #16A34A', textAlign: 'center', my: 2 }}>
                 <Typography variant="h6" sx={{ fontWeight: 900, color: '#15803D', fontFamily: 'Outfit, sans-serif' }}>
-                  ✅ REFUND PROCESSED SUCCESSFULLY (€{activeAuditRefund.amount.toLocaleString()})
+                  ✅ REFUND PROCESSED SUCCESSFULLY (€{(Number(activeAuditRefund?.amount) || 0).toLocaleString()})
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#166534', fontWeight: 600, mt: 0.5 }}>
                   Payment Method: <strong>{activeAuditRefund.payoutMethod || 'Stripe Automatic'}</strong> | Ref / UTR: <code>{activeAuditRefund.transactionRef}</code>
@@ -1043,7 +1043,7 @@ export const SuperAdminRefundCommissionHub = () => {
                             size="large"
                             disabled={updateRefundStatusMutation.isPending || activeAuditRefund?.status === 'Processed'}
                             onClick={() => {
-                              const finalAmt = Number(auditAmount) || activeAuditRefund.amount;
+                              const finalAmt = Number(auditAmount) || activeAuditRefund?.amount || 0;
                               const payoutPayload = {
                                 refundId: activeAuditRefund.id,
                                 status: 'Processed',
@@ -1063,7 +1063,7 @@ export const SuperAdminRefundCommissionHub = () => {
                             }}
                             sx={{ fontWeight: 800, py: 1.3 }}
                           >
-                            {activeAuditRefund?.status === 'Processed' ? '🔒 Refund Payout Completed' : `⚡ Process Refund Payout (€${(Number(auditAmount) || activeAuditRefund.amount).toLocaleString()})`}
+                            {activeAuditRefund?.status === 'Processed' ? '🔒 Refund Payout Completed' : `⚡ Process Refund Payout (€${(Number(auditAmount) || Number(activeAuditRefund?.amount) || 0).toLocaleString()})`}
                           </Button>
                         </Paper>
                       </Grid>
@@ -1129,7 +1129,7 @@ export const SuperAdminRefundCommissionHub = () => {
                 Financial Transfer Warning
               </Typography>
               <Typography variant="body2" sx={{ color: '#B91C1C', lineHeight: 1.5 }}>
-                Are you sure you want to execute a refund payout of <strong style={{ fontSize: '1.1rem' }}>€{pendingPayoutAction.amount?.toLocaleString()}</strong> to Client <strong>{pendingPayoutAction.clientName}</strong>?
+                Are you sure you want to execute a refund payout of <strong style={{ fontSize: '1.1rem' }}>€{(Number(pendingPayoutAction?.amount) || 0).toLocaleString()}</strong> to Client <strong>{pendingPayoutAction.clientName}</strong>?
               </Typography>
               <Typography variant="caption" sx={{ color: '#7F1D1D', display: 'block', mt: 1, fontWeight: 600 }}>
                 Payout Method: {pendingPayoutAction.payoutMethod} | Ref / UTR: {pendingPayoutAction.transactionRef}
