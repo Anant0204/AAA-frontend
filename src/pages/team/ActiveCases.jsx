@@ -156,23 +156,45 @@ export const ActiveCases = () => {
     });
   };
 
+  const getApplicantsCount = (countStr) => {
+    if (!countStr || countStr === 'Main Only') return 1;
+    const numericVal = parseInt(countStr, 10);
+    if (!isNaN(numericVal) && String(numericVal) === String(countStr).trim()) {
+      return numericVal;
+    }
+    const match = String(countStr).match(/Main\s*\+\s*(\d+)/i);
+    if (match) {
+      return 1 + parseInt(match[1], 10);
+    }
+    const matchNum = String(countStr).match(/\d+/);
+    if (matchNum) {
+      return parseInt(matchNum[0], 10);
+    }
+    return 1;
+  };
+
   const getMissingDocuments = (client) => {
     if (!client) return { uploaded: [], missing: [] };
-    const serviceId = client.serviceId || 'default';
-    const requiredList = REQUIRED_DOCUMENTS[serviceId] || REQUIRED_DOCUMENTS['default'];
-
+    
+    const totalApplicants = getApplicantsCount(client.applicantsCount);
     const docs = Array.isArray(allDocuments) ? allDocuments : [];
     const uploadedDocs = docs.filter((d) => d && d.clientId === client.id);
-    const uploadedNames = uploadedDocs.map((d) => (d && d.name) ? d.name.toLowerCase() : '');
 
-    const missing = [];
-    requiredList.forEach((reqName) => {
-      const hasDoc = uploadedNames.some((upName) =>
-        upName.includes(reqName.toLowerCase()) ||
-        reqName.toLowerCase().split(' ').every((word) => upName.includes(word.replace(/[()]/g, '')))
-      );
-      if (!hasDoc) missing.push(reqName);
+    const passportDocs = uploadedDocs.filter((d) => {
+      const cat = (d.category || '').toLowerCase();
+      const name = (d.name || '').toLowerCase();
+      return cat.includes('passport') || name.includes('passport');
     });
+
+    const uploadedPassportsCount = passportDocs.length;
+    const missing = [];
+
+    for (let i = 1; i <= totalApplicants; i++) {
+      const applicantLabel = i === 1 ? 'Passport (Main Applicant)' : `Passport (Applicant ${i})`;
+      if (i > uploadedPassportsCount) {
+        missing.push(applicantLabel);
+      }
+    }
 
     return { uploaded: uploadedDocs, missing };
   };
