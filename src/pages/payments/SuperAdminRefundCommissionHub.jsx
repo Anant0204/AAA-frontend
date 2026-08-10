@@ -737,7 +737,7 @@ export const SuperAdminRefundCommissionHub = () => {
               </Box>
               <Box className="col-span-6" sx={{ mt: 1 }}>
                 <Typography variant="caption" color="text.secondary" display="block">Total Paid Fee</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 700 }}>€{(activeAuditRefund.totalPaidAmount || activeAuditRefund.amount).toLocaleString()}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>€{(Number(activeAuditRefund.totalPaidAmount) || Number(activeAuditRefund.amount) || 0).toLocaleString()}</Typography>
               </Box>
               <Box className="col-span-6" sx={{ mt: 1 }}>
                 <Typography variant="caption" color="text.secondary" display="block">Calculated Refund Default</Typography>
