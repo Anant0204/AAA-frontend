@@ -570,8 +570,7 @@ export const InvoiceDetails = () => {
             <MenuItem value="Apple Pay">Apple Pay</MenuItem>
             <MenuItem value="Google Pay">Google Pay</MenuItem>
             <MenuItem value="Link Wallet">Link Wallet</MenuItem>
-            <MenuItem value="Tabby">Tabby (UAE)</MenuItem>
-            <MenuItem value="Tamara">Tamara (UAE)</MenuItem>
+            <MenuItem value="Emirates NBD Bank">Emirates NBD Company Bank Transfer</MenuItem>
           </TextField>
 
           <TextField

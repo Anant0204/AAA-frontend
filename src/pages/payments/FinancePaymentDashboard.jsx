@@ -362,7 +362,7 @@ export const FinancePaymentDashboard = () => {
       {tabValue === 0 && (
         <Box className="grid grid-cols-12 gap-2">
           <Box className="col-span-12 md:col-span-6">
-            <ChartCard title="Revenue Share by Payment Method" subheader="Stripe, Tabby, Tamara, Visa etc.">
+            <ChartCard title="Revenue Share by Payment Method" subheader="Stripe, Emirates NBD Bank, Visa etc.">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
