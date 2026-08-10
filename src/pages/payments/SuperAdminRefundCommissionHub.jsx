@@ -218,6 +218,8 @@ export const SuperAdminRefundCommissionHub = () => {
   };
 
   // Performance calculations
+  const [refundTimeFilter, setRefundTimeFilter] = useState('daily');
+
   const getAgentPerformance = () => {
     return agents.map(agent => {
       const agentReports = commissionReport.filter(r => r.agentId === agent.id);
@@ -237,6 +239,60 @@ export const SuperAdminRefundCommissionHub = () => {
   };
 
   const agentPerformance = getAgentPerformance();
+
+  const getDateStr = (val) => {
+    if (!val) return '';
+    if (typeof val === 'string') return val.split('T')[0];
+    try { return new Date(val).toISOString().split('T')[0]; } catch (e) { return ''; }
+  };
+
+  const getRefundMetrics = () => {
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const monthStr = todayStr.substring(0, 7);
+    const yearStr = todayStr.substring(0, 4);
+
+    const processedRefunds = (Array.isArray(refunds) ? refunds : []).filter(
+      r => r && (r.status === 'Processed' || r.status === 'Approved')
+    );
+
+    const dailyRefunds = processedRefunds.filter(r => getDateStr(r.updatedAt || r.createdAt) === todayStr);
+    const monthlyRefunds = processedRefunds.filter(r => getDateStr(r.updatedAt || r.createdAt).startsWith(monthStr));
+    const yearlyRefunds = processedRefunds.filter(r => getDateStr(r.updatedAt || r.createdAt).startsWith(yearStr));
+
+    const dailyTotal = dailyRefunds.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+    const monthlyTotal = monthlyRefunds.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+    const yearlyTotal = yearlyRefunds.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+    const totalAllRefunds = processedRefunds.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+
+    return {
+      dailyTotal,
+      dailyCount: dailyRefunds.length,
+      monthlyTotal,
+      monthlyCount: monthlyRefunds.length,
+      yearlyTotal,
+      yearlyCount: yearlyRefunds.length,
+      totalAllRefunds,
+      totalAllCount: processedRefunds.length
+    };
+  };
+
+  const refundMetrics = getRefundMetrics();
+
+  const filteredRefunds = (Array.isArray(refunds) ? refunds : []).filter(ref => {
+    if (!ref) return false;
+    if (refundTimeFilter === 'all') return true;
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const monthStr = todayStr.substring(0, 7);
+    const yearStr = todayStr.substring(0, 4);
+    const rDate = getDateStr(ref.updatedAt || ref.createdAt);
+
+    if (refundTimeFilter === 'daily') return rDate === todayStr;
+    if (refundTimeFilter === 'monthly') return rDate.startsWith(monthStr);
+    if (refundTimeFilter === 'yearly') return rDate.startsWith(yearStr);
+    return true;
+  });
 
   return (
     <Box>
@@ -368,7 +424,147 @@ export const SuperAdminRefundCommissionHub = () => {
       {/* Tab 2: Refund Management */}
       {tabValue === 1 && (
         <Box className="grid grid-cols-12 gap-2">
-          <Box className="col-span-12" sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+          {/* Refund Period Summary Cards */}
+          <Box className="col-span-12" sx={{ mb: 1 }}>
+            <Box className="grid grid-cols-12 gap-2">
+              <Box className="col-span-12 sm:col-span-6 md:col-span-3">
+                <Paper
+                  onClick={() => setRefundTimeFilter('daily')}
+                  sx={{
+                    p: 2,
+                    borderRadius: 2.5,
+                    border: '2px solid',
+                    borderColor: refundTimeFilter === 'daily' ? 'primary.main' : 'divider',
+                    bgcolor: refundTimeFilter === 'daily' ? '#EFF6FF' : '#FFFFFF',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    📅 Daily Refunds (Today)
+                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 800, color: '#DC2626', mt: 0.5 }}>
+                    €{refundMetrics.dailyTotal.toLocaleString()}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                    {refundMetrics.dailyCount} claims processed today
+                  </Typography>
+                </Paper>
+              </Box>
+
+              <Box className="col-span-12 sm:col-span-6 md:col-span-3">
+                <Paper
+                  onClick={() => setRefundTimeFilter('monthly')}
+                  sx={{
+                    p: 2,
+                    borderRadius: 2.5,
+                    border: '2px solid',
+                    borderColor: refundTimeFilter === 'monthly' ? 'primary.main' : 'divider',
+                    bgcolor: refundTimeFilter === 'monthly' ? '#EFF6FF' : '#FFFFFF',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    🗓️ Monthly Refunds
+                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 800, color: '#B45309', mt: 0.5 }}>
+                    €{refundMetrics.monthlyTotal.toLocaleString()}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                    {refundMetrics.monthlyCount} claims processed this month
+                  </Typography>
+                </Paper>
+              </Box>
+
+              <Box className="col-span-12 sm:col-span-6 md:col-span-3">
+                <Paper
+                  onClick={() => setRefundTimeFilter('yearly')}
+                  sx={{
+                    p: 2,
+                    borderRadius: 2.5,
+                    border: '2px solid',
+                    borderColor: refundTimeFilter === 'yearly' ? 'primary.main' : 'divider',
+                    bgcolor: refundTimeFilter === 'yearly' ? '#EFF6FF' : '#FFFFFF',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    📆 Yearly Refunds
+                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 800, color: '#4F46E5', mt: 0.5 }}>
+                    €{refundMetrics.yearlyTotal.toLocaleString()}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                    {refundMetrics.yearlyCount} claims processed this year
+                  </Typography>
+                </Paper>
+              </Box>
+
+              <Box className="col-span-12 sm:col-span-6 md:col-span-3">
+                <Paper
+                  onClick={() => setRefundTimeFilter('all')}
+                  sx={{
+                    p: 2,
+                    borderRadius: 2.5,
+                    border: '2px solid',
+                    borderColor: refundTimeFilter === 'all' ? 'primary.main' : 'divider',
+                    bgcolor: refundTimeFilter === 'all' ? '#EFF6FF' : '#FFFFFF',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    📊 All Refunds Total
+                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 800, color: '#1E293B', mt: 0.5 }}>
+                    €{refundMetrics.totalAllRefunds.toLocaleString()}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                    {refundMetrics.totalAllCount} total processed refunds
+                  </Typography>
+                </Paper>
+              </Box>
+            </Box>
+          </Box>
+
+          <Box className="col-span-12" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+            <Stack direction="row" spacing={1}>
+              <Button
+                variant={refundTimeFilter === 'daily' ? 'contained' : 'outlined'}
+                size="small"
+                onClick={() => setRefundTimeFilter('daily')}
+                sx={{ borderRadius: 2, fontWeight: 700, textTransform: 'none' }}
+              >
+                📅 Daily (Today)
+              </Button>
+              <Button
+                variant={refundTimeFilter === 'monthly' ? 'contained' : 'outlined'}
+                size="small"
+                onClick={() => setRefundTimeFilter('monthly')}
+                sx={{ borderRadius: 2, fontWeight: 700, textTransform: 'none' }}
+              >
+                🗓️ Monthly
+              </Button>
+              <Button
+                variant={refundTimeFilter === 'yearly' ? 'contained' : 'outlined'}
+                size="small"
+                onClick={() => setRefundTimeFilter('yearly')}
+                sx={{ borderRadius: 2, fontWeight: 700, textTransform: 'none' }}
+              >
+                📆 Yearly
+              </Button>
+              <Button
+                variant={refundTimeFilter === 'all' ? 'contained' : 'outlined'}
+                size="small"
+                onClick={() => setRefundTimeFilter('all')}
+                sx={{ borderRadius: 2, fontWeight: 700, textTransform: 'none' }}
+              >
+                📊 All Time
+              </Button>
+            </Stack>
+
             {(['super_admin', 'admin', 'operations', 'finance'].includes(currentUser?.role) || !isViewOnly) && (
               <Button variant="contained" color="primary" onClick={() => setRefundModalOpen(true)}>
                 + Request Refund
@@ -379,7 +575,7 @@ export const SuperAdminRefundCommissionHub = () => {
           <Box className="col-span-12 md:col-span-8 flex flex-col h-full">
             <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', height: '100%' }}>
               <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
-                Refund Requests Ledger
+                Refund Requests Ledger ({refundTimeFilter.toUpperCase()})
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                 Monitor refund reviews, status approvals, and audit records. Note: Visa Rejection requests calculate 50% automatically.
@@ -400,7 +596,7 @@ export const SuperAdminRefundCommissionHub = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {refunds.map((ref) => (
+                    {filteredRefunds.map((ref) => (
                       <TableRow key={ref.id}>
                         <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
                           <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'monospace' }}>

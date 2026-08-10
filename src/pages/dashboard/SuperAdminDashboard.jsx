@@ -246,10 +246,17 @@ export const SuperAdminDashboard = () => {
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: dbService.getClients });
   const { data: consultations = [] } = useQuery({ queryKey: ['consultations'], queryFn: dbService.getConsultations });
   const { data: payments = [] } = useQuery({ queryKey: ['payments'], queryFn: dbService.getPayments });
+  const { data: refundRequests = [] } = useQuery({ queryKey: ['refundRequests'], queryFn: dbService.getRefundRequests });
   const { data: notifications = [] } = useQuery({ queryKey: ['notifications'], queryFn: dbService.getNotifications });
   const { data: agentsList = [] } = useQuery({ queryKey: ['agents'], queryFn: dbService.getAgents });
   const { data: customizationSettings } = useQuery({ queryKey: ['customization-settings'], queryFn: dbService.getCustomizationSettings });
   const isViewOnly = isViewOnlyMenu(customizationSettings, 'Dashboard');
+
+  const getDateStr = (val) => {
+    if (!val) return '';
+    if (typeof val === 'string') return val.split('T')[0];
+    try { return new Date(val).toISOString().split('T')[0]; } catch (e) { return ''; }
+  };
 
   // Dynamic Date Range Calculation
   const parseDate = (dateStr) => {
@@ -266,7 +273,30 @@ export const SuperAdminDashboard = () => {
   };
 
   const todayDateStr = new Date().toISOString().split('T')[0]; // Real current date
-  const revenueTotal = payments.filter(p => p.status === 'Paid').reduce((sum, p) => sum + (p.totalPaid || 0), 0);
+
+  // Processed Refunds Calculation
+  const processedRefundsList = (Array.isArray(refundRequests) ? refundRequests : []).filter(
+    r => r && (r.status === 'Processed' || r.status === 'Approved')
+  );
+  const totalRefundsAmount = processedRefundsList.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+  const todayRefundsAmount = processedRefundsList
+    .filter(r => getDateStr(r.updatedAt || r.createdAt) === todayDateStr)
+    .reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+
+  // Payments Collection Calculation
+  const paidPaymentsList = (Array.isArray(payments) ? payments : []).filter(
+    p => p && (p.status === 'Paid' || p.status === 'Completed')
+  );
+
+  const grossTotalRevenue = paidPaymentsList.reduce((sum, p) => sum + (Number(p.totalPaid || p.amount) || 0), 0);
+  const netTotalRevenue = Math.max(0, grossTotalRevenue - totalRefundsAmount);
+
+  const todayPaidPayments = paidPaymentsList.filter(p => {
+    const pDate = getDateStr(p.paidAt || p.paymentDate || p.billingDate || p.dueDate || p.createdAt);
+    return pDate === todayDateStr;
+  });
+  const grossTodayRevenue = todayPaidPayments.reduce((sum, p) => sum + (Number(p.totalPaid || p.amount) || 0), 0);
+  const netTodayRevenue = Math.max(0, grossTodayRevenue - todayRefundsAmount);
 
   const getPeriodRange = (startStr, endStr) => {
     // All Time mode: both empty
@@ -347,9 +377,18 @@ export const SuperAdminDashboard = () => {
   const pendingPaymentsInRange = payments.filter(p => p.status === 'Pending' && filterByDate(p.dueDate, period.start, period.end));
   const pendingPaymentsInPrevRange = period.prevStart ? payments.filter(p => p.status === 'Pending' && filterByDate(p.dueDate, period.prevStart, period.prevEnd)) : [];
 
-  // 7. Total Revenue
-  const revenueInRange = payments.filter(p => p.status === 'Paid' && filterByDate(p.paymentDate || p.dueDate, period.start, period.end)).reduce((sum, p) => sum + (p.totalPaid || 0), 0);
-  const revenueInPrevRange = period.prevStart ? payments.filter(p => p.status === 'Paid' && filterByDate(p.paymentDate || p.dueDate, period.prevStart, period.prevEnd)).reduce((sum, p) => sum + (p.totalPaid || 0), 0) : 0;
+  // 7. Total Revenue (Net after refunds)
+  const paidPmtsInRange = payments.filter(p => p && (p.status === 'Paid' || p.status === 'Completed') && filterByDate(getDateStr(p.paidAt || p.paymentDate || p.billingDate || p.dueDate || p.createdAt), period.start, period.end));
+  const refundsInRange = processedRefundsList.filter(r => filterByDate(getDateStr(r.updatedAt || r.createdAt), period.start, period.end));
+  const grossRevenueInRange = paidPmtsInRange.reduce((sum, p) => sum + (Number(p.totalPaid || p.amount) || 0), 0);
+  const refundAmtInRange = refundsInRange.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+  const revenueInRange = Math.max(0, grossRevenueInRange - refundAmtInRange);
+
+  const paidPmtsInPrev = period.prevStart ? payments.filter(p => p && (p.status === 'Paid' || p.status === 'Completed') && filterByDate(getDateStr(p.paidAt || p.paymentDate || p.billingDate || p.dueDate || p.createdAt), period.prevStart, period.prevEnd)) : [];
+  const refundsInPrev = period.prevStart ? processedRefundsList.filter(r => filterByDate(getDateStr(r.updatedAt || r.createdAt), period.prevStart, period.prevEnd)) : [];
+  const grossRevenueInPrev = paidPmtsInPrev.reduce((sum, p) => sum + (Number(p.totalPaid || p.amount) || 0), 0);
+  const refundAmtInPrev = refundsInPrev.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+  const revenueInPrevRange = Math.max(0, grossRevenueInPrev - refundAmtInPrev);
 
   // 8. Active Cases
   const activeCasesInRange = clients.filter(c => c.status === 'Under Process' && filterByDate(c.onboardingDate, period.start, period.end));
@@ -509,11 +548,11 @@ export const SuperAdminDashboard = () => {
     rate: c.conversionRate || 0
   }));
 
-  // REVENUE STATS — computed from real payments
-  const totalRevenue = payments.filter(p => p.status === 'Paid').reduce((s, p) => s + (p.totalPaid || 0), 0);
-  const revenueToday = payments.filter(p => p.status === 'Paid' && (p.paymentDate || p.dueDate || '').startsWith(todayDateStr)).reduce((s, p) => s + (p.totalPaid || 0), 0);
-  const outstandingRevenue = payments.filter(p => p.status === 'Pending').reduce((s, p) => s + (p.amount || 0), 0);
-  const refundedRevenue = payments.filter(p => p.status === 'Refunded').reduce((s, p) => s + (p.totalPaid || 0), 0);
+  // REVENUE STATS — computed from real payments & processed refunds
+  const totalRevenue = netTotalRevenue;
+  const revenueToday = netTodayRevenue;
+  const outstandingRevenue = (Array.isArray(payments) ? payments : []).filter(p => p && (p.status === 'Pending' || p.status === 'Pending Payment')).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  const refundedRevenue = totalRefundsAmount;
   const revenueStats = [
     { title: 'Total Revenue', value: `€${totalRevenue.toLocaleString()}`, icon: <AccountBalanceWalletIcon />, color: '#3F51B5', trend: null, onClick: () => navigate('/payments/invoices', { state: { filterStatus: 'Paid' } }) },
     { title: 'Revenue Today', value: `€${revenueToday.toLocaleString()}`, icon: <TrendingUpIcon />, color: '#14B8A6', trend: null, onClick: () => navigate('/payments/invoices', { state: { filterStatus: 'Paid', startDate: todayDateStr, endDate: todayDateStr } }) },

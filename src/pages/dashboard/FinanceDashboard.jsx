@@ -42,14 +42,19 @@ export const FinanceDashboard = () => {
   const navigate = useNavigate();
 
   const { data: allPayments = [] } = useQuery({ queryKey: ['payments'], queryFn: dbService.getPayments });
+  const { data: refundClaims = [] } = useQuery({ queryKey: ['refundClaims'], queryFn: dbService.getRefundRequests });
   const { data: notifications = [] } = useQuery({ queryKey: ['notifications'], queryFn: dbService.getNotifications });
   const { data: agents = [] } = useQuery({ queryKey: ['agents'], queryFn: dbService.getAgents });
 
   // Compute key stats
-  const completedPayments = allPayments.filter((p) => p.status === 'Paid');
-  const pendingPayments = allPayments.filter((p) => p.status === 'Pending');
+  const completedPayments = (Array.isArray(allPayments) ? allPayments : []).filter((p) => p && (p.status === 'Paid' || p.status === 'Completed'));
+  const pendingPayments = (Array.isArray(allPayments) ? allPayments : []).filter((p) => p && (p.status === 'Pending' || p.status === 'Pending Payment'));
 
-  const totalRevenue = completedPayments.reduce((sum, p) => sum + (p.totalPaid || 0), 0);
+  const processedRefunds = (Array.isArray(refundClaims) ? refundClaims : []).filter((r) => r && (r.status === 'Processed' || r.status === 'Approved'));
+  const totalRefundedAmount = processedRefunds.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+
+  const grossTotalRevenue = completedPayments.reduce((sum, p) => sum + (Number(p.totalPaid || p.amount) || 0), 0);
+  const totalRevenue = Math.max(0, grossTotalRevenue - totalRefundedAmount);
   const totalInvoiced = allPayments.reduce((sum, p) => sum + ((p.amount || 0) - (p.discount || 0)), 0);
   const totalPendingVal = pendingPayments.reduce((sum, p) => sum + ((p.amount || 0) - (p.discount || 0)), 0);
 

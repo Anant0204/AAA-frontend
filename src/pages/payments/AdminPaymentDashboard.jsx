@@ -88,6 +88,10 @@ export const AdminPaymentDashboard = () => {
     queryKey: ['payments'],
     queryFn: dbService.getPayments });
 
+  const { data: refundRequests = [] } = useQuery({
+    queryKey: ['refundRequests'],
+    queryFn: dbService.getRefundRequests });
+
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: dbService.getClients });
@@ -96,102 +100,86 @@ export const AdminPaymentDashboard = () => {
     queryKey: ['agents'],
     queryFn: dbService.getAgents });
 
-  // Mutations
-  const createInvoiceMutation = useMutation({
-    mutationFn: dbService.createInvoice,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments'] });
-      showAlert('Invoice generated successfully', 'success');
-      setInvoiceModalOpen(false);
-      setInvoiceForm({
-        clientId: '',
-        serviceId: 'dnv',
-        packageId: 'full_process',
-        amount: '',
-        discount: '0',
-        status: 'Pending Payment',
-        paymentMethod: '-',
-        thirdPartyPayment: 'No'
-      });
-    }
-  });
-
-  const updatePaymentStatusMutation = useMutation({
-    mutationFn: ({ id, status, method, txId }) => dbService.updatePaymentStatus(id, status, method, txId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments'] });
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
-      showAlert('Payment status updated successfully', 'success');
-    }
-  });
-
-  const backupFileMutation = useMutation({
-    mutationFn: dbService.triggerAWSBackup,
-    onSuccess: () => {
-      showAlert('Document successfully archived to secure AWS storage bucket!', 'success');
-    }
-  });
+  // Helper for ISO date parsing
+  const getDateStr = (val) => {
+    if (!val) return '';
+    if (typeof val === 'string') return val.split('T')[0];
+    try { return new Date(val).toISOString().split('T')[0]; } catch (e) { return ''; }
+  };
 
   // Calculations
   const getRevenueStats = () => {
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
-    
-    // Total paid, total refunded, total outstanding
-    let totalPaid = 0;
-    let totalRefunded = 0;
+    const monthStr = todayStr.substring(0, 7);
+    const yearStr = todayStr.substring(0, 4);
+
+    const processedRefunds = (Array.isArray(refundRequests) ? refundRequests : []).filter(
+      r => r && (r.status === 'Processed' || r.status === 'Approved')
+    );
+
+    const totalRefunded = processedRefunds.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+    const todayRefunded = processedRefunds
+      .filter(r => getDateStr(r.updatedAt || r.createdAt) === todayStr)
+      .reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+    const monthRefunded = processedRefunds
+      .filter(r => getDateStr(r.updatedAt || r.createdAt).startsWith(monthStr))
+      .reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+    const yearRefunded = processedRefunds
+      .filter(r => getDateStr(r.updatedAt || r.createdAt).startsWith(yearStr))
+      .reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+
+    let grossPaid = 0;
     let totalOutstanding = 0;
     let expectedRevenue = 0;
 
-    let revenueToday = 0;
-    let revenueThisWeek = 0;
-    let revenueThisMonth = 0;
-    let revenueThisYear = 0;
+    let grossToday = 0;
+    let grossMonth = 0;
+    let grossYear = 0;
 
     const uniquePaidClients = new Set();
 
-    payments.forEach(p => {
-      const amt = p.amount - (p.discount || 0);
+    (Array.isArray(payments) ? payments : []).forEach(p => {
+      if (!p) return;
+      const amt = Number(p.amount || 0) - Number(p.discount || 0);
       expectedRevenue += amt;
 
-      if (p.status === 'Paid') {
-        totalPaid += p.totalPaid;
+      if (p.status === 'Paid' || p.status === 'Completed') {
+        const paidVal = Number(p.totalPaid || p.amount || 0);
+        grossPaid += paidVal;
         uniquePaidClients.add(p.clientId);
 
-        const pDate = p.billingDate;
+        const pDate = getDateStr(p.paidAt || p.paymentDate || p.billingDate || p.dueDate || p.createdAt);
+
         if (pDate === todayStr) {
-          revenueToday += p.totalPaid;
+          grossToday += paidVal;
         }
-        
-        // Month / Year approximations
-        if (pDate.startsWith('2026-06')) {
-          revenueThisMonth += p.totalPaid;
+
+        if (pDate.startsWith(monthStr)) {
+          grossMonth += paidVal;
         }
-        if (pDate.startsWith('2026')) {
-          revenueThisYear += p.totalPaid;
+
+        if (pDate.startsWith(yearStr)) {
+          grossYear += paidVal;
         }
-        
-        // Simple week check (e.g. from June 20th onwards)
-        if (new Date(pDate) >= new Date('2026-06-20')) {
-          revenueThisWeek += p.totalPaid;
-        }
-      } else if (p.status === 'Refunded (50%)' || p.status === 'Refunded') {
-        totalRefunded += Math.abs(p.totalPaid || p.amount);
       } else if (p.status === 'Pending' || p.status === 'Pending Payment' || p.status === 'Overdue') {
         totalOutstanding += amt;
       }
     });
 
-    const netRevenue = totalPaid - totalRefunded;
+    const netRevenue = Math.max(0, grossPaid - totalRefunded);
+    const revenueToday = Math.max(0, grossToday - todayRefunded);
+    const revenueThisMonth = Math.max(0, grossMonth - monthRefunded);
+    const revenueThisYear = Math.max(0, grossYear - yearRefunded);
 
     return {
-      totalPaid,
+      totalPaid: netRevenue,
+      grossPaid,
       totalRefunded,
       totalOutstanding,
       expectedRevenue,
       netRevenue,
       revenueToday,
-      revenueThisWeek,
       revenueThisMonth,
       revenueThisYear,
       totalPaidClients: uniquePaidClients.size
@@ -201,17 +189,16 @@ export const AdminPaymentDashboard = () => {
   const revenueStats = getRevenueStats();
 
   const stats = [
-    { title: 'Total Collected Revenue', value: `€${revenueStats.totalPaid.toLocaleString()}`, icon: <CheckCircleIcon />, color: '#22C55E' },
+    { title: 'Total Net Revenue', value: `€${revenueStats.netRevenue.toLocaleString()}`, icon: <CheckCircleIcon />, color: '#22C55E' },
     { title: 'Expected Revenue (Gross)', value: `€${revenueStats.expectedRevenue.toLocaleString()}`, icon: <PaymentsIcon />, color: '#2563EB' },
     { title: 'Outstanding Receivables', value: `€${revenueStats.totalOutstanding.toLocaleString()}`, icon: <RequestQuoteIcon />, color: '#F59E0B' },
-    { title: 'Net Revenue (Excl. Refunds)', value: `€${revenueStats.netRevenue.toLocaleString()}`, icon: <HighlightOffIcon />, color: '#8B5CF6' }
+    { title: 'Refunded (Rejections)', value: `€${revenueStats.totalRefunded.toLocaleString()}`, icon: <HighlightOffIcon />, color: '#EF4444' }
   ];
 
   const timeStats = [
-    { label: 'Revenue Today', value: `€${revenueStats.revenueToday.toLocaleString()}` },
-    { label: 'Revenue This Week', value: `€${revenueStats.revenueThisWeek.toLocaleString()}` },
-    { label: 'Revenue This Month', value: `€${revenueStats.revenueThisMonth.toLocaleString()}` },
-    { label: 'Revenue This Year', value: `€${revenueStats.revenueThisYear.toLocaleString()}` },
+    { label: 'Revenue Today (Net)', value: `€${revenueStats.revenueToday.toLocaleString()}` },
+    { label: 'Revenue This Month (Net)', value: `€${revenueStats.revenueThisMonth.toLocaleString()}` },
+    { label: 'Revenue This Year (Net)', value: `€${revenueStats.revenueThisYear.toLocaleString()}` },
     { label: 'Total Paid Clients', value: `${revenueStats.totalPaidClients}` }
   ];
 

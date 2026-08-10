@@ -136,35 +136,51 @@ export const OperationsDashboard = () => {
   const { data: consultations = [] } = useQuery({ queryKey: ['consultations'], queryFn: dbService.getConsultations });
   const { data: payments = [] } = useQuery({ queryKey: ['payments'], queryFn: dbService.getPayments });
   const { data: notifications = [] } = useQuery({ queryKey: ['notifications'], queryFn: dbService.getNotifications });
-  const { data: agentsList = [] } = useQuery({ queryKey: ['agents'], queryFn: dbService.getAgents });
+  const { data: refundRequests = [] } = useQuery({ queryKey: ['refundRequests'], queryFn: dbService.getRefundRequests });
   const { data: customizationSettings } = useQuery({ queryKey: ['customization-settings'], queryFn: dbService.getCustomizationSettings });
   const isViewOnly = isViewOnlyMenu(customizationSettings, 'Dashboard');
 
+  const getDateStr = (val) => {
+    if (!val) return '';
+    if (typeof val === 'string') return val.split('T')[0];
+    try { return new Date(val).toISOString().split('T')[0]; } catch (e) { return ''; }
+  };
+
   // Compute key stats
   const totalLeads = leads.length;
-  const todayDateStr = '2026-06-18'; // Mock current date
+  const todayDateStr = new Date().toISOString().split('T')[0]; // Real current date
   const todayLeadsCount = leads.filter((l) => l.createdDate?.startsWith(todayDateStr)).length;
   const upcomingMeetingsCount = consultations.filter((c) => c.status === 'Scheduled').length;
-  const pendingPaymentsCount = payments.filter((p) => p.status === 'Pending').length;
+  const pendingPaymentsCount = payments.filter((p) => p.status === 'Pending' || p.status === 'Pending Payment').length;
 
-  const revenueTotal = payments
-    .filter((p) => p.status === 'Paid')
-    .reduce((sum, p) => sum + (p.totalPaid || 0), 0);
+  const processedRefundsList = (Array.isArray(refundRequests) ? refundRequests : []).filter(
+    r => r && (r.status === 'Processed' || r.status === 'Approved')
+  );
+  const totalRefundsAmount = processedRefundsList.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+  const todayRefundsAmount = processedRefundsList
+    .filter(r => getDateStr(r.updatedAt || r.createdAt) === todayDateStr)
+    .reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
 
-  // Revenue Today
-  const revenueTodayTotal = payments
-    .filter((p) => p.status === 'Paid' && (p.paymentDate || '').startsWith(todayDateStr))
-    .reduce((sum, p) => sum + (p.totalPaid || 0), 0);
+  const paidPaymentsList = (Array.isArray(payments) ? payments : []).filter(
+    p => p && (p.status === 'Paid' || p.status === 'Completed')
+  );
+  const grossTotalRevenue = paidPaymentsList.reduce((sum, p) => sum + (Number(p.totalPaid || p.amount) || 0), 0);
+  const revenueTotal = Math.max(0, grossTotalRevenue - totalRefundsAmount);
+
+  const todayPaidPayments = paidPaymentsList.filter(p => {
+    const pDate = getDateStr(p.paidAt || p.paymentDate || p.billingDate || p.dueDate || p.createdAt);
+    return pDate === todayDateStr;
+  });
+  const grossTodayRevenue = todayPaidPayments.reduce((sum, p) => sum + (Number(p.totalPaid || p.amount) || 0), 0);
+  const revenueTodayTotal = Math.max(0, grossTodayRevenue - todayRefundsAmount);
 
   // Outstanding Revenue
   const outstandingRevenue = payments
-    .filter((p) => p.status === 'Pending')
+    .filter((p) => p.status === 'Pending' || p.status === 'Pending Payment')
     .reduce((sum, p) => sum + (p.amount || p.totalPaid || 0), 0);
 
   // Refunded
-  const refundedTotal = payments
-    .filter((p) => p.status === 'Refunded' || p.status === 'Refunded (50%)')
-    .reduce((sum, p) => sum + (p.totalPaid || p.amount || 0), 0);
+  const refundedTotal = totalRefundsAmount;
 
   const activeCasesCount = clients.filter((c) => c.status === 'Under Process').length;
   const completedCasesCount = clients.filter((c) => c.status === 'Completed').length;
