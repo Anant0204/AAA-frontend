@@ -385,7 +385,18 @@ export const LeadSelfFillForm = () => {
     budget: "€100k - €250k"
   });
 
-  const availableTimeSlots = getAvailableTimeSlots(customizationSettings, form.meetingPreferredDate);
+  const { data: bookedSlotsData = [] } = useQuery({
+    queryKey: ['public-booked-slots', form.meetingPreferredDate],
+    queryFn: async () => {
+      if (!form.meetingPreferredDate) return [];
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/consultations/public-booked-slots?date=${form.meetingPreferredDate}`);
+      const data = await res.json();
+      return data.bookedSlots || [];
+    },
+    enabled: Boolean(form.meetingPreferredDate)
+  });
+
+  const availableTimeSlots = getAvailableTimeSlots(customizationSettings, form.meetingPreferredDate, bookedSlotsData);
   const holidayInfo = getHolidayInfo(customizationSettings, form.meetingPreferredDate);
 
   // Multi-Language sub-selection state

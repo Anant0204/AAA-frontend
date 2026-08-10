@@ -12,6 +12,8 @@ import Link from '@mui/material/Link';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 
+import Chip from '@mui/material/Chip';
+
 // Icons
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
@@ -177,6 +179,30 @@ export const AdminConsultationList = () => {
     }
   });
 
+  // Helper for chronological sorting
+  const getSortableTimestamp = (row) => {
+    const dStr = row.meetingDate || row.date;
+    const tStr = row.meetingTime || row.timeSlot;
+    if (!dStr) return 9999999999999;
+    let timePart = '00:00';
+    if (tStr && typeof tStr === 'string') {
+      const raw = tStr.split('-')[0].trim();
+      const match = raw.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+      if (match) {
+        let hrs = parseInt(match[1], 10);
+        const mins = parseInt(match[2], 10);
+        const ampm = match[3] ? match[3].toUpperCase() : null;
+        if (ampm === 'PM' && hrs < 12) hrs += 12;
+        if (ampm === 'AM' && hrs === 12) hrs = 0;
+        timePart = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+      }
+    }
+    const isoDate = dStr.includes('T') ? dStr.split('T')[0] : dStr;
+    const d = new Date(`${isoDate}T${timePart}:00`);
+    return isNaN(d.getTime()) ? 9999999999999 : d.getTime();
+  };
+
+  // Filters & Chronological Sorting (Earlier appointments first)
   const filteredConsultations = consultations.filter((cons) => {
     if (!filterByDate(cons.date || cons.meetingDate, startDate, endDate)) return false;
 
@@ -185,18 +211,55 @@ export const AdminConsultationList = () => {
     const matchConsultant = filters.assignedConsultantId ? cons.assignedConsultantId === filters.assignedConsultantId : true;
     const matchService = filters.serviceId ? cons.serviceId === filters.serviceId : true;
     return nameMatch && matchStatus && matchConsultant && matchService;
-  });
+  }).sort((a, b) => getSortableTimestamp(a) - getSortableTimestamp(b));
 
   const paginatedConsultations = filteredConsultations.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   const columns = [
-    { id: 'id', label: 'Meeting ID', minWidth: 100 },
-    { id: 'clientName', label: 'Client / Lead Name', sortable: true },
+    {
+      id: 'visaType',
+      label: 'Visa Type',
+      render: (row) => (
+        <Chip
+          label={row.visaType || row.serviceType || 'Spain Visa'}
+          size="small"
+          color="primary"
+          variant="outlined"
+          sx={{ fontWeight: 700, fontSize: '0.75rem' }}
+        />
+      )
+    },
+    {
+      id: 'clientName',
+      label: 'Client Name',
+      sortable: true,
+      render: (row) => <Typography sx={{ fontWeight: 700, color: '#051A3B' }}>{row.clientName}</Typography>
+    },
+    {
+      id: 'nationality',
+      label: 'Nationality',
+      render: (row) => <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155' }}>{row.nationality || 'N/A'}</Typography>
+    },
+    {
+      id: 'countryOfResidence',
+      label: 'Country of Residence',
+      render: (row) => <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155' }}>{row.countryOfResidence || 'N/A'}</Typography>
+    },
     {
       id: 'meetingDate',
       label: 'Date & Time',
       sortable: true,
-      render: (row) => `${(row.meetingDate || row.date) ? dayjs(row.meetingDate || row.date).format('DD/MM/YYYY') : 'TBD'} at ${row.meetingTime || row.timeSlot || ''} (${row.durationMinutes || 30} min)` },
+      render: (row) => (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
+          <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B' }}>
+            📅 {(row.meetingDate || row.date) ? dayjs(row.meetingDate || row.date).format('DD/MM/YYYY') : 'TBD'}
+          </Typography>
+          <Typography variant="caption" sx={{ fontWeight: 700, color: '#2563EB' }}>
+            ⏰ {row.meetingTime || row.timeSlot || ''} {row.durationMinutes ? `(${row.durationMinutes} min)` : ''}
+          </Typography>
+        </Box>
+      )
+    },
     {
       id: 'consultant',
       label: 'Assigned Agent',
@@ -235,7 +298,8 @@ export const AdminConsultationList = () => {
         }
         const c = consultantsList.find((cons) => cons.id === row.assignedConsultantId);
         return c ? c.name : 'Unknown';
-      } },
+      }
+    },
     {
       id: 'meetingLink',
       label: 'Video Meeting Link',
@@ -243,7 +307,8 @@ export const AdminConsultationList = () => {
         <Link href={row.meetingLink} target="_blank" rel="noopener noreferrer" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontWeight: 600 }}>
           <VideoCallIcon fontSize="small" /> Join Meeting
         </Link>
-      ) },
+      )
+    },
     { id: 'status', label: 'Status', sortable: true },
   ];
 

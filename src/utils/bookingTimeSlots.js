@@ -99,7 +99,7 @@ export function getHolidayInfo(customizationSettings, selectedDate) {
  * - bookingAllowedEnd (e.g. '15:00' or '03:00 PM')
  * - defaultMeetingDuration (e.g. 20 minutes)
  */
-export function getAvailableTimeSlots(customizationSettings, selectedDate) {
+export function getAvailableTimeSlots(customizationSettings, selectedDate, bookedSlots = []) {
   const flow = customizationSettings?.flowAutomationSettings || {};
   const duration = parseInt(flow.defaultMeetingDuration, 10) || 20; // Default 20 mins
 
@@ -215,6 +215,18 @@ export function getAvailableTimeSlots(customizationSettings, selectedDate) {
       });
       currentFallback += 20;
     }
+  }
+
+  if (Array.isArray(bookedSlots) && bookedSlots.length > 0) {
+    const normalizedBooked = bookedSlots.map(b => String(b || '').toLowerCase().trim());
+    return slots.filter(s => {
+      const valLower = s.value.toLowerCase().trim();
+      const short12Lower = s.short12h.toLowerCase().trim();
+      const isBooked = normalizedBooked.some(b => 
+        b.includes(valLower) || valLower.includes(b) || b.includes(short12Lower)
+      );
+      return !isBooked;
+    });
   }
 
   return slots;
