@@ -1640,9 +1640,31 @@ export const LeadSelfFillForm = () => {
                           </div>
                         </div>
                       )}
+                      {!holidayInfo && form.meetingPreferredDate && availableTimeSlots.length === 0 && (
+                        <div
+                          style={{
+                            marginTop: "10px",
+                            padding: "12px 16px",
+                            borderRadius: "10px",
+                            background: "rgba(245, 158, 11, 0.18)",
+                            border: "1px solid rgba(245, 158, 11, 0.4)",
+                            color: "#fde68a",
+                            fontSize: "13px",
+                            fontWeight: 600,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "10px"
+                          }}
+                        >
+                          <span style={{ fontSize: "18px" }}>⚠️</span>
+                          <div>
+                            <strong>No Booking Slots:</strong> No office hours configured for this date. Please select another date.
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    <div style={{ marginBottom: "14px", opacity: holidayInfo ? 0.7 : 1 }}>
+                    <div style={{ marginBottom: "14px", opacity: (holidayInfo || (form.meetingPreferredDate && availableTimeSlots.length === 0)) ? 0.7 : 1 }}>
                       <label style={labelStyle}>TIME SLOT *</label>
                       <div style={{ position: "relative", width: "100%" }}>
                         <div
@@ -1652,24 +1674,26 @@ export const LeadSelfFillForm = () => {
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "space-between",
-                            color: holidayInfo ? "#fca5a5" : ((form.meetingPreferredTime && !form.meetingPreferredTime.toLowerCase().includes("tbd") && !form.meetingPreferredTime.toLowerCase().includes("flexible")) ? "#fff" : "rgba(255, 255, 255, 0.4)"),
-                            background: holidayInfo ? "rgba(239, 68, 68, 0.12)" : inputStyle.background,
-                            border: holidayInfo ? "1px solid rgba(239, 68, 68, 0.35)" : inputStyle.border,
-                            cursor: holidayInfo ? "not-allowed" : "pointer"
+                            color: (holidayInfo || (form.meetingPreferredDate && availableTimeSlots.length === 0)) ? "#fca5a5" : ((form.meetingPreferredTime && !form.meetingPreferredTime.toLowerCase().includes("tbd") && !form.meetingPreferredTime.toLowerCase().includes("flexible")) ? "#fff" : "rgba(255, 255, 255, 0.4)"),
+                            background: (holidayInfo || (form.meetingPreferredDate && availableTimeSlots.length === 0)) ? "rgba(239, 68, 68, 0.12)" : inputStyle.background,
+                            border: (holidayInfo || (form.meetingPreferredDate && availableTimeSlots.length === 0)) ? "1px solid rgba(239, 68, 68, 0.35)" : inputStyle.border,
+                            cursor: (holidayInfo || (form.meetingPreferredDate && availableTimeSlots.length === 0)) ? "not-allowed" : "pointer"
                           }}
                         >
                           <span>
                             {holidayInfo
                               ? `🚫 Office Closed (${holidayInfo.title})`
-                              : ((form.meetingPreferredTime && !form.meetingPreferredTime.toLowerCase().includes("tbd") && !form.meetingPreferredTime.toLowerCase().includes("flexible"))
-                                  ? `⏰ ${form.meetingPreferredTime} (UAE)`
-                                  : "Select Time Slot (UAE)")}
+                              : (form.meetingPreferredDate && availableTimeSlots.length === 0
+                                  ? "🚫 No Slots Available For Selected Date"
+                                  : ((form.meetingPreferredTime && !form.meetingPreferredTime.toLowerCase().includes("tbd") && !form.meetingPreferredTime.toLowerCase().includes("flexible"))
+                                      ? `⏰ ${form.meetingPreferredTime} (UAE)`
+                                      : "Select Time Slot (UAE)"))}
                           </span>
-                          <span style={{ fontSize: "10px", opacity: 0.6 }}>{holidayInfo ? "🔒" : "▼"}</span>
+                          <span style={{ fontSize: "10px", opacity: 0.6 }}>{(holidayInfo || (form.meetingPreferredDate && availableTimeSlots.length === 0)) ? "🔒" : "▼"}</span>
                         </div>
                         <select
-                          disabled={Boolean(holidayInfo)}
-                          required={serviceCategory !== "translation" && !holidayInfo}
+                          disabled={Boolean(holidayInfo || (form.meetingPreferredDate && availableTimeSlots.length === 0))}
+                          required={serviceCategory !== "translation" && !holidayInfo && !(form.meetingPreferredDate && availableTimeSlots.length === 0)}
                           value={(form.meetingPreferredTime && !form.meetingPreferredTime.toLowerCase().includes("tbd") && !form.meetingPreferredTime.toLowerCase().includes("flexible")) ? form.meetingPreferredTime : ""}
                           onChange={(e) =>
                             handleChange("meetingPreferredTime", e.target.value)
@@ -1681,11 +1705,11 @@ export const LeadSelfFillForm = () => {
                             width: "100%",
                             height: "100%",
                             opacity: 0,
-                            cursor: holidayInfo ? "not-allowed" : "pointer"
+                            cursor: (holidayInfo || (form.meetingPreferredDate && availableTimeSlots.length === 0)) ? "not-allowed" : "pointer"
                           }}
                         >
                           <option value="" disabled style={{ background: "#24243e" }}>
-                            {holidayInfo ? `🚫 Office Closed: ${holidayInfo.title}` : "Select Time Slot (UAE)"}
+                            {holidayInfo ? `🚫 Office Closed: ${holidayInfo.title}` : (form.meetingPreferredDate && availableTimeSlots.length === 0 ? "🚫 No Slots Available For Selected Date" : "Select Time Slot (UAE)")}
                           </option>
                           {!holidayInfo && availableTimeSlots.map((slot) => (
                             <option key={slot.value} value={slot.value} style={{ background: "#24243e", color: "#fff" }}>
