@@ -1348,7 +1348,7 @@ export const SuperAdminRefundCommissionHub = () => {
 
         <DialogActions sx={{ px: 3, py: 2, borderTop: '1px solid', borderColor: 'divider' }}>
           <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
-            {commissionHistory.length} rate change{commissionHistory.length !== 1 ? 's' : ''} recorded
+            {(Array.isArray(commissionHistory) ? commissionHistory : []).length} rate change{(Array.isArray(commissionHistory) ? commissionHistory : []).length !== 1 ? 's' : ''} recorded
           </Typography>
           <Button variant="contained" onClick={() => setHistoryModalOpen(false)} sx={{ fontWeight: 700, px: 3 }}>
             Close

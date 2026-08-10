@@ -100,6 +100,35 @@ export const PaymentDashboard = () => {
     queryKey: ['agents'],
     queryFn: dbService.getAgents });
 
+  // Mutations
+  const createInvoiceMutation = useMutation({
+    mutationFn: dbService.createInvoice,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      showAlert('Invoice generated successfully', 'success');
+      setInvoiceModalOpen(false);
+      setInvoiceForm({
+        clientId: '',
+        serviceId: 'dnv',
+        packageId: 'full_process',
+        amount: '',
+        discount: '0',
+        status: 'Pending Payment',
+        paymentMethod: '-',
+        thirdPartyPayment: 'No'
+      });
+    }
+  });
+
+  const updatePaymentStatusMutation = useMutation({
+    mutationFn: ({ id, status, method, txId }) => dbService.updatePaymentStatus(id, status, method, txId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      showAlert('Payment status updated successfully', 'success');
+    }
+  });
+
   // Helper for ISO date parsing
   const getDateStr = (val) => {
     if (!val) return '';
