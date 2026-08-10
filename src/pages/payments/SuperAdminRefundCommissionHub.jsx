@@ -5,6 +5,7 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
+import Stack from '@mui/material/Stack';
 
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
