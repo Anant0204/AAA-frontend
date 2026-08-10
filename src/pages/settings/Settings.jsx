@@ -401,7 +401,7 @@ export const Settings = () => {
     setPkgDesc(pkgItem.description || '');
     setPkgIsRecommended(!!pkgItem.isRecommended);
     setPkgIsFixedPrice(!!pkgItem.isFixedPrice);
-    setPkgIsRefundable(pkgItem.isRefundable !== undefined ? !!pkgItem.isRefundable : (pkgItem.code === 'premium' || pkgItem.code === 'full_process' || pkgItem.code === 'OPTION_B' || pkgItem.code === 'OPTION_C'));
+    setPkgIsRefundable(pkgItem.isRefundable !== undefined ? !!pkgItem.isRefundable : (pkgItem.code === 'premium' || pkgItem.code === 'full_process' || pkgItem.code === 'OPTION_B' || pkgItem.code === 'OPTION_D' || pkgItem.code === 'Option B' || pkgItem.code === 'Option D'));
     setPkgIncludes(Array.isArray(pkgItem.includes) ? [...pkgItem.includes] : []);
     setNewIncludeText('');
     setPkgModalOpen(true);
