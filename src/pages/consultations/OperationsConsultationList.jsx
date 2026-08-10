@@ -179,13 +179,17 @@ export const OperationsConsultationList = () => {
     }
   });
 
-  // Helper for chronological sorting
+  // Helper for Smart Chronological Sorting (Upcoming Active Meetings First)
   const getSortableTimestamp = (row) => {
     const dStr = row.meetingDate || row.date;
     const tStr = row.meetingTime || row.timeSlot;
-    if (!dStr) return 9999999999999;
-    let timePart = '00:00';
-    if (tStr && typeof tStr === 'string') {
+    if (!dStr) return 999999999999999;
+    
+    const isoDate = dStr.includes('T') ? dStr.split('T')[0] : dStr;
+    const todayStr = dayjs().format('YYYY-MM-DD');
+
+    let timePart = '23:59';
+    if (tStr && typeof tStr === 'string' && !tStr.toLowerCase().includes('tbd') && !tStr.toLowerCase().includes('flexible')) {
       const raw = tStr.split('-')[0].trim();
       const match = raw.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
       if (match) {
@@ -197,9 +201,14 @@ export const OperationsConsultationList = () => {
         timePart = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
       }
     }
-    const isoDate = dStr.includes('T') ? dStr.split('T')[0] : dStr;
+
     const d = new Date(`${isoDate}T${timePart}:00`);
-    return isNaN(d.getTime()) ? 9999999999999 : d.getTime();
+    const timeMs = isNaN(d.getTime()) ? 9999999999999 : d.getTime();
+
+    const isCompletedOrCancelled = row.status === 'Completed' || row.status === 'Cancelled';
+    const isUpcomingActive = isoDate >= todayStr && !isCompletedOrCancelled;
+
+    return isUpcomingActive ? timeMs : (100000000000000 + timeMs);
   };
 
   // Filters & Chronological Sorting (Earlier appointments first)
