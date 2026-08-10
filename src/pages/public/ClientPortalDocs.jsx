@@ -3044,10 +3044,54 @@ export const ClientPortalDocs = () => {
                                 <MenuItem value="card">Credit / Debit Card (Visa/Mastercard) 💳</MenuItem>
                                 <MenuItem value="apple">Apple Pay / Google Pay 📱</MenuItem>
                                 <MenuItem value="wallet">Link Wallet 💼</MenuItem>
-                                <MenuItem value="tabby">Tabby (UAE Residents Only) 🇦🇪</MenuItem>
-                                <MenuItem value="tamara">Tamara (UAE Residents Only) 🇦🇪</MenuItem>
-                                <MenuItem value="bank">Emirates NBD Wire Transfer 🏦</MenuItem>
+                                <MenuItem value="bank">Emirates NBD Company Bank Transfer 🏦</MenuItem>
                               </TextField>
+
+                              {billingPaymentMethod === 'bank' && (
+                                <Box sx={{ mb: 2, p: 2, bgcolor: '#FAF6ED', borderRadius: 3, border: '1px solid rgba(197, 155, 39, 0.4)', boxShadow: '0 4px 12px rgba(5,26,59,0.04)' }}>
+                                  <Typography variant="subtitle2" sx={{ fontWeight: 900, color: '#051A3B', mb: 1.5, fontFamily: 'Outfit, sans-serif', display: 'flex', alignItems: 'center', gap: 1, borderBottom: '1px solid rgba(197, 155, 39, 0.2)', pb: 1 }}>
+                                    🏛️ Emirates NBD Company Bank Details
+                                  </Typography>
+                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', bgcolor: '#FFFFFF', p: 1.2, borderRadius: 2, border: '1px solid rgba(0,0,0,0.06)' }}>
+                                      <Typography variant="caption" sx={{ color: '#6B7280', fontWeight: 700, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Bank Name</Typography>
+                                      <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B', fontSize: '0.85rem' }}>Emirates NBD</Typography>
+                                    </Box>
+
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', bgcolor: '#FFFFFF', p: 1.2, borderRadius: 2, border: '1px solid rgba(0,0,0,0.06)' }}>
+                                      <Typography variant="caption" sx={{ color: '#6B7280', fontWeight: 700, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Account Name</Typography>
+                                      <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B', fontSize: '0.85rem' }}>AAA Business Consultancy FZC LLC</Typography>
+                                    </Box>
+
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', bgcolor: '#FFFFFF', p: 1.2, borderRadius: 2, border: '1px solid rgba(0,0,0,0.06)' }}>
+                                      <Typography variant="caption" sx={{ color: '#6B7280', fontWeight: 700, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Account Number</Typography>
+                                      <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B', fontFamily: 'monospace', fontSize: '0.88rem' }}>1015969586301</Typography>
+                                    </Box>
+
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', bgcolor: '#FFFFFF', p: 1.2, borderRadius: 2, border: '1px solid rgba(0,0,0,0.06)' }}>
+                                      <Typography variant="caption" sx={{ color: '#6B7280', fontWeight: 700, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>IBAN</Typography>
+                                      <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B', fontFamily: 'monospace', fontSize: '0.82rem', wordBreak: 'break-all' }}>AE390260001015969586301</Typography>
+                                    </Box>
+
+                                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+                                      <Box sx={{ bgcolor: '#FFFFFF', p: 1.2, borderRadius: 2, border: '1px solid rgba(0,0,0,0.06)' }}>
+                                        <Typography variant="caption" sx={{ color: '#6B7280', fontWeight: 700, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>SWIFT Code</Typography>
+                                        <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B', fontFamily: 'monospace', fontSize: '0.82rem' }}>EBILAEAD</Typography>
+                                      </Box>
+
+                                      <Box sx={{ bgcolor: '#FFFFFF', p: 1.2, borderRadius: 2, border: '1px solid rgba(0,0,0,0.06)' }}>
+                                        <Typography variant="caption" sx={{ color: '#6B7280', fontWeight: 700, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Routing Code</Typography>
+                                        <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B', fontFamily: 'monospace', fontSize: '0.82rem' }}>302620122</Typography>
+                                      </Box>
+                                    </Box>
+
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', bgcolor: '#FFFFFF', p: 1.2, borderRadius: 2, border: '1px solid rgba(0,0,0,0.06)' }}>
+                                      <Typography variant="caption" sx={{ color: '#6B7280', fontWeight: 700, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Bank Address</Typography>
+                                      <Typography variant="body2" sx={{ fontWeight: 700, color: '#051A3B', fontSize: '0.78rem', lineHeight: 1.3 }}>Baniyas Road, Deira, P.O. Box 777, Dubai, UAE</Typography>
+                                    </Box>
+                                  </Box>
+                                </Box>
+                              )}
 
                               <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', mb: 2 }}>
                                 <input
@@ -3447,8 +3491,7 @@ export const ClientPortalDocs = () => {
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Button variant="outlined" sx={{ flexGrow: 1, py: 1 }}>Visa / Mastercard</Button>
             <Button variant="outlined" sx={{ flexGrow: 1, py: 1 }}>Apple Pay / Google Pay</Button>
-            <Button variant="outlined" sx={{ flexGrow: 1, py: 1 }}>Tamara (Split 4x)</Button>
-            <Button variant="outlined" sx={{ flexGrow: 1, py: 1 }}>Tabby</Button>
+            <Button variant="outlined" sx={{ flexGrow: 1, py: 1 }}>Emirates NBD Company Bank Transfer</Button>
           </Box>
 
           <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', mt: 1 }}>

@@ -947,7 +947,7 @@ export const SuperAdminDashboard = () => {
 
         {/* PAYMENT GATEWAYS */}
         <Box className="col-span-12">
-          <ChartCard title="Payment Gateways Volume" subheader="Revenue generated via Stripe, Apple Pay, Tabby, etc." height={250}>
+          <ChartCard title="Payment Gateways Volume" subheader="Revenue generated via Stripe, Apple Pay, Bank Transfer, etc." height={250}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={gatewayData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
