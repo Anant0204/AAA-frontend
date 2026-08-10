@@ -37,7 +37,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
 import { SERVICES, PACKAGES } from '../../constants/mockData';
 import { getPackageDisplayName } from '../../utils/packageHelper';
-import { validateIBAN, normalizeIBAN, maskIBAN } from '../../utils/ibanValidator';
+import { validateIBAN, normalizeIBAN, maskIBAN, formatIBAN } from '../../utils/ibanValidator';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import AiSummaryModal from '../../components/AiSummaryModal';
 import CredentialsModal from '../../components/CredentialsModal';
@@ -902,10 +902,13 @@ export const SuperAdminClientDetails = () => {
                               </Box>
                             )}
                             {ref.bankIban && (
-                              <Box className="col-span-12" sx={{ mt: 0.5 }}>
-                                <Typography variant="caption" color="text.secondary" display="block">Bank Payout Info</Typography>
-                                <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                                  Name: {ref.bankAccountName || 'N/A'} | IBAN: <span style={{ fontFamily: 'monospace' }}>{maskIBAN(ref.bankIban)}</span>
+                              <Box className="col-span-12" sx={{ mt: 0.5, p: 1, bgcolor: '#FAF6ED', borderRadius: 1.5, border: '1px solid rgba(197, 155, 39, 0.3)' }}>
+                                <Typography variant="caption" color="text.secondary" display="block" sx={{ fontWeight: 800 }}>🏦 Client Bank Payout Info</Typography>
+                                <Typography variant="caption" display="block" sx={{ mt: 0.3 }}>
+                                  <strong>Account Holder:</strong> {ref.bankAccountName || 'N/A'}
+                                </Typography>
+                                <Typography variant="caption" display="block" sx={{ mt: 0.2 }}>
+                                  <strong>IBAN:</strong> <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#051A3B' }}>{formatIBAN(ref.bankIban) || ref.bankIban}</span>
                                 </Typography>
                               </Box>
                             )}

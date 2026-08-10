@@ -46,7 +46,7 @@ import PageHeader from '../../components/PageHeader';
 import AppModal from '../../components/AppModal';
 import { useAlert } from '../../contexts/AlertContext';
 import useAuth from '../../hooks/useAuth';
-import { validateIBAN, normalizeIBAN, maskIBAN } from '../../utils/ibanValidator';
+import { validateIBAN, normalizeIBAN, maskIBAN, formatIBAN } from '../../utils/ibanValidator';
 const formatDateDDMMYYYY = (dateStr) => {
   if (!dateStr) return 'N/A';
   try {
@@ -737,10 +737,10 @@ export const SuperAdminRefundCommissionHub = () => {
               </Box>
               <Box className="col-span-6" sx={{ mt: 1 }}>
                 <Typography variant="caption" color="text.secondary" display="block">Total Paid Fee</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 700 }}>€{(activeAuditRefund.totalPaidAmount || activeAuditRefund.amount * 2).toLocaleString()}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>€{(activeAuditRefund.totalPaidAmount || activeAuditRefund.amount).toLocaleString()}</Typography>
               </Box>
               <Box className="col-span-6" sx={{ mt: 1 }}>
-                <Typography variant="caption" color="text.secondary" display="block">50% Calculated Default</Typography>
+                <Typography variant="caption" color="text.secondary" display="block">Calculated Refund Default</Typography>
                 <Typography variant="body2" color="error.main" sx={{ fontWeight: 700 }}>€{(activeAuditRefund.amount || 0).toLocaleString()}</Typography>
               </Box>
 
@@ -756,7 +756,7 @@ export const SuperAdminRefundCommissionHub = () => {
                   disabled={activeAuditRefund.status === 'Processed'}
                   value={auditAmount}
                   onChange={(e) => setAuditAmount(e.target.value)}
-                  helperText="💡 Pre-filled with 50% policy default (€). Edit to adjust for VAT, taxes, wire fees, or special deductions."
+                  helperText="💡 Pre-filled with policy default (€). Edit to adjust for VAT, wire fees, or special deductions."
                   sx={{ bgcolor: 'white', borderRadius: 1 }}
                 />
               </Box>
@@ -829,12 +829,28 @@ export const SuperAdminRefundCommissionHub = () => {
 
             {/* Bank Details for Wire Transfer */}
             {(activeAuditRefund.bankIban || activeAuditRefund.bankAccountName) && (
-              <Box sx={{ p: 1.5, bgcolor: 'background.neutral', borderRadius: 2 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block', mb: 0.5 }}>
-                  Client Bank Payout Details:
+              <Box sx={{ p: 2, bgcolor: '#FAF6ED', borderRadius: 2.5, border: '1px solid rgba(197, 155, 39, 0.4)' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#051A3B', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  🏦 Client Bank Payout Details:
                 </Typography>
-                <Typography variant="caption" display="block">Name: <strong>{activeAuditRefund.bankAccountName || 'N/A'}</strong></Typography>
-                <Typography variant="caption" display="block">IBAN: <strong style={{ fontFamily: 'monospace', letterSpacing: '0.5px' }}>{maskIBAN(activeAuditRefund.bankIban)}</strong></Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, bgcolor: 'white', p: 1.5, borderRadius: 2, border: '1px solid #E2E8F0' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, minWidth: 140 }}>
+                      Account Holder Name:
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B' }}>
+                      {activeAuditRefund.bankAccountName || 'N/A'}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, minWidth: 140 }}>
+                      IBAN Number:
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 800, color: '#051A3B', letterSpacing: '0.8px', fontSize: '0.95rem' }}>
+                      {formatIBAN(activeAuditRefund.bankIban) || activeAuditRefund.bankIban || 'N/A'}
+                    </Typography>
+                  </Box>
+                </Box>
               </Box>
             )}
 
