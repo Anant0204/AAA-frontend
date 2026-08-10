@@ -382,9 +382,16 @@ export const ClientPortalDocs = () => {
       return pkg.isRefundable;
     }
 
-    // 2. DB packages lookup if pkg is string ID/code
-    if (typeof pkg === 'string' && Array.isArray(dbPackages) && dbPackages.length > 0) {
-      const foundInDb = dbPackages.find(p => p.id === pkg || p.code === pkg || (p.code && p.code.toLowerCase() === pkg.toLowerCase()));
+    // 2. DB packages lookup by id, code, or name
+    if (Array.isArray(dbPackages) && dbPackages.length > 0) {
+      const targetId = typeof pkg === 'string' ? pkg : (pkg?.id || pkg?.code || pkg?.name || '');
+      const foundInDb = dbPackages.find(p => 
+        p.id === targetId || 
+        p.code === targetId || 
+        (p.code && targetId && p.code.toLowerCase() === targetId.toLowerCase()) ||
+        (p.name && targetId && p.name.toLowerCase() === targetId.toLowerCase()) ||
+        (typeof pkg === 'object' && pkg !== null && (p.id === pkg.id || p.code === pkg.code || p.name === pkg.name))
+      );
       if (foundInDb && typeof foundInDb.isRefundable === 'boolean') {
         return foundInDb.isRefundable;
       }
@@ -398,6 +405,20 @@ export const ClientPortalDocs = () => {
     }
     const fullTarget = `${pkgStr} ${(serviceType || '').toLowerCase()}`;
 
+    // Refundable packages: Full Professional Processing Package & Premium Package
+    if (
+      fullTarget.includes('premium') ||
+      fullTarget.includes('full professional') ||
+      fullTarget.includes('full processing') ||
+      fullTarget.includes('full_process') ||
+      fullTarget.includes('option_b') ||
+      fullTarget.includes('opt_b') ||
+      fullTarget.includes('option_d') ||
+      fullTarget.includes('opt_d')
+    ) {
+      return true;
+    }
+
     // Explicit non-refundable services/packages: Case Assessment, Tourist Visa, Relocation Assistance
     if (
       fullTarget.includes('assessment') ||
@@ -406,29 +427,10 @@ export const ClientPortalDocs = () => {
       fullTarget.includes('opt_a') ||
       fullTarget.includes('tourist') ||
       fullTarget.includes('schengen') ||
-      (fullTarget.includes('relocation') && !fullTarget.includes('premium')) ||
-      fullTarget.includes('option_c') ||
-      fullTarget.includes('option c') ||
-      fullTarget.includes('opt_c') ||
-      fullTarget.includes('administrative')
+      fullTarget.includes('administrative') ||
+      fullTarget.includes('relocation')
     ) {
       return false;
-    }
-
-    // Refundable packages: Full Professional Processing Package & Premium Package
-    if (
-      fullTarget.includes('full professional') ||
-      fullTarget.includes('full processing') ||
-      fullTarget.includes('full_process') ||
-      fullTarget.includes('option_b') ||
-      fullTarget.includes('option b') ||
-      fullTarget.includes('opt_b') ||
-      fullTarget.includes('premium') ||
-      fullTarget.includes('option_d') ||
-      fullTarget.includes('option d') ||
-      fullTarget.includes('opt_d')
-    ) {
-      return true;
     }
 
     return false;
@@ -3025,16 +3027,23 @@ export const ClientPortalDocs = () => {
 
                         {(() => {
                           const packagesList = (dbPackages && dbPackages.length > 0)
-                            ? dbPackages.map(pkg => ({
-                                id: pkg.id,
-                                code: pkg.code || pkg.id,
-                                name: pkg.name,
-                                price: Number(pkg.price) || 0,
-                                additionalApplicantPrice: Number(pkg.additionalApplicantPrice) || 500,
-                                isRecommended: !!pkg.isRecommended,
-                                isFixedPrice: !!pkg.isFixedPrice,
-                                includes: Array.isArray(pkg.includes) ? pkg.includes : []
-                              }))
+                            ? dbPackages.map(pkg => {
+                                const isRefund = pkg.isRefundable !== undefined
+                                  ? !!pkg.isRefundable
+                                  : (pkg.code === 'premium' || pkg.code === 'full_process' || pkg.code === 'OPTION_B' || pkg.code === 'OPTION_D' || pkg.name?.toLowerCase().includes('premium') || pkg.name?.toLowerCase().includes('full process'));
+                                return {
+                                  id: pkg.id,
+                                  code: pkg.code || pkg.id,
+                                  name: pkg.name,
+                                  price: Number(pkg.price) || 0,
+                                  additionalApplicantPrice: Number(pkg.additionalApplicantPrice) || 500,
+                                  isRecommended: !!pkg.isRecommended,
+                                  isFixedPrice: !!pkg.isFixedPrice,
+                                  isRefundable: isRefund,
+                                  refundableText: pkg.refundableText || (isRefund ? '100% refundable if visa is rejected (Subject to T&C)' : 'Non-refundable'),
+                                  includes: Array.isArray(pkg.includes) ? pkg.includes : []
+                                };
+                              })
                             : DEFAULT_PACKAGES;
                           const activePkg = packagesList.find(p => p.code === selectedPackage || p.id === selectedPackage || (isOptionAPackage(selectedPackage) && isOptionAPackage(p))) || packagesList[0];
                           const activePkgCode = activePkg.code || activePkg.id;
