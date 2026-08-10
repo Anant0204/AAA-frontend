@@ -1494,10 +1494,10 @@ export const Settings = () => {
                 label={
                   <Box>
                     <Typography variant="body2" sx={{ fontWeight: 800, color: pkgIsRefundable ? 'success.main' : 'text.primary' }}>
-                      🛡️ Refund Available / Money-Back Guarantee Eligible
+                      🛡️ 100% Refund Guarantee Eligible (Money-Back Policy)
                     </Typography>
                     <Typography variant="caption" color="text.secondary" display="block">
-                      When ON, clients purchasing this package automatically unlock Tab 3 (Refund & Guarantee Claims) in their Client Portal.
+                      When ON, this package is marked with the 100% Refund Guarantee according to Company Terms &amp; Conditions and clients automatically unlock Tab 3 (Refund &amp; Guarantee Claims) in their Client Portal.
                     </Typography>
                   </Box>
                 }

@@ -45,7 +45,7 @@ export const PACKAGES = [
     name: 'Option B: Full Processing Package – End-to-End Service',
     price: 3500,
     additionalApplicantPrice: 500,
-    refundable: '50% refundable if visa is rejected (Subject to T&C)',
+    refundable: '100% refundable if visa is rejected (Subject to T&C)',
     description: 'Complete, Professional & End-to-End Support for Spain Residency Applications from eligibility to submission.',
     includes: [
       'Eligibility Verification & Initial Assessment',
@@ -53,7 +53,7 @@ export const PACKAGES = [
       'Sworn Translation Management',
       'Digital Nomad / NLV File Assembly',
       'Consulate & Embassy Appointment Booking',
-      '50% Refund Guarantee if visa is rejected (Subject to T&C)'
+      '100% Refund Guarantee if visa is rejected (Subject to T&C)'
     ]
   },
   {
@@ -78,7 +78,7 @@ export const PACKAGES = [
     name: 'Option D: Premium Package – End-to-End Service + Administrative Relocation Package',
     price: 4750,
     additionalApplicantPrice: 750,
-    refundable: '50% refundable if visa is rejected (Subject to T&C)',
+    refundable: '100% refundable if visa is rejected (Subject to T&C)',
     isRecommended: true,
     description: 'Includes EVERYTHING in Full Processing Package + Complete In-Spain Relocation & Administrative Assistance.',
     includes: [
@@ -88,7 +88,7 @@ export const PACKAGES = [
       'NIE / TIE Fingerprint Appointment Booking',
       'Empadronamiento (Town Hall Registration)',
       'Spanish Social Security Registration',
-      '50% Refund Guarantee if visa is rejected (Subject to T&C)'
+      '100% Refund Guarantee if visa is rejected (Subject to T&C)'
     ]
   }
 ];

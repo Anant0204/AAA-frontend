@@ -374,6 +374,66 @@ export const ClientPortalDocs = () => {
     return code === 'option_a' || code === 'opt_a' || code === 'std' || name.includes('option a') || name.includes('assessment') || price === 250;
   };
 
+  const isRefundGuaranteePackage = (pkg, serviceType = '') => {
+    if (!pkg && !serviceType) return false;
+
+    // 1. Direct object isRefundable property check
+    if (typeof pkg === 'object' && pkg !== null && typeof pkg.isRefundable === 'boolean') {
+      return pkg.isRefundable;
+    }
+
+    // 2. DB packages lookup if pkg is string ID/code
+    if (typeof pkg === 'string' && Array.isArray(dbPackages) && dbPackages.length > 0) {
+      const foundInDb = dbPackages.find(p => p.id === pkg || p.code === pkg || (p.code && p.code.toLowerCase() === pkg.toLowerCase()));
+      if (foundInDb && typeof foundInDb.isRefundable === 'boolean') {
+        return foundInDb.isRefundable;
+      }
+    }
+
+    let pkgStr = '';
+    if (typeof pkg === 'string') {
+      pkgStr = pkg.toLowerCase();
+    } else if (typeof pkg === 'object' && pkg !== null) {
+      pkgStr = `${pkg.code || ''} ${pkg.id || ''} ${pkg.name || ''}`.toLowerCase();
+    }
+    const fullTarget = `${pkgStr} ${(serviceType || '').toLowerCase()}`;
+
+    // Explicit non-refundable services/packages: Case Assessment, Tourist Visa, Relocation Assistance
+    if (
+      fullTarget.includes('assessment') ||
+      fullTarget.includes('option_a') ||
+      fullTarget.includes('option a') ||
+      fullTarget.includes('opt_a') ||
+      fullTarget.includes('tourist') ||
+      fullTarget.includes('schengen') ||
+      (fullTarget.includes('relocation') && !fullTarget.includes('premium')) ||
+      fullTarget.includes('option_c') ||
+      fullTarget.includes('option c') ||
+      fullTarget.includes('opt_c') ||
+      fullTarget.includes('administrative')
+    ) {
+      return false;
+    }
+
+    // Refundable packages: Full Professional Processing Package & Premium Package
+    if (
+      fullTarget.includes('full professional') ||
+      fullTarget.includes('full processing') ||
+      fullTarget.includes('full_process') ||
+      fullTarget.includes('option_b') ||
+      fullTarget.includes('option b') ||
+      fullTarget.includes('opt_b') ||
+      fullTarget.includes('premium') ||
+      fullTarget.includes('option_d') ||
+      fullTarget.includes('option d') ||
+      fullTarget.includes('opt_d')
+    ) {
+      return true;
+    }
+
+    return false;
+  };
+
   const selectAndPayPackageMutation = useMutation({
     mutationFn: async ({ packageId, additionalApplicants, clientId }) => {
       return await dbService.createPackageCheckout({ packageId, additionalApplicants, clientId });
@@ -419,7 +479,7 @@ export const ClientPortalDocs = () => {
       price: 3500,
       additionalApplicantPrice: 500,
       isRecommended: false,
-      refundableText: '50% refundable if visa is rejected (Subject to T&C)',
+      refundableText: '100% refundable if visa is rejected (Subject to T&C)',
       description: 'Complete professional end-to-end support for Spain Residency applications from eligibility to submission.',
       includes: [
         'Complete End-to-End Application Processing & Strategy',
@@ -427,7 +487,7 @@ export const ClientPortalDocs = () => {
         'Official Sworn Translation Management',
         'Digital Nomad / NLV File Assembly',
         'Consulate Appointment Assistance & Status Tracking',
-        '50% Refundable if visa application is rejected (Subject to T&C)'
+        '100% Refundable if visa application is rejected (Subject to T&C)'
       ]
     },
     {
@@ -454,7 +514,7 @@ export const ClientPortalDocs = () => {
       price: 4750,
       additionalApplicantPrice: 750,
       isRecommended: true,
-      refundableText: '50% refundable if visa is rejected (Subject to T&C)',
+      refundableText: '100% refundable if visa is rejected (Subject to T&C)',
       description: 'Everything in Full Process + complete relocation administrative assistance in Spain.',
       includes: [
         'Everything in Full Processing Package (End-to-End Service)',
@@ -463,7 +523,7 @@ export const ClientPortalDocs = () => {
         'NIE / TIE Fingerprint Appointment Booking',
         'Empadronamiento (Town Hall Registration)',
         'Spanish Social Security Registration',
-        '50% Refundable if visa application is rejected (Subject to T&C)'
+        '100% Refundable if visa application is rejected (Subject to T&C)'
       ]
     }
   ];
@@ -2782,18 +2842,24 @@ export const ClientPortalDocs = () => {
                     <Grid item xs={12} lg={8}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                         {[...((dbPackages && dbPackages.length > 0)
-                          ? dbPackages.map(pkg => ({
-                              id: pkg.id,
-                              code: pkg.code || pkg.id,
-                              name: pkg.name,
-                              price: Number(pkg.price) || 0,
-                              additionalApplicantPrice: Number(pkg.additionalApplicantPrice) || 500,
-                              isRecommended: !!pkg.isRecommended,
-                              isFixedPrice: !!pkg.isFixedPrice,
-                              refundableText: pkg.refundableText || (pkg.isRecommended ? '50% refundable if visa is rejected (Subject to T&C)' : 'Standard Package'),
-                              description: pkg.description || '',
-                              includes: Array.isArray(pkg.includes) ? pkg.includes : []
-                            }))
+                          ? dbPackages.map(pkg => {
+                              const isRefund = pkg.isRefundable !== undefined
+                                ? !!pkg.isRefundable
+                                : (pkg.code === 'premium' || pkg.code === 'full_process' || pkg.code === 'OPTION_B' || pkg.code === 'OPTION_D' || pkg.id === 'OPTION_B' || pkg.id === 'OPTION_D');
+                              return {
+                                id: pkg.id,
+                                code: pkg.code || pkg.id,
+                                name: pkg.name,
+                                price: Number(pkg.price) || 0,
+                                additionalApplicantPrice: Number(pkg.additionalApplicantPrice) || 500,
+                                isRecommended: !!pkg.isRecommended,
+                                isFixedPrice: !!pkg.isFixedPrice,
+                                isRefundable: isRefund,
+                                refundableText: pkg.refundableText || (isRefund ? '100% refundable if visa is rejected (Subject to T&C)' : 'Non-refundable'),
+                                description: pkg.description || '',
+                                includes: Array.isArray(pkg.includes) ? pkg.includes : []
+                              };
+                            })
                           : DEFAULT_PACKAGES
                         )].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map((pkgItem) => {
                           const pkgCode = pkgItem.code || pkgItem.id;
@@ -3058,7 +3124,15 @@ export const ClientPortalDocs = () => {
                                   style={{ marginTop: 3, transform: 'scale(1.1)', cursor: 'pointer' }}
                                 />
                                 <label htmlFor="billing-tc-checkbox" style={{ fontSize: '0.75rem', color: '#4B5563', cursor: 'pointer', lineHeight: 1.35, fontWeight: 500 }}>
-                                  I have read and accepted the Company's <a href="https://aaabusinessconsultancy.com/terms-conditions/" target="_blank" rel="noopener noreferrer" style={{ color: '#051A3B', textDecoration: 'underline', fontWeight: 700 }}>Terms and Conditions</a> and refund rules.
+                                  {isRefundGuaranteePackage(activePkg || selectedPackage, client?.serviceType || client?.serviceId) ? (
+                                    <>
+                                      I agree to the <span style={{ color: '#E11D48', fontWeight: 800 }}>100%</span> Refund Guarantee according to the <a href="https://aaabusinessconsultancy.com/terms-conditions/" target="_blank" rel="noopener noreferrer" style={{ color: '#051A3B', textDecoration: 'underline', fontWeight: 700 }}>Company Terms &amp; Conditions</a>.
+                                    </>
+                                  ) : (
+                                    <>
+                                      I agree to the <a href="https://aaabusinessconsultancy.com/terms-conditions/" target="_blank" rel="noopener noreferrer" style={{ color: '#051A3B', textDecoration: 'underline', fontWeight: 700 }}>Company Terms &amp; Conditions</a>.
+                                    </>
+                                  )}
                                 </label>
                               </Box>
 
@@ -3090,7 +3164,9 @@ export const ClientPortalDocs = () => {
                               <Box sx={{ mt: 2, p: 1.5, border: '1px solid rgba(197,155,39,0.3)', bgcolor: '#FAF6ED', borderRadius: 2.5 }}>
                                 <Typography variant="caption" sx={{ fontWeight: 800, color: '#A37E1C', display: 'block', mb: 0.5 }}>⚠️ REFUND GUARANTEE TERMS</Typography>
                                 <Typography variant="caption" sx={{ color: '#A37E1C', display: 'block', fontSize: '0.68rem', lineHeight: 1.3, fontWeight: 500 }}>
-                                  Option B & D: 50% refund if visa application is rejected (Subject to T&C). Option A & C are non-refundable.
+                                  {isRefundGuaranteePackage(activePkg || selectedPackage, client?.serviceType || client?.serviceId)
+                                    ? 'Option B & D (Full Processing & Premium): 100% Refund Guarantee according to Company Terms & Conditions.'
+                                    : 'Case Assessment, Tourist Visa & Relocation Assistance are non-refundable according to Company Terms & Conditions.'}
                                 </Typography>
                               </Box>
                             </Box>
@@ -3646,7 +3722,15 @@ export const ClientPortalDocs = () => {
                         style={{ marginTop: 3, transform: 'scale(1.2)', cursor: 'pointer' }}
                       />
                       <label htmlFor="modal-billing-tc" style={{ fontSize: '0.8rem', color: '#374151', cursor: 'pointer', fontWeight: 500, lineHeight: 1.4 }}>
-                        I agree to Spain Visa <a href="https://aaabusinessconsultancy.com/terms-conditions/" target="_blank" rel="noopener noreferrer" style={{ color: '#051A3B', textDecoration: 'underline', fontWeight: 700 }}>Terms of Service</a>, <strong>50% Money-Back Refund Guarantee</strong> policies if refused, and relocation service rules.
+                        {isRefundGuaranteePackage(currentPkg || selectedPackage, client?.serviceType || client?.serviceId) ? (
+                          <>
+                            I agree to the <span style={{ color: '#E11D48', fontWeight: 800 }}>100%</span> Refund Guarantee according to the <a href="https://aaabusinessconsultancy.com/terms-conditions/" target="_blank" rel="noopener noreferrer" style={{ color: '#051A3B', textDecoration: 'underline', fontWeight: 700 }}>Company Terms &amp; Conditions</a>.
+                          </>
+                        ) : (
+                          <>
+                            I agree to the <a href="https://aaabusinessconsultancy.com/terms-conditions/" target="_blank" rel="noopener noreferrer" style={{ color: '#051A3B', textDecoration: 'underline', fontWeight: 700 }}>Company Terms &amp; Conditions</a>.
+                          </>
+                        )}
                       </label>
                     </Box>
                   </Box>
