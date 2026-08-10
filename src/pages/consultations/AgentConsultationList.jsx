@@ -165,10 +165,6 @@ export const AgentConsultationList = () => {
     queryKey: ['consultants'],
     queryFn: dbService.getConsultants });
 
-  const filteredConsultations = consultations.filter((cons) => {
-    // ENFORCED agent privacy filter: Agents only see consultations assigned to them
-    if (cons.consultantId !== currentUser?.id) return false;
-
   // Helper for chronological sorting
   const getSortableTimestamp = (row) => {
     const dStr = row.meetingDate || row.date;
@@ -194,6 +190,8 @@ export const AgentConsultationList = () => {
 
   // Filters & Chronological Sorting (Earlier appointments first)
   const filteredConsultations = consultations.filter((cons) => {
+    // ENFORCED agent privacy filter: Agents only see consultations assigned to them
+    if (currentUser?.role === 'consultant' && cons.consultantId !== currentUser?.id) return false;
     if (!filterByDate(cons.date || cons.meetingDate, startDate, endDate)) return false;
 
     const nameMatch = cons.clientName.toLowerCase().includes(searchTerm.toLowerCase());
