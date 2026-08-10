@@ -152,8 +152,10 @@ export const InvoiceList = () => {
     const dateToCheck = p.status === 'Paid' ? (p.paymentDate || p.dueDate) : p.dueDate;
     if (!filterByDate(dateToCheck, startDate, endDate)) return false;
 
+    const invoiceNum = p.invoiceNumber || p.invoiceNo || `INV-2026-${(p.id || '').replace(/-/g, '').slice(-6).toUpperCase()}`;
     const matchSearch =
       p.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      invoiceNum.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.clientName.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchStatus = filters.status ? p.status === filters.status : true;
@@ -163,7 +165,16 @@ export const InvoiceList = () => {
   const paginatedInvoices = filteredInvoices.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   const columns = [
-    { id: 'id', label: 'Invoice ID', minWidth: 120 },
+    {
+      id: 'id',
+      label: 'Invoice #',
+      minWidth: 140,
+      render: (row) => (
+        <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B' }}>
+          {row.invoiceNumber || row.invoiceNo || `INV-2026-${(row.id || '').replace(/-/g, '').slice(-6).toUpperCase()}`}
+        </Typography>
+      )
+    },
     { id: 'clientName', label: 'Client Name', sortable: true },
     {
       id: 'service',

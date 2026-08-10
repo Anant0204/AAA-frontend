@@ -37,6 +37,7 @@ import AppModal from '../../components/AppModal';
 import { useAlert } from '../../contexts/AlertContext';
 import useAuth from '../../hooks/useAuth';
 import { SERVICES, PACKAGES } from '../../constants/mockData';
+import { getPackageDisplayName } from '../../utils/packageHelper';
 
 export const InvoiceDetails = () => {
   const { id } = useParams();
@@ -60,6 +61,12 @@ export const InvoiceDetails = () => {
   const { data: payments = [], isLoading } = useQuery({
     queryKey: ['payments'],
     queryFn: dbService.getPayments });
+
+  // Fetch packages dynamically
+  const { data: dbPackages = [] } = useQuery({
+    queryKey: ['packages'],
+    queryFn: dbService.getPackages
+  });
 
   const invoice = payments.find((p) => p.id === id);
 
@@ -101,20 +108,33 @@ export const InvoiceDetails = () => {
     );
   }
 
-  const serviceObj = SERVICES.find((s) => s.id === invoice.serviceId);
-  const packageObj = PACKAGES.find((p) => p.id === invoice.packageId);
+  const invoiceNumber = invoice.invoiceNumber || invoice.invoiceNo || `INV-2026-${(invoice.id || '').replace(/-/g, '').slice(-6).toUpperCase()}`;
+  const customerId = client?.clientCode || client?.displayId || client?.clientCustomId || client?.cid || (client?.id ? 'CID-' + client.id.slice(-5).toUpperCase() : (invoice?.clientId ? 'CID-' + invoice.clientId.slice(-5).toUpperCase() : 'CID-12001'));
 
-  // Invoice calculations — itemized breakdown
-  const serviceBasePrice = invoice.amount - (invoice.packageId === 'premium' ? 700 : 0);
-  const relocationAddOn = invoice.packageId === 'premium' ? 700 : 0;
-  const subtotal = invoice.amount;
-  const mainApplicantDiscount = invoice.discount > 0 ? 500 : 0;
-  const dependentsDiscount = invoice.discount > mainApplicantDiscount ? invoice.discount - mainApplicantDiscount : 0;
-  const discount = invoice.discount || 0;
+  const currentPkg = (dbPackages && dbPackages.length > 0)
+    ? dbPackages.find(p => p.id === invoice.packageType || p.code === invoice.packageType || p.id === invoice.packageId || p.code === invoice.packageId)
+    : null;
 
-  // UAE VAT 5% flat rate
-  const vatAmount = (subtotal - discount) * 0.05;
-  const grandTotal = subtotal - discount + vatAmount;
+  const itemTitle = currentPkg?.name || invoice.paymentPurpose || (invoice.packageType ? getPackageDisplayName(invoice.packageType, dbPackages) : (invoice.serviceId ? (SERVICES.find(s => s.id === invoice.serviceId)?.name || invoice.serviceId) : 'Spain Immigration & Legal Relocation Service'));
+
+  const itemDescription = currentPkg?.description || (invoice.paymentPurpose ? `Official client invoice for ${invoice.paymentPurpose}.` : 'Initial eligibility verification, document compliance review, and file assembly.');
+
+  const totalAmount = Number(invoice.amount) || 0;
+  const discount = Number(invoice.discount) || 0;
+  const additionalApplicantsCount = Number(invoice.additionalApplicants) || 0;
+  const additionalApplicantRate = currentPkg?.additionalApplicantPrice || 500;
+  const additionalApplicantsTotal = additionalApplicantsCount * additionalApplicantRate;
+  const assessmentCredit = Number(invoice.assessmentCreditUsed) || 0;
+
+  // Compute clean base service fee that matches invoice amount
+  let serviceBasePrice = totalAmount;
+  if (additionalApplicantsCount > 0 && totalAmount > additionalApplicantsTotal) {
+    serviceBasePrice = totalAmount - additionalApplicantsTotal + assessmentCredit;
+  }
+
+  const subtotal = Math.max(0, serviceBasePrice + additionalApplicantsTotal - assessmentCredit - discount);
+  const vatAmount = subtotal * 0.05;
+  const grandTotal = subtotal + vatAmount;
 
   const handleOpenPaymentModal = () => {
     setTransactionId('TXN-' + Math.floor(10000000 + Math.random() * 90000000));
@@ -167,7 +187,7 @@ export const InvoiceDetails = () => {
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(30, 41, 59);
-      doc.text(`OFFICIAL INVOICE #${invoice.id}`, 14, 46);
+      doc.text(`OFFICIAL INVOICE #${invoiceNumber}`, 14, 46);
 
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
@@ -178,50 +198,65 @@ export const InvoiceDetails = () => {
 
       // Client info box
       doc.setFillColor(248, 250, 252);
-      doc.rect(14, 65, 182, 30, "F");
+      doc.rect(14, 65, 182, 24, "F");
       doc.setFont("helvetica", "bold");
       doc.text("Billed To:", 18, 73);
       doc.setFont("helvetica", "normal");
-      doc.text(`Client: ${invoice.client ? `${invoice.client.firstName} ${invoice.client.lastName}` : (invoice.clientName || 'Valued Client')}`, 18, 80);
-      doc.text(`Email: ${invoice.client?.email || 'N/A'} | Phone: ${invoice.client?.phone || 'N/A'}`, 18, 87);
+      doc.text(`Client Name: ${invoice.clientName || (client ? `${client.firstName} ${client.lastName}` : 'Valued Client')}`, 18, 80);
+      doc.text(`Customer ID: ${customerId}`, 18, 86);
 
       // Summary Table Headers
       doc.setFillColor(30, 41, 59);
-      doc.rect(14, 102, 182, 8, "F");
+      doc.rect(14, 98, 182, 8, "F");
       doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "bold");
-      doc.text("Description", 18, 107.5);
-      doc.text("Amount (€)", 165, 107.5);
+      doc.text("Description", 18, 103.5);
+      doc.text("Amount (€)", 165, 103.5);
 
       // Table Row
       doc.setTextColor(30, 41, 59);
       doc.setFont("helvetica", "normal");
-      doc.text(`Spain Visa Relocation Legal Package (${invoice.client?.serviceType || 'Standard'})`, 18, 120);
-      doc.text(`€${(serviceBasePrice || invoice.amount || 0).toLocaleString()}`, 165, 120);
+      doc.text(`${itemTitle.slice(0, 45)}`, 18, 116);
+      doc.text(`€${serviceBasePrice.toFixed(2)}`, 165, 116);
 
-      if (invoice.discount > 0) {
+      let currentY = 124;
+      if (additionalApplicantsCount > 0) {
+        doc.text(`Co-Applicants (${additionalApplicantsCount} person(s))`, 18, currentY);
+        doc.text(`+€${additionalApplicantsTotal.toFixed(2)}`, 165, currentY);
+        currentY += 8;
+      }
+
+      if (assessmentCredit > 0) {
+        doc.setTextColor(34, 197, 94);
+        doc.text("Assessment Fee Credit", 18, currentY);
+        doc.text(`-€${assessmentCredit.toFixed(2)}`, 165, currentY);
+        currentY += 8;
+      }
+
+      if (discount > 0) {
         doc.setTextColor(225, 29, 72);
-        doc.text("Applied Promotional Discount", 18, 128);
-        doc.text(`-€${invoice.discount.toLocaleString()}`, 165, 128);
+        doc.text("Applied Promotional Discount", 18, currentY);
+        doc.text(`-€${discount.toFixed(2)}`, 165, currentY);
+        currentY += 8;
       }
 
       // Totals
       doc.setLineWidth(0.5);
       doc.setDrawColor(203, 213, 225);
-      doc.line(14, 135, 196, 135);
+      doc.line(14, currentY + 4, 196, currentY + 4);
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
       doc.setTextColor(15, 23, 42);
-      doc.text("Grand Total Due:", 115, 145);
-      doc.text(`€${grandTotal.toFixed(2)}`, 165, 145);
+      doc.text("Grand Total Due:", 115, currentY + 14);
+      doc.text(`€${grandTotal.toFixed(2)}`, 165, currentY + 14);
 
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(148, 163, 184);
-      doc.text("Thank you for choosing AAA Business Consultancy for your Spain Relocation journey.", 14, 175);
+      doc.text("Thank you for choosing AAA Business Consultancy for your Spain Relocation journey.", 14, currentY + 35);
 
-      doc.save(`Invoice-${invoice.id}.pdf`);
+      doc.save(`Invoice-${invoiceNumber}.pdf`);
     } catch (err) {
       console.error("PDF generation failed:", err);
     }
@@ -257,7 +292,7 @@ export const InvoiceDetails = () => {
       </Button>
 
       <PageHeader
-        title={`Invoice ${invoice.id}`}
+        title={`Invoice ${invoiceNumber}`}
         subtitle="Review account retainer bills and client payment receipts."
         action={
           <Stack direction="row" spacing={1} sx={{ '@media print': { display: 'none' } }}>
@@ -345,8 +380,8 @@ export const InvoiceDetails = () => {
             <Typography variant="h3" sx={{ fontWeight: 700, mb: 1 }}>
               INVOICE
             </Typography>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-              Invoice #: {invoice.id}
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#051A3B' }}>
+              Invoice #: {invoiceNumber}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Date: {invoice.billingDate}
@@ -368,22 +403,12 @@ export const InvoiceDetails = () => {
             <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', mb: 1 }}>
               Bill To
             </Typography>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-              {invoice.clientName}
+            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#051A3B', fontSize: '1.1rem' }}>
+              {invoice.clientName || (client ? `${client.firstName} ${client.lastName}` : 'Valued Client')}
             </Typography>
-            {client && (
-              <>
-                <Typography variant="body2" color="text.secondary">
-                  Nationality: {client.nationality}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Email: {client.email}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Phone: {client.phone}
-                </Typography>
-              </>
-            )}
+            <Typography variant="body2" sx={{ fontWeight: 600, color: '#4B5563', mt: 0.5 }}>
+              Customer ID: {customerId}
+            </Typography>
           </Box>
 
           <Box className="col-span-12 sm:col-span-6" sx={{ textAlign: { sm: 'right' } }}>
@@ -391,10 +416,7 @@ export const InvoiceDetails = () => {
               Payment Details
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Method: {invoice.paymentMethod || '-'}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Transaction ID: {invoice.transactionId || '-'}
+              Method: {invoice.paymentMethod || 'Credit / Debit Card'}
             </Typography>
           </Box>
         </Box>
@@ -414,29 +436,56 @@ export const InvoiceDetails = () => {
               <TableRow>
                 <TableCell>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    {serviceObj?.name || invoice.serviceId} Setup
+                    {itemTitle}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Initial eligibility verification and document checklists briefing.
+                    {itemDescription}
                   </Typography>
                 </TableCell>
                 <TableCell align="right">1</TableCell>
-                <TableCell align="right">€{serviceObj?.basePrice || 1500}</TableCell>
-                <TableCell align="right">€{serviceObj?.basePrice || 1500}</TableCell>
+                <TableCell align="right">€{serviceBasePrice.toFixed(2)}</TableCell>
+                <TableCell align="right">€{serviceBasePrice.toFixed(2)}</TableCell>
               </TableRow>
-              {packageObj && invoice.packageId === 'premium' && (
+
+              {additionalApplicantsCount > 0 && (
                 <TableRow>
                   <TableCell>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                      Relocation & Administrative Package Add-on
+                      Co-Applicants Relocation Support ({additionalApplicantsCount} person(s))
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      NIE, TIE local registrations, social security, SIP health cards, and bank account setup support.
+                      Additional family member documentation and processing support.
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">{additionalApplicantsCount}</TableCell>
+                  <TableCell align="right">€{additionalApplicantRate.toFixed(2)}</TableCell>
+                  <TableCell align="right">+€{additionalApplicantsTotal.toFixed(2)}</TableCell>
+                </TableRow>
+              )}
+
+              {assessmentCredit > 0 && (
+                <TableRow>
+                  <TableCell>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'success.main' }}>
+                      Eligibility Assessment Fee Credit (100% Deduction)
                     </Typography>
                   </TableCell>
                   <TableCell align="right">1</TableCell>
-                  <TableCell align="right">€700</TableCell>
-                  <TableCell align="right">€700</TableCell>
+                  <TableCell align="right" sx={{ color: 'success.main', fontWeight: 700 }}>-€{assessmentCredit.toFixed(2)}</TableCell>
+                  <TableCell align="right" sx={{ color: 'success.main', fontWeight: 700 }}>-€{assessmentCredit.toFixed(2)}</TableCell>
+                </TableRow>
+              )}
+
+              {discount > 0 && (
+                <TableRow>
+                  <TableCell>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'success.main' }}>
+                      Applied Promotional Discount
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">1</TableCell>
+                  <TableCell align="right" sx={{ color: 'success.main', fontWeight: 700 }}>-€{discount.toFixed(2)}</TableCell>
+                  <TableCell align="right" sx={{ color: 'success.main', fontWeight: 700 }}>-€{discount.toFixed(2)}</TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -445,44 +494,33 @@ export const InvoiceDetails = () => {
 
         {/* Pricing totals — Itemized */}
         <Box className="grid grid-cols-12 gap-2">
-          <Box className="col-span-12 sm:col-span-6">
-            {/* 50% Refund Warning Notice */}
-            <Box sx={{ p: 2, borderRadius: 2.5, border: '2px solid', borderColor: 'warning.main', bgcolor: 'rgba(245,158,11,0.06)', display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
-              <WarningAmberIcon color="warning" sx={{ mt: 0.3, flexShrink: 0 }} />
-              <Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'warning.dark', mb: 0.5 }}>⚠️ Refund Policy Notice</Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                  <strong>50% of the service fee is NON-REFUNDABLE</strong> once the case has been initiated and documents reviewed. The remaining 50% is only refundable within 7 days of payment if no processing has started. By completing payment, the client acknowledges these terms.
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
+          <Box className="col-span-12 sm:col-span-6" />
           <Box className="col-span-12 sm:col-span-6">
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2, pl: { sm: 4 } }}>
               {/* Itemized Rows */}
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body2" color="text.secondary">Base Service Fee ({serviceObj?.name || invoice.serviceId})</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>€{serviceBasePrice.toLocaleString()}</Typography>
+                <Typography variant="body2" color="text.secondary">Base Service Fee</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>€{serviceBasePrice.toFixed(2)}</Typography>
               </Box>
 
-              {relocationAddOn > 0 && (
+              {additionalApplicantsCount > 0 && (
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">Relocation Package Add-on</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>+€{relocationAddOn}</Typography>
+                  <Typography variant="body2" color="text.secondary">Co-Applicants ({additionalApplicantsCount})</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>+€{additionalApplicantsTotal.toFixed(2)}</Typography>
                 </Box>
               )}
 
-              {mainApplicantDiscount > 0 && (
+              {assessmentCredit > 0 && (
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', color: 'success.main' }}>
-                  <Typography variant="body2">Main Applicant Discount</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>-€{mainApplicantDiscount}</Typography>
+                  <Typography variant="body2">Assessment Fee Credit</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>-€{assessmentCredit.toFixed(2)}</Typography>
                 </Box>
               )}
 
-              {dependentsDiscount > 0 && (
+              {discount > 0 && (
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', color: 'success.main' }}>
-                  <Typography variant="body2">Dependents Discount (€250 × {Math.round(dependentsDiscount / 250)})</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>-€{dependentsDiscount}</Typography>
+                  <Typography variant="body2">Promotional Discount</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>-€{discount.toFixed(2)}</Typography>
                 </Box>
               )}
 
