@@ -393,14 +393,14 @@ export const SuperAdminRefundCommissionHub = () => {
                 Refund Requests Ledger
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Monitor refund reviews, status approvals, and audit records. Note: Visa Rejection requests calculate 50% automatically.
+                Monitor refund reviews, status approvals, and audit records. Note: Visa Rejection requests calculate 100% automatically for eligible packages.
               </Typography>
 
               <TableContainer sx={{ overflowX: 'auto', width: '100%' }}>
                 <Table sx={{ minWidth: 800 }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Request ID</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Client ID</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Client</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Requested By</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
@@ -414,8 +414,8 @@ export const SuperAdminRefundCommissionHub = () => {
                     {refunds.map((ref) => (
                       <TableRow key={ref.id}>
                         <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
-                          <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'monospace' }}>
-                            #{ref.id.substring(0, 8)}
+                          <Typography variant="body2" sx={{ fontWeight: 800, fontFamily: 'monospace', color: '#051A3B' }}>
+                            {ref.clientCode || (ref.clientId ? (ref.clientId.length > 10 ? `#${ref.clientId.substring(0, 8)}` : ref.clientId) : 'N/A')}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{ref.clientName}</TableCell>
