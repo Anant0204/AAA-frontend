@@ -851,7 +851,7 @@ export const SuperAdminClientDetails = () => {
                         return (
                           <Paper sx={{ p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.neutral' }}>
                             <Typography variant="body2" color="text.secondary">
-                              No refund requests filed for this client profile. (50% Refund Guarantee applies to rejected cases).
+                              No refund requests filed for this client profile. (100% Refund Guarantee applies to eligible rejected cases).
                             </Typography>
                           </Paper>
                         );
@@ -892,7 +892,7 @@ export const SuperAdminClientDetails = () => {
                               <Typography variant="body2" sx={{ fontWeight: 700 }}>{ref.category}</Typography>
                             </Box>
                             <Box className="col-span-6">
-                              <Typography variant="caption" color="text.secondary" display="block">Calculated 50% Refund</Typography>
+                              <Typography variant="caption" color="text.secondary" display="block">Refund Amount</Typography>
                               <Typography variant="body2" color="error.main" sx={{ fontWeight: 800 }}>€{ref.amount?.toLocaleString()}</Typography>
                             </Box>
                             {ref.reason && (
@@ -1324,7 +1324,7 @@ export const SuperAdminClientDetails = () => {
               onChange={(e) => setProfileRefundCategory(e.target.value)}
               label="Category"
             >
-              <MenuItem value="Visa Rejection">Visa Rejection (Auto 50% Refund)</MenuItem>
+              <MenuItem value="Visa Rejection">Visa Rejection (Auto 100% Refund)</MenuItem>
               <MenuItem value="Customer Discontent">Customer Discontent</MenuItem>
               <MenuItem value="Service Cancellation">Service Cancellation</MenuItem>
               <MenuItem value="Other">Other</MenuItem>

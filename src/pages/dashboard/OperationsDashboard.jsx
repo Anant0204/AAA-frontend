@@ -186,7 +186,7 @@ export const OperationsDashboard = () => {
     { title: 'Lost Consultations', value: lostLeadsCount, icon: <WarningAmberIcon />, color: '#EF4444', trend: '2%', onClick: () => navigate('/operations/leads', { state: { filterStatus: 'Lost Lead', filterToday: false, cardInfo: { title: 'Lost Consultations', value: lostLeadsCount, color: '#EF4444', trend: '2%', iconType: 'WarningAmber' } } }) },
     { title: 'Revenue Today', value: `€${revenueTodayTotal.toLocaleString()}`, icon: <TrendingUpIcon />, color: '#14B8A6', trend: '8%' },
     { title: 'Outstanding Revenue', value: `€${outstandingRevenue.toLocaleString()}`, icon: <AccountBalanceWalletIcon />, color: '#F59E0B', trend: '-2%' },
-    { title: 'Refunded (50% Rejections)', value: `€${refundedTotal.toLocaleString()}`, icon: <CancelIcon />, color: '#EF4444', trend: '4%' },
+    { title: 'Refunded (Guarantee Claims)', value: `€${refundedTotal.toLocaleString()}`, icon: <CancelIcon />, color: '#EF4444', trend: '4%' },
   ];
 
   // CHART 1: Lead Source Chart

@@ -99,7 +99,7 @@ const AVAILABLE_CARDS = [
   'Lost Consultations',
   'Revenue Today',
   'Outstanding Revenue',
-  'Refunded (50% Rejections)'
+  'Refunded (Guarantee Claims)'
 ];
 
 
@@ -1145,7 +1145,7 @@ export const SuperAdminCustomization = () => {
                 size="small"
                 type="number"
                 label="Visa Rejection Auto-Refund Rate (%)"
-                value={localSettings.refundGuaranteePercentage ?? 50}
+                value={localSettings.refundGuaranteePercentage ?? 100}
                 onChange={(e) => setLocalSettings(prev => ({ ...prev, refundGuaranteePercentage: Number(e.target.value) }))}
                 inputProps={{ min: 0, max: 100 }}
                 sx={{ bgcolor: 'white', borderRadius: 1, maxWidth: 280 }}

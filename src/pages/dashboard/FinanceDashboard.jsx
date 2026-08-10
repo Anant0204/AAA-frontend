@@ -344,7 +344,7 @@ const RefundClaimsTable = () => {
     { header: 'Client Name', accessor: 'clientName', cell: (row) => <strong>{row.clientName}</strong> },
     { header: 'Total Paid (€)', accessor: 'totalPaid', cell: (row) => `€${(row.totalPaid || row.amount || 0).toLocaleString()}` },
     { 
-      header: '50% Refund Amount (€)', 
+      header: 'Refund Amount (€)', 
       accessor: 'calculatedRefundAmount', 
       cell: (row) => <strong style={{ color: '#DC2626' }}>€{(row.calculatedRefundAmount || 0).toLocaleString()}</strong> 
     },

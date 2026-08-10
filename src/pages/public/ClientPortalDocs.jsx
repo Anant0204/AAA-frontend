@@ -3269,7 +3269,7 @@ export const ClientPortalDocs = () => {
               <Box className="col-span-12">
                 <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid rgba(197, 155, 39, 0.3)', bgcolor: '#FAF6ED' }}>
                   <Typography variant="h6" sx={{ fontWeight: 800, color: '#051A3B', fontFamily: 'Outfit, sans-serif', mb: 0.5 }}>
-                    🛡️ Spain Visa 50% Money-Back Guarantee & Refund Center
+                    🛡️ Spain Visa 100% Money-Back Guarantee & Refund Center
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     {isRefundEligible
@@ -3373,7 +3373,7 @@ export const ClientPortalDocs = () => {
                             totalPaidAmt = Number(activePkg?.price) || 3500;
                           }
 
-                          const guaranteePct = customizationSettings?.refundGuaranteePercentage ?? 50;
+                          const guaranteePct = customizationSettings?.refundGuaranteePercentage ?? 100;
                           const estimatedRefund = totalPaidAmt * (guaranteePct / 100);
                           return (
                             <Typography variant="h5" sx={{ fontWeight: 900, color: '#C59B27', fontFamily: 'Outfit, sans-serif' }}>
@@ -3538,16 +3538,16 @@ export const ClientPortalDocs = () => {
                                 showAlert('Please upload your official Embassy Rejection Letter before submitting your claim.', 'warning');
                                 return;
                               }
-                              createRefundMutation.mutate({
-                                clientId: client?.id || clientId,
-                                clientEmail: client?.email || '',
-                                category: claimCategory || 'Visa Rejection (50% Guarantee)',
-                                reason: claimReason,
-                                proofUrl: claimProofUrl,
-                                bankAccountName: claimBankName.trim(),
-                                bankIban: ibanCheck.normalizedIBAN,
-                                amount: ((Array.isArray(allPayments) ? allPayments.filter(p => p && (p.clientId === clientId || p.clientId === client?.id) && (p.status === 'Paid' || p.status === 'Payment Completed')).reduce((s, p) => s + (Number(p.amount) || 0), 0) : 0)) * ((customizationSettings?.refundGuaranteePercentage ?? 50) / 100)
-                              });
+                                createRefundMutation.mutate({
+                                  clientId: client?.id || clientId,
+                                  clientEmail: client?.email || '',
+                                  category: claimCategory || 'Visa Rejection (100% Guarantee)',
+                                  reason: claimReason,
+                                  proofUrl: claimProofUrl,
+                                  bankAccountName: claimBankName.trim(),
+                                  bankIban: ibanCheck.normalizedIBAN,
+                                  amount: ((Array.isArray(allPayments) ? allPayments.filter(p => p && (p.clientId === clientId || p.clientId === client?.id) && (p.status === 'Paid' || p.status === 'Payment Completed')).reduce((s, p) => s + (Number(p.amount) || 0), 0) : 0)) || (Number(clientActivePkg?.price) || 3500)
+                                });
                             }}
                             sx={{ mt: 1, py: 1.2, fontWeight: 800 }}
                           >

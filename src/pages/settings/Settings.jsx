@@ -1215,7 +1215,7 @@ export const Settings = () => {
                 price: 3500,
                 additionalApplicantPrice: 500,
                 isRecommended: false,
-                includes: ['Eligibility & Document Auditing', 'Official Sworn Translation Management', 'Digital Nomad / NLV File Assembly', 'Consulate Appointment Assistance', '50% Refundable if visa application is rejected (Subject to T&C)']
+                includes: ['Eligibility & Document Auditing', 'Official Sworn Translation Management', 'Digital Nomad / NLV File Assembly', 'Consulate Appointment Assistance', '100% Refundable if visa application is rejected (Subject to T&C)']
               },
               {
                 id: 'opt_c',
@@ -1235,7 +1235,7 @@ export const Settings = () => {
                 price: 4750,
                 additionalApplicantPrice: 750,
                 isRecommended: true,
-                includes: ['Everything in Full Processing Package (End-to-End Service)', 'Spanish Bank Account Opening Assistance', 'NIE / TIE Fingerprint Appointment Booking', 'Empadronamiento (Town Hall Registration)', 'Spanish Social Security Registration', '50% Refundable if visa application is rejected (Subject to T&C)']
+                includes: ['Everything in Full Processing Package (End-to-End Service)', 'Spanish Bank Account Opening Assistance', 'NIE / TIE Fingerprint Appointment Booking', 'Empadronamiento (Town Hall Registration)', 'Spanish Social Security Registration', '100% Refundable if visa application is rejected (Subject to T&C)']
               }
             ])].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map((pkg) => (
               <Box className="col-span-12 md:col-span-6" key={pkg.id}>

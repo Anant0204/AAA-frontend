@@ -552,7 +552,7 @@ export const SuperAdminRefundCommissionHub = () => {
               onChange={(e) => setRefundCategory(e.target.value)}
               label="Category"
             >
-              <MenuItem value="Visa Rejection">Visa Rejection (Auto 50% Refund)</MenuItem>
+              <MenuItem value="Visa Rejection">Visa Rejection (Auto 100% Refund)</MenuItem>
               <MenuItem value="Customer Discontent">Customer Discontent</MenuItem>
               <MenuItem value="Service Cancellation">Service Cancellation</MenuItem>
               <MenuItem value="Other">Other</MenuItem>

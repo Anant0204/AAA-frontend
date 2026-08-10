@@ -518,7 +518,7 @@ export const SuperAdminDashboard = () => {
     { title: 'Total Revenue', value: `€${totalRevenue.toLocaleString()}`, icon: <AccountBalanceWalletIcon />, color: '#3F51B5', trend: null, onClick: () => navigate('/payments/invoices', { state: { filterStatus: 'Paid' } }) },
     { title: 'Revenue Today', value: `€${revenueToday.toLocaleString()}`, icon: <TrendingUpIcon />, color: '#14B8A6', trend: null, onClick: () => navigate('/payments/invoices', { state: { filterStatus: 'Paid', startDate: todayDateStr, endDate: todayDateStr } }) },
     { title: 'Outstanding Revenue', value: `€${outstandingRevenue.toLocaleString()}`, icon: <AccountBalanceWalletIcon />, color: '#F59E0B', trend: null, onClick: () => navigate('/payments/invoices', { state: { filterStatus: 'Pending' } }) },
-    { title: 'Refunded (50% Rejections)', value: `€${refundedRevenue.toLocaleString()}`, icon: <CancelIcon />, color: '#EF4444', trend: null, onClick: () => navigate('/super_admin/payments/refund-commission') },
+    { title: 'Refunded (Guarantee Claims)', value: `€${refundedRevenue.toLocaleString()}`, icon: <CancelIcon />, color: '#EF4444', trend: null, onClick: () => navigate('/super_admin/payments/refund-commission') },
   ];
 
   // FINANCIAL TABLE — from real clients + payments

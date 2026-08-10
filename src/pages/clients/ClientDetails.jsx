@@ -591,7 +591,7 @@ export const ClientDetails = () => {
                         return (
                           <Paper sx={{ p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.neutral' }}>
                             <Typography variant="body2" color="text.secondary">
-                              No refund requests submitted for this client. (50% Refund Guarantee applies to embassy visa refusal cases).
+                              No refund requests submitted for this client. (100% Refund Guarantee applies to eligible embassy visa refusal cases).
                             </Typography>
                           </Paper>
                         );

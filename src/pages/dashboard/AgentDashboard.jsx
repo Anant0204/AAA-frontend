@@ -150,7 +150,7 @@ export const AgentDashboard = () => {
               'Lost Consultations',
               'Revenue Today',
               'Outstanding Revenue',
-              'Refunded (50% Rejections)'
+              'Refunded (Guarantee Claims)'
             ];
 
             if (!customizableKeys.includes(cardTitle)) {
