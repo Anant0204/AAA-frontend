@@ -388,12 +388,6 @@ export const OperationsDocumentVerificationDashboard = () => {
                   .map((c, idx) => {
                     const isSelected = c.id === selectedClientId;
                     const clientDocs = documents.filter(d => d.clientId === c.id);
-                    const pendingDocs = clientDocs.filter(d => {
-                      const statusLower = (d.status || '').toLowerCase();
-                      return statusLower === 'pending verification' || statusLower === 'under review' || statusLower === 'pending';
-                    });
-                    const hasPendingDocs = pendingDocs.length > 0;
-
                     return (
                       <tr
                         key={c.id}
@@ -409,25 +403,7 @@ export const OperationsDocumentVerificationDashboard = () => {
                         onMouseEnter={e => { if (!isSelected) e.currentTarget.style.backgroundColor = 'rgba(63,81,181,0.04)'; }}
                         onMouseLeave={e => { if (!isSelected) e.currentTarget.style.backgroundColor = idx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.015)'; }}
                       >
-                        <td style={{ padding: '9px 12px', fontWeight: 700, color: '#3F51B5', whiteSpace: 'nowrap', borderBottom: '1px solid rgba(63,81,181,0.1)' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                            <span>{c.clientCode || c.id}</span>
-                            {hasPendingDocs && (
-                              <span
-                                title={`${pendingDocs.length} document(s) pending review`}
-                                style={{
-                                  width: '9px',
-                                  height: '9px',
-                                  borderRadius: '50%',
-                                  backgroundColor: '#EF4444',
-                                  display: 'inline-block',
-                                  boxShadow: '0 0 0 3px rgba(239, 68, 68, 0.3)',
-                                  animation: 'pulse 1.8s infinite'
-                                }}
-                              />
-                            )}
-                          </div>
-                        </td>
+                        <td style={{ padding: '9px 12px', fontWeight: 700, color: '#3F51B5', whiteSpace: 'nowrap', borderBottom: '1px solid rgba(63,81,181,0.1)' }}>{c.clientCode || c.id}</td>
                         <td style={{ padding: '9px 12px', fontWeight: isSelected ? 700 : 500, borderBottom: '1px solid rgba(63,81,181,0.1)', whiteSpace: 'nowrap' }}>
                           {c.firstName} {c.lastName}
                         </td>
@@ -457,24 +433,7 @@ export const OperationsDocumentVerificationDashboard = () => {
                           }}>{c.visaStatus || 'Document Review'}</span>
                         </td>
                         <td style={{ padding: '9px 12px', borderBottom: '1px solid rgba(63,81,181,0.1)', color: '#475569', fontSize: '0.8rem' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                            <span>{clientDocs.length} file{clientDocs.length !== 1 ? 's' : ''}</span>
-                            {hasPendingDocs && (
-                              <span
-                                style={{
-                                  padding: '2px 7px',
-                                  borderRadius: '10px',
-                                  backgroundColor: '#FEE2E2',
-                                  color: '#DC2626',
-                                  fontWeight: 800,
-                                  fontSize: '0.68rem',
-                                  border: '1px solid #FCA5A5'
-                                }}
-                              >
-                                {pendingDocs.length} Pending
-                              </span>
-                            )}
-                          </div>
+                          {clientDocs.length} file{clientDocs.length !== 1 ? 's' : ''}
                         </td>
                       </tr>
                     );
