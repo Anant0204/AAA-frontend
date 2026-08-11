@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { io } from "socket.io-client";
 import { getServicesForCountry, ALL_COUNTRIES } from "../../constants/countryServices";
 import { NATIONALITIES } from "../../constants/nationalities";
-import { getAvailableTimeSlots, getHolidayInfo } from "../../utils/bookingTimeSlots";
+import { getAvailableTimeSlots, getHolidayInfo, getTodayStr } from "../../utils/bookingTimeSlots";
 import { dbService } from "../../services/dbService";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://aaa-consultancy-backend-production.up.railway.app/api/v1";
@@ -1119,7 +1119,8 @@ export const LeadSelfFillForm = () => {
     const day = String(d.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
-  const minBookingDate = getNextDayStr();
+  const allowSameDay = Boolean(customizationSettings?.flowAutomationSettings?.allowSameDayBooking);
+  const minBookingDate = allowSameDay ? getTodayStr() : getNextDayStr();
 
 
 

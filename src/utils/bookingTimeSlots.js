@@ -217,6 +217,15 @@ export function getAvailableTimeSlots(customizationSettings, selectedDate, booke
     }
   }
 
+  // If selected date is today, filter out past time slots (slots starting within 15 minutes of now)
+  const todayStr = dayjs().format('YYYY-MM-DD');
+  let availableSlots = slots;
+  if (selectedDate === todayStr) {
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    availableSlots = availableSlots.filter(s => s.startMinutes > currentMinutes + 15);
+  }
+
   if (Array.isArray(bookedSlots) && bookedSlots.length > 0) {
     const cleanStr = (str) => {
       if (!str) return '';
@@ -230,7 +239,7 @@ export function getAvailableTimeSlots(customizationSettings, selectedDate, booke
 
     const normalizedBooked = bookedSlots.map(b => cleanStr(b)).filter(Boolean);
 
-    return slots.filter(s => {
+    return availableSlots.filter(s => {
       const cleanVal = cleanStr(s.value);
       const cleanShort12 = cleanStr(s.short12h);
 
@@ -242,7 +251,11 @@ export function getAvailableTimeSlots(customizationSettings, selectedDate, booke
     });
   }
 
-  return slots;
+  return availableSlots;
+}
+
+export function getTodayStr() {
+  return dayjs().format('YYYY-MM-DD');
 }
 
 export function getTomorrowMinDateStr() {
