@@ -950,6 +950,8 @@ export const LeadSelfFillForm = () => {
       }
     }
 
+    if (loading) return; // Prevent double submission
+
     if (!form.firstName || !form.lastName || !form.email || !form.phone) {
       setError("Please fill in all required personal details (Name, Email, Phone).");
       return;
@@ -976,19 +978,50 @@ export const LeadSelfFillForm = () => {
       setError("Please select your preferred meeting date and time.");
       return;
     }
+
     const selectTime = form.meetingPreferredTime;
-    if (selectTime && availableTimeSlots && availableTimeSlots.length > 0) {
-      const isValid = availableTimeSlots.some((slot) =>
-        slot.value === selectTime ||
-        slot.short24h === selectTime ||
-        slot.display24h === selectTime ||
-        selectTime.includes(slot.short12h)
-      );
-      if (!isValid) {
+    const cleanTimeStr = (str) => {
+      if (!str) return '';
+      return String(str)
+        .toLowerCase()
+        .replace(/\(uae\)/gi, '')
+        .replace(/[–—]/g, '-')
+        .replace(/\b0(\d):/g, '$1:')
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
+
+    const cleanSelectTime = cleanTimeStr(selectTime);
+
+    // 1. Check if slot is already booked in DB
+    if (Array.isArray(bookedSlotsData) && bookedSlotsData.length > 0) {
+      const isAlreadyBooked = bookedSlotsData.some(b => {
+        const cleanB = cleanTimeStr(b);
+        return cleanB && (cleanB.includes(cleanSelectTime) || cleanSelectTime.includes(cleanB));
+      });
+      if (isAlreadyBooked) {
+        setError("This time slot is already booked. Please select another available time slot.");
+        return;
+      }
+    }
+
+    // 2. Check if slot falls within total configured booking windows
+    const allWindowSlots = getAvailableTimeSlots(customizationSettings, form.meetingPreferredDate, []);
+    if (allWindowSlots && allWindowSlots.length > 0) {
+      const isWithinWindow = allWindowSlots.some((slot) => {
+        const cleanVal = cleanTimeStr(slot.value);
+        const cleanShort12 = cleanTimeStr(slot.short12h);
+        return cleanVal === cleanSelectTime ||
+               cleanSelectTime.includes(cleanVal) ||
+               cleanVal.includes(cleanSelectTime) ||
+               cleanSelectTime.includes(cleanShort12);
+      });
+      if (!isWithinWindow) {
         setError("Selected meeting time slot is outside of configured booking windows.");
         return;
       }
     }
+
     setLoading(true);
     setError("");
 
