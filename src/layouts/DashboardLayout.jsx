@@ -1271,7 +1271,7 @@ export const DashboardLayout = () => {
                         key={notif.id}
                         onClick={() => {
                           handleNotifClick(notif.id);
-                          if (notif.type === 'new_lead' || notif.type === 'new_booking') {
+                          if (notif.type === 'new_lead' || notif.type === 'new_booking' || notif.type === 'meeting_cancelled') {
                             navigate(`/${getRolePrefix()}/leads`);
                           } else {
                             navigate(`/${getRolePrefix()}/documents`);
@@ -1298,7 +1298,7 @@ export const DashboardLayout = () => {
                             )}
                           </Box>
                           <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', lineHeight: 1.4 }}>
-                            {notif.body}
+                            {notif.body ? notif.body.replace(/(\d{4})-(\d{2})-(\d{2})/g, '$3/$2/$1').replace(/\s+on\s+Invalid\s+Date/gi, '') : ''}
                           </Typography>
                           <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', fontWeight: 600, mt: 0.5 }}>
                             {timeAgo}

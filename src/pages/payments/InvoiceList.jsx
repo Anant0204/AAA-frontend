@@ -148,17 +148,28 @@ export const InvoiceList = () => {
     queryFn: dbService.getPackages,
   });
 
+  const getDateStr = (val) => {
+    if (!val) return '';
+    if (typeof val === 'string') return val.split('T')[0];
+    try { return new Date(val).toISOString().split('T')[0]; } catch (e) { return ''; }
+  };
+
   const filteredInvoices = payments.filter((p) => {
-    const dateToCheck = p.status === 'Paid' ? (p.paymentDate || p.dueDate) : p.dueDate;
+    const rawDate = (p.status === 'Paid' || p.status === 'Completed') 
+      ? (p.paidAt || p.paymentDate || p.billingDate || p.dueDate || p.createdAt) 
+      : (p.dueDate || p.billingDate || p.createdAt);
+    const dateToCheck = getDateStr(rawDate);
     if (!filterByDate(dateToCheck, startDate, endDate)) return false;
 
     const invoiceNum = p.invoiceNumber || p.invoiceNo || `INV-2026-${(p.id || '').replace(/-/g, '').slice(-6).toUpperCase()}`;
     const matchSearch =
       p.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       invoiceNum.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.clientName.toLowerCase().includes(searchTerm.toLowerCase());
+      (p.clientName || '').toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchStatus = filters.status ? p.status === filters.status : true;
+    const matchStatus = filters.status 
+      ? (filters.status === 'Paid' ? (p.status === 'Paid' || p.status === 'Completed') : p.status === filters.status) 
+      : true;
     return matchSearch && matchStatus;
   });
 

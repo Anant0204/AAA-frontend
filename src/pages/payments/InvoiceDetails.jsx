@@ -124,7 +124,6 @@ export const InvoiceDetails = () => {
   const currentPkg = (dbPackages && dbPackages.length > 0)
     ? dbPackages.find(p => p.id === invoice.packageType || p.code === invoice.packageType || p.id === invoice.packageId || p.code === invoice.packageId)
     : null;
-
   const itemTitle = currentPkg?.name || invoice.paymentPurpose || (invoice.packageType ? getPackageDisplayName(invoice.packageType, dbPackages) : (invoice.serviceId ? (SERVICES.find(s => s.id === invoice.serviceId)?.name || invoice.serviceId) : 'Spain Immigration & Legal Relocation Service'));
 
   const itemDescription = currentPkg?.description || (invoice.paymentPurpose ? `Official client invoice for ${invoice.paymentPurpose}.` : 'Initial eligibility verification, document compliance review, and file assembly.');

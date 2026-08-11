@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import dayjs from "dayjs";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { io } from "socket.io-client";
 import { getServicesForCountry, ALL_COUNTRIES } from "../../constants/countryServices";
 import { NATIONALITIES } from "../../constants/nationalities";
 import { getAvailableTimeSlots, getHolidayInfo } from "../../utils/bookingTimeSlots";
@@ -361,6 +363,23 @@ export const LeadSelfFillForm = () => {
   const [otherLangInput, setOtherLangInput] = useState('');
   const [totalApplicantsDisplay, setTotalApplicantsDisplay] = useState('1');
   const [confirmedMeetingLink, setConfirmedMeetingLink] = useState('');
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const socketUrl = import.meta.env.VITE_API_URL 
+      ? import.meta.env.VITE_API_URL.replace('/api/v1', '') 
+      : 'https://aaa-consultancy-backend-production.up.railway.app';
+    const socket = io(socketUrl);
+
+    socket.on('public-slot-booked', () => {
+      queryClient.invalidateQueries({ queryKey: ['public-booked-slots'] });
+    });
+
+    return () => {
+      socket.off('public-slot-booked');
+      socket.disconnect();
+    };
+  }, [queryClient]);
 
   // Load form draft from localStorage on mount (preserves details on page refresh)
   useEffect(() => {
@@ -889,6 +908,8 @@ export const LeadSelfFillForm = () => {
       }
     }
 
+    if (loading) return; // Prevent double submission
+
     if (!form.firstName || !form.lastName || !form.email || !form.phone) {
       setError("Please fill in all required personal details (Name, Email, Phone).");
       return;
@@ -915,19 +936,50 @@ export const LeadSelfFillForm = () => {
       setError("Please select your preferred meeting date and time.");
       return;
     }
+
     const selectTime = form.meetingPreferredTime;
-    if (selectTime && availableTimeSlots && availableTimeSlots.length > 0) {
-      const isValid = availableTimeSlots.some((slot) =>
-        slot.value === selectTime ||
-        slot.short24h === selectTime ||
-        slot.display24h === selectTime ||
-        selectTime.includes(slot.short12h)
-      );
-      if (!isValid) {
+    const cleanTimeStr = (str) => {
+      if (!str) return '';
+      return String(str)
+        .toLowerCase()
+        .replace(/\(uae\)/gi, '')
+        .replace(/[–—]/g, '-')
+        .replace(/\b0(\d):/g, '$1:')
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
+
+    const cleanSelectTime = cleanTimeStr(selectTime);
+
+    // 1. Check if slot is already booked in DB
+    if (Array.isArray(bookedSlotsData) && bookedSlotsData.length > 0) {
+      const isAlreadyBooked = bookedSlotsData.some(b => {
+        const cleanB = cleanTimeStr(b);
+        return cleanB && (cleanB.includes(cleanSelectTime) || cleanSelectTime.includes(cleanB));
+      });
+      if (isAlreadyBooked) {
+        setError("This time slot is already booked. Please select another available time slot.");
+        return;
+      }
+    }
+
+    // 2. Check if slot falls within total configured booking windows
+    const allWindowSlots = getAvailableTimeSlots(customizationSettings, form.meetingPreferredDate, []);
+    if (allWindowSlots && allWindowSlots.length > 0) {
+      const isWithinWindow = allWindowSlots.some((slot) => {
+        const cleanVal = cleanTimeStr(slot.value);
+        const cleanShort12 = cleanTimeStr(slot.short12h);
+        return cleanVal === cleanSelectTime ||
+               cleanSelectTime.includes(cleanVal) ||
+               cleanVal.includes(cleanSelectTime) ||
+               cleanSelectTime.includes(cleanShort12);
+      });
+      if (!isWithinWindow) {
         setError("Selected meeting time slot is outside of configured booking windows.");
         return;
       }
     }
+
     setLoading(true);
     setError("");
 
@@ -954,15 +1006,37 @@ export const LeadSelfFillForm = () => {
       let resData = null;
       let success = false;
 
-      // Submit lead to primary API endpoint
-      if (isExistingLead && form.id) {
-        const res = await axios.patch(`${API_URL}/leads/${form.id}/meeting-preference`, payload);
-        resData = res.data;
-      } else {
-        const res = await axios.post(`${API_URL}/leads`, payload);
-        resData = res.data;
+      // Submit lead to primary API endpoint with automatic local fallback
+      try {
+        if (isExistingLead && form.id) {
+          const res = await axios.patch(`${API_URL}/leads/${form.id}/meeting-preference`, payload);
+          resData = res.data;
+        } else {
+          const res = await axios.post(`${API_URL}/leads`, payload);
+          resData = res.data;
+        }
+        success = true;
+      } catch (primaryErr) {
+        console.warn("[PRIMARY API ERROR]:", primaryErr.response?.data || primaryErr.message);
+        // If primary API failed with network/server error (and not business code), try local backend API as fallback
+        if (!primaryErr.response?.data?.code && API_URL.includes('railway')) {
+          try {
+            const fallbackUrl = "http://localhost:5000/api/v1";
+            if (isExistingLead && form.id) {
+              const resLoc = await axios.patch(`${fallbackUrl}/leads/${form.id}/meeting-preference`, payload);
+              resData = resLoc.data;
+            } else {
+              const resLoc = await axios.post(`${fallbackUrl}/leads`, payload);
+              resData = resLoc.data;
+            }
+            success = true;
+          } catch (localErr) {
+            throw primaryErr; // rethrow primary error if local fallback also fails
+          }
+        } else {
+          throw primaryErr;
+        }
       }
-      success = true;
 
       if (success) {
         const mLink = resData?.meetingLink || resData?.consultation?.meetingLink || resData?.data?.consultation?.meetingLink;
@@ -994,6 +1068,7 @@ export const LeadSelfFillForm = () => {
         setStep(2);
       }
     } catch (err) {
+      console.error("[Lead Submission Catch Error]:", err.response?.data || err.message || err);
       const errData = err.response?.data || {};
       if (errData.code === 'BLACKLISTED') {
         setWarningPopup({
@@ -1014,10 +1089,8 @@ export const LeadSelfFillForm = () => {
           code: 'BLOCKED'
         });
       } else {
-        setError(
-          err.response?.data?.message ||
-          "Something went wrong. Please try again.",
-        );
+        const msg = errData.message || (typeof errData === 'string' && !errData.includes('<!DOCTYPE') ? errData : null) || err.message || "Something went wrong. Please try again.";
+        setError(msg);
       }
     } finally {
       setLoading(false);
