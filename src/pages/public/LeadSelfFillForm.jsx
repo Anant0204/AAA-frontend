@@ -1048,15 +1048,37 @@ export const LeadSelfFillForm = () => {
       let resData = null;
       let success = false;
 
-      // Submit lead to primary API endpoint
-      if (isExistingLead && form.id) {
-        const res = await axios.patch(`${API_URL}/leads/${form.id}/meeting-preference`, payload);
-        resData = res.data;
-      } else {
-        const res = await axios.post(`${API_URL}/leads`, payload);
-        resData = res.data;
+      // Submit lead to primary API endpoint with automatic local fallback
+      try {
+        if (isExistingLead && form.id) {
+          const res = await axios.patch(`${API_URL}/leads/${form.id}/meeting-preference`, payload);
+          resData = res.data;
+        } else {
+          const res = await axios.post(`${API_URL}/leads`, payload);
+          resData = res.data;
+        }
+        success = true;
+      } catch (primaryErr) {
+        console.warn("[PRIMARY API ERROR]:", primaryErr.response?.data || primaryErr.message);
+        // If primary API failed with network/server error (and not business code), try local backend API as fallback
+        if (!primaryErr.response?.data?.code && API_URL.includes('railway')) {
+          try {
+            const fallbackUrl = "http://localhost:5000/api/v1";
+            if (isExistingLead && form.id) {
+              const resLoc = await axios.patch(`${fallbackUrl}/leads/${form.id}/meeting-preference`, payload);
+              resData = resLoc.data;
+            } else {
+              const resLoc = await axios.post(`${fallbackUrl}/leads`, payload);
+              resData = resLoc.data;
+            }
+            success = true;
+          } catch (localErr) {
+            throw primaryErr; // rethrow primary error if local fallback also fails
+          }
+        } else {
+          throw primaryErr;
+        }
       }
-      success = true;
 
       if (success) {
         const mLink = resData?.meetingLink || resData?.consultation?.meetingLink || resData?.data?.consultation?.meetingLink;
@@ -1088,6 +1110,7 @@ export const LeadSelfFillForm = () => {
         setStep(2);
       }
     } catch (err) {
+      console.error("[Lead Submission Catch Error]:", err.response?.data || err.message || err);
       const errData = err.response?.data || {};
       if (errData.code === 'BLACKLISTED') {
         setWarningPopup({
@@ -1108,10 +1131,8 @@ export const LeadSelfFillForm = () => {
           code: 'BLOCKED'
         });
       } else {
-        setError(
-          err.response?.data?.message ||
-          "Something went wrong. Please try again.",
-        );
+        const msg = errData.message || (typeof errData === 'string' && !errData.includes('<!DOCTYPE') ? errData : null) || err.message || "Something went wrong. Please try again.";
+        setError(msg);
       }
     } finally {
       setLoading(false);
