@@ -119,6 +119,10 @@ export const dbService = {
     const res = await apiClient.post(`/clients/${clientId}/credentials${forceReset ? '?forceReset=true' : ''}`);
     return res.data;
   },
+  sendRebookLink: async (clientId) => {
+    const res = await apiClient.post(`/clients/${clientId}/send-rebook-link`);
+    return res.data;
+  },
   clientLogin: async (clientId, password) => {
     const res = await apiClient.post('/clients/login', { clientId, password });
     return res.data;

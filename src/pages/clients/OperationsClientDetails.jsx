@@ -21,6 +21,7 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import PostAddIcon from '@mui/icons-material/PostAdd';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import SendIcon from '@mui/icons-material/Send';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
@@ -185,6 +186,16 @@ export const OperationsClientDetails = () => {
   const serviceObj = SERVICES.find((s) => s.id === client.serviceId);
   const packageObj = PACKAGES.find((p) => p.id === client.packageId);
   const consultantObj = consultants.find((c) => c.id === client.assignedConsultantId);
+
+  const sendRebookLinkMutation = useMutation({
+    mutationFn: (clientId) => dbService.sendRebookLink(clientId),
+    onSuccess: (data) => {
+      showAlert(data?.message || 'Re-book booking link sent successfully via WhatsApp & Email!', 'success');
+    },
+    onError: (err) => {
+      showAlert(err.response?.data?.message || err.message || 'Failed to send re-book link', 'error');
+    }
+  });
 
   const handleOpenStatusModal = () => {
     setSelectedVisaStatus(client.visaStatus);
@@ -652,9 +663,22 @@ export const OperationsClientDetails = () => {
 
               {activeTab === 3 && (
                 <Box>
-                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
-                    Session Log
-                  </Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1 }}>
+                    <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                      Session Log
+                    </Typography>
+
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      startIcon={<SendIcon />}
+                      disabled={sendRebookLinkMutation.isPending}
+                      onClick={() => sendRebookLinkMutation.mutate(client.id)}
+                      sx={{ fontWeight: 700, borderRadius: 2, textTransform: 'none', px: 2.5 }}
+                    >
+                      {sendRebookLinkMutation.isPending ? 'Sending Link...' : 'Send Re-book Link 📩'}
+                    </Button>
+                  </Box>
 
                   {clientConsultations.length === 0 ? (
                     <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 3 }}>
