@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import dayjs from "dayjs";
+import { useQuery } from "@tanstack/react-query";
 import { getServicesForCountry, ALL_COUNTRIES } from "../../constants/countryServices";
 import { getAvailableTimeSlots, getHolidayInfo } from "../../utils/bookingTimeSlots";
 import { dbService } from "../../services/dbService";
