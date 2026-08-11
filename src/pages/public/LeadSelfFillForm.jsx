@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import dayjs from "dayjs";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { io } from "socket.io-client";
 import { getServicesForCountry, ALL_COUNTRIES } from "../../constants/countryServices";
 import { getAvailableTimeSlots, getHolidayInfo } from "../../utils/bookingTimeSlots";
 import { dbService } from "../../services/dbService";
@@ -404,7 +405,23 @@ export const LeadSelfFillForm = () => {
   const [selectedMultiLangs, setSelectedMultiLangs] = useState(['English', 'Urdu']);
   const [otherLangInput, setOtherLangInput] = useState('');
   const [totalApplicantsDisplay, setTotalApplicantsDisplay] = useState('1');
-  const [confirmedMeetingLink, setConfirmedMeetingLink] = useState('');
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const socketUrl = import.meta.env.VITE_API_URL 
+      ? import.meta.env.VITE_API_URL.replace('/api/v1', '') 
+      : 'https://aaa-consultancy-backend-production.up.railway.app';
+    const socket = io(socketUrl);
+
+    socket.on('public-slot-booked', () => {
+      queryClient.invalidateQueries({ queryKey: ['public-booked-slots'] });
+    });
+
+    return () => {
+      socket.off('public-slot-booked');
+      socket.disconnect();
+    };
+  }, [queryClient]);
 
   // Load form draft from localStorage on mount (preserves details on page refresh)
   useEffect(() => {

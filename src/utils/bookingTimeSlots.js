@@ -218,13 +218,26 @@ export function getAvailableTimeSlots(customizationSettings, selectedDate, booke
   }
 
   if (Array.isArray(bookedSlots) && bookedSlots.length > 0) {
-    const normalizedBooked = bookedSlots.map(b => String(b || '').toLowerCase().trim());
+    const cleanStr = (str) => {
+      if (!str) return '';
+      return String(str)
+        .toLowerCase()
+        .replace(/\(uae\)/gi, '')
+        .replace(/[–—]/g, '-')
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
+
+    const normalizedBooked = bookedSlots.map(b => cleanStr(b)).filter(Boolean);
+
     return slots.filter(s => {
-      const valLower = s.value.toLowerCase().trim();
-      const short12Lower = s.short12h.toLowerCase().trim();
-      const isBooked = normalizedBooked.some(b => 
-        b.includes(valLower) || valLower.includes(b) || b.includes(short12Lower)
-      );
+      const cleanVal = cleanStr(s.value);
+      const cleanShort12 = cleanStr(s.short12h);
+
+      const isBooked = normalizedBooked.some(b => {
+        if (!b) return false;
+        return b.includes(cleanVal) || cleanVal.includes(b) || b.includes(cleanShort12);
+      });
       return !isBooked;
     });
   }
