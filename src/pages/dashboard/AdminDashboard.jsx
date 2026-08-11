@@ -250,7 +250,12 @@ export const AdminDashboard = () => {
   // Leads table configuration
   const recentLeads = leads.slice(0, 5);
   const leadsColumns = [
-    { id: 'id', label: 'Lead ID', minWidth: 80 },
+    {
+      id: 'id',
+      label: 'Lead ID',
+      minWidth: 110,
+      render: (row) => row.clientCode || row.leadCode || row.displayId || (typeof row.id === 'string' && row.id.length > 8 ? `LEAD-${row.id.substring(0, 6).toUpperCase()}` : (row.id || '—'))
+    },
     {
       id: 'name',
       label: 'Name',

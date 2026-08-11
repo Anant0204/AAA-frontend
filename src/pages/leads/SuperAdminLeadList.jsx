@@ -454,7 +454,7 @@ export const SuperAdminLeadList = () => {
   };
 
   const columns = [
-    { id: 'clientCode', label: 'Customer ID', render: (row) => row.clientCode || row.displayId || 'CID-12001' },
+    { id: 'clientCode', label: 'Customer ID', render: (row) => row.clientCode || row.leadCode || row.displayId || (typeof row.id === 'string' && row.id.length > 8 ? `LEAD-${row.id.substring(0, 6).toUpperCase()}` : (row.id || 'CID-12001')) },
     {
       id: 'name',
       label: 'Name',
