@@ -405,6 +405,7 @@ export const LeadSelfFillForm = () => {
   const [selectedMultiLangs, setSelectedMultiLangs] = useState(['English', 'Urdu']);
   const [otherLangInput, setOtherLangInput] = useState('');
   const [totalApplicantsDisplay, setTotalApplicantsDisplay] = useState('1');
+  const [confirmedMeetingLink, setConfirmedMeetingLink] = useState('');
   const queryClient = useQueryClient();
 
   useEffect(() => {
