@@ -198,25 +198,37 @@ export const SuperAdminConsultationDetails = () => {
   }
 
   const consultant = consultants.find((c) => c.id === cons.assignedConsultantId);
-
   const handleStatusChange = (status) => {
     updateStatusMutation.mutate({ id: cons.id, status });
   };
 
+  const [followUpStatus, setFollowUpStatus] = useState('Completed');
+
   const handleCompleteSubmit = () => {
-    const requestedObj = SERVICES.find((s) => s.id === clientRequested);
-    const recommendedObj = SERVICES.find((s) => s.id === aaaRecommended);
-    completeMutation.mutate({
-      id: cons.id,
-      outcome: {
-        eligibility: eligibilityStatus,
-        clientRequestedService: requestedObj ? requestedObj.name : 'Digital Nomad Visa (DNV)',
-        aaaRecommendedService: recommendedObj ? recommendedObj.name : 'Digital Nomad Visa (DNV)'
-      },
-      notes: outcomeNotes,
-      recommendedService: eligibilityStatus === 'Eligible' ? (recommendedObj ? recommendedObj.name : 'Digital Nomad Visa (DNV)') : null,
-      recommendedPackageId: eligibilityStatus === 'Eligible' ? recommendedPackage : null
-    });
+    if (cons?.type === 'follow_up' || cons?.clientId) {
+      completeMutation.mutate({
+        id: cons.id,
+        status: followUpStatus || 'Completed',
+        notes: outcomeNotes,
+        internalNotes: outcomeNotes
+      });
+      setCompleteModalOpen(false);
+    } else {
+      const requestedObj = SERVICES.find((s) => s.id === clientRequested);
+      const recommendedObj = SERVICES.find((s) => s.id === aaaRecommended);
+      completeMutation.mutate({
+        id: cons.id,
+        outcome: {
+          eligibility: eligibilityStatus,
+          clientRequestedService: requestedObj ? requestedObj.name : 'Digital Nomad Visa (DNV)',
+          aaaRecommendedService: recommendedObj ? recommendedObj.name : 'Digital Nomad Visa (DNV)'
+        },
+        notes: outcomeNotes,
+        recommendedService: eligibilityStatus === 'Eligible' ? (recommendedObj ? recommendedObj.name : 'Digital Nomad Visa (DNV)') : null,
+        recommendedPackageId: eligibilityStatus === 'Eligible' ? recommendedPackage : null
+      });
+      setCompleteModalOpen(false);
+    }
   };
 
   if (isLoading) {
@@ -239,6 +251,8 @@ export const SuperAdminConsultationDetails = () => {
       </Box>
     );
   }
+
+  const consultant = consultants.find((c) => c.id === cons.assignedConsultantId);
 
   return (
     <Box>
@@ -378,125 +392,87 @@ export const SuperAdminConsultationDetails = () => {
             </AppCard>
 
             {/* Recording Section */}
-            {cons.status === 'Completed' && (
-              <AppCard title="Automated Meeting Recording (Zoom Cloud)" sx={{ height: 'auto' }}>
-                {cons.recordingUrl ? (
-                  cons.recordingUrl.includes('zoom.us') || cons.recordingUrl.includes('zoom.com') ? (
-                    /* Zoom Cloud playback page (Opens in new tab) */
-                    <Box sx={{ p: 2.5, borderRadius: 2, bgcolor: 'background.neutral', border: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
-                        <VideoCallIcon color="primary" sx={{ fontSize: 32 }} />
-                        <Box sx={{ flexGrow: 1 }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                            Assessment Meeting Recording (Zoom Cloud)
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
-                            Meeting Link: {cons.recordingUrl}
-                          </Typography>
-                        </Box>
-                      </Box>
-                      <Button
-                        variant="contained"
+            {cons.recordingUrl && (
+              <AppCard title="Zoom Meeting Recording & Playback" sx={{ height: 'auto' }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                    Cloud Audio/Video Recording File: {getRecordingFilename(cons.recordingUrl)}
+                  </Typography>
+                  
+                  {/* Custom Audio Player UI */}
+                  <Paper sx={{ p: 2, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 2 }}>
+                    <audio
+                      ref={audioRef}
+                      src={cons.recordingUrl}
+                      onTimeUpdate={handleTimeUpdate}
+                      onLoadedMetadata={handleLoadedMetadata}
+                      onEnded={handleAudioEnded}
+                      style={{ display: 'none' }}
+                    />
+                    
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <IconButton
+                        onClick={handlePlayPause}
                         color="primary"
-                        href={cons.recordingUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        startIcon={<PlayArrowIcon />}
-                        sx={{ mt: 1, px: 3, fontWeight: 700 }}
+                        sx={{ bgcolor: '#EFF6FF', '&:hover': { bgcolor: '#DBEAFE' } }}
                       >
-                        Play Recording on Zoom Cloud
-                      </Button>
-                    </Box>
-                  ) : (
-                    /* Legacy direct audio stream playback (e.g. S3 files) */
-                    <Box sx={{ p: 2.5, borderRadius: 2, bgcolor: 'background.neutral', border: '1px solid', borderColor: 'divider' }}>
-                      <audio
-                        ref={audioRef}
-                        src={cons.recordingUrl}
-                        onTimeUpdate={handleTimeUpdate}
-                        onLoadedMetadata={handleLoadedMetadata}
-                        onEnded={handleAudioEnded}
-                      />
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
-                        <IconButton 
-                          onClick={handlePlayPause} 
-                          color="secondary" 
-                          sx={{ 
-                            width: 48, 
-                            height: 48, 
-                            bgcolor: 'secondary.main', 
-                            color: 'white',
-                            '&:hover': { bgcolor: 'secondary.dark' } 
-                          }}
-                        >
-                          {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
-                        </IconButton>
-                        <Box sx={{ flexGrow: 1 }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                            {getRecordingFilename(cons.recordingUrl)}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
-                            S3 Path: {cons.recordingUrl}
-                          </Typography>
-                        </Box>
-                      </Box>
-
-                      {/* Slider Timeline */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ minWidth: 35 }}>
+                        {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
+                      </IconButton>
+                      
+                      <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace', minWidth: 40 }}>
                           {formatTime(currentTime)}
                         </Typography>
                         <Slider
                           size="small"
                           value={currentTime}
-                          min={0}
-                          max={duration || 1}
+                          max={duration || 100}
                           onChange={handleSliderChange}
-                          color="secondary"
-                          sx={{ flexGrow: 1 }}
+                          sx={{ color: 'primary.main' }}
                         />
-                        <Typography variant="caption" color="text.secondary" sx={{ minWidth: 35 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace', minWidth: 40 }}>
                           {formatTime(duration)}
                         </Typography>
                       </Box>
 
-                      {/* Volume Controller */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1, justifyContent: 'flex-end' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 100 }}>
                         <VolumeUpIcon fontSize="small" color="action" />
                         <Slider
                           size="small"
                           value={volume}
                           onChange={(e, val) => setVolume(val)}
-                          min={0}
-                          max={100}
-                          sx={{ width: 80, color: 'text.secondary' }}
+                          sx={{ width: 60, color: 'text.secondary' }}
                         />
                       </Box>
                     </Box>
-                  )
-                ) : (
-                  /* No recording available fallback */
-                  <Box sx={{ p: 3, textAlign: 'center', bgcolor: 'background.neutral', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                      No Meeting Recording Logged
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                      If this consultation was conducted manually (e.g. phone or WhatsApp call), no recording is captured. If it was a Zoom meeting, the recording may still be processing on Zoom Cloud.
-                    </Typography>
+                  </Paper>
+
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      href={cons.recordingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      startIcon={<VideoCallIcon />}
+                      sx={{ fontWeight: 600 }}
+                    >
+                      Open Recording in New Tab
+                    </Button>
                   </Box>
-                )}
+                </Box>
               </AppCard>
             )}
 
-            {/* Outcome and notes section */}
-            {cons.status === 'Completed' && (cons.outcome || cons.internalNotes || cons.notes) && (
-              <AppCard title="Meeting Assessment Outcome" sx={{ height: 'auto' }}>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-                  {cons.outcome?.clientRequestedService && (
+            {/* Outcome Display (If completed) */}
+            {(cons.status === 'Completed' || cons.status === 'Meeting Completed' || cons.status === 'Assessment Completed') && (
+              <AppCard title="Consultation Meeting Notes & Assessment Result" sx={{ height: 'auto' }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {cons.outcome?.eligibility && (
                     <Box>
-                      <Typography variant="caption" color="text.secondary">Client Requested Service</Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                        {cons.outcome.clientRequestedService}
+                      <Typography variant="caption" color="text.secondary">Assessment Outcome</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 700, color: cons.outcome.eligibility === 'Eligible' ? 'success.main' : 'error.main' }}>
+                        {cons.outcome.eligibility}
                       </Typography>
                     </Box>
                   )}
@@ -586,7 +562,7 @@ export const SuperAdminConsultationDetails = () => {
       <AppModal
         open={completeModalOpen}
         onClose={() => setCompleteModalOpen(false)}
-        title="Log Meeting Assessment Outcome"
+        title={cons?.type === 'follow_up' || cons?.clientId ? "Complete Follow-up Consultation" : "Log Meeting Assessment Outcome"}
         actions={
           <>
             <Button onClick={() => setCompleteModalOpen(false)} variant="outlined">
@@ -598,87 +574,120 @@ export const SuperAdminConsultationDetails = () => {
               color="success"
               disabled={completeMutation.isPending}
             >
-              Submit Outcome
+              {cons?.type === 'follow_up' || cons?.clientId ? "Save Follow-up Notes" : "Submit Outcome"}
             </Button>
           </>
         }
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-          <Typography variant="body2">
-            Log the final results of the visa consultation. This updates the Lead qualification state and enables package invoice generation.
-          </Typography>
-
-          <TextField
-            select
-            value={eligibilityStatus}
-            onChange={(e) => setEligibilityStatus(e.target.value)}
-            label="Eligibility Status *"
-            fullWidth
-            sx={{ mb: 2 }}
-          >
-            <MenuItem value="Eligible">Eligible</MenuItem>
-            <MenuItem value="Not Eligible">Not Eligible</MenuItem>
-          </TextField>
-
-          {eligibilityStatus === 'Eligible' && (
+          {(cons?.type === 'follow_up' || cons?.clientId) ? (
             <>
-              <TextField
-                select
-                value={clientRequested}
-                onChange={(e) => setClientRequested(e.target.value)}
-                label="Client Requested Service (Assessment Start)"
-                fullWidth
-                sx={{ mb: 2 }}
-              >
-                {SERVICES.map((s) => (
-                  <MenuItem key={s.id} value={s.id}>
-                    {s.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+              <Typography variant="body2" color="text.secondary">
+                Update session status and enter internal staff remarks/notes for this follow-up consultation.
+              </Typography>
 
               <TextField
                 select
-                value={aaaRecommended}
-                onChange={(e) => setAaaRecommended(e.target.value)}
-                label="Recommended Spain Visa Pathway"
+                value={followUpStatus}
+                onChange={(e) => setFollowUpStatus(e.target.value)}
+                label="Follow-up Meeting Status *"
                 fullWidth
-                sx={{ mb: 2 }}
+                size="small"
               >
-                {SERVICES.map((s) => (
-                  <MenuItem key={s.id} value={s.id}>
-                    {s.name}
-                  </MenuItem>
-                ))}
+                <MenuItem value="Completed">Completed ✅</MenuItem>
+                <MenuItem value="Cancelled">Cancelled ❌</MenuItem>
+                <MenuItem value="No Show">No Show 🚫</MenuItem>
               </TextField>
 
               <TextField
+                value={outcomeNotes}
+                onChange={(e) => setOutcomeNotes(e.target.value)}
+                label="Staff Follow-up Notes & Remarks"
+                multiline
+                rows={4}
+                fullWidth
+                placeholder="Enter details discussed during the follow-up meeting (e.g. document preparation status, visa appointment updates)."
+              />
+            </>
+          ) : (
+            <>
+              <Typography variant="body2">
+                Log the final results of the visa consultation. This updates the Lead qualification state and enables package invoice generation.
+              </Typography>
+
+              <TextField
                 select
-                value={recommendedPackage}
-                onChange={(e) => setRecommendedPackage(e.target.value)}
-                label="Recommended Relocation Package *"
+                value={eligibilityStatus}
+                onChange={(e) => setEligibilityStatus(e.target.value)}
+                label="Eligibility Status *"
                 fullWidth
                 sx={{ mb: 2 }}
               >
-                <MenuItem value="OPTION_A">Option A: Professional Case Assessment (€250)</MenuItem>
-                <MenuItem value="OPTION_B">Option B: Full Processing Package (€3,500)</MenuItem>
-                <MenuItem value="OPTION_C">Option C: Administrative Relocation Package (€1,750)</MenuItem>
-                <MenuItem value="OPTION_D">Option D: Premium Package (€4,750)</MenuItem>
-                <MenuItem value="Tourist Visa">Schengen Tourist Visa (€500)</MenuItem>
+                <MenuItem value="Eligible">Eligible</MenuItem>
+                <MenuItem value="Not Eligible">Not Eligible</MenuItem>
               </TextField>
+
+              {eligibilityStatus === 'Eligible' && (
+                <>
+                  <TextField
+                    select
+                    value={clientRequested}
+                    onChange={(e) => setClientRequested(e.target.value)}
+                    label="Client Requested Service (Assessment Start)"
+                    fullWidth
+                    sx={{ mb: 2 }}
+                  >
+                    {SERVICES.map((s) => (
+                      <MenuItem key={s.id} value={s.id}>
+                        {s.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+
+                  <TextField
+                    select
+                    value={aaaRecommended}
+                    onChange={(e) => setAaaRecommended(e.target.value)}
+                    label="Recommended Spain Visa Pathway"
+                    fullWidth
+                    sx={{ mb: 2 }}
+                  >
+                    {SERVICES.map((s) => (
+                      <MenuItem key={s.id} value={s.id}>
+                        {s.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+
+                  <TextField
+                    select
+                    value={recommendedPackage}
+                    onChange={(e) => setRecommendedPackage(e.target.value)}
+                    label="Recommended Relocation Package *"
+                    fullWidth
+                    sx={{ mb: 2 }}
+                  >
+                    <MenuItem value="OPTION_A">Option A: Professional Case Assessment (€250)</MenuItem>
+                    <MenuItem value="OPTION_B">Option B: Full Processing Package (€3,500)</MenuItem>
+                    <MenuItem value="OPTION_C">Option C: Administrative Relocation Package (€1,750)</MenuItem>
+                    <MenuItem value="OPTION_D">Option D: Premium Package (€4,750)</MenuItem>
+                    <MenuItem value="Tourist Visa">Schengen Tourist Visa (€500)</MenuItem>
+                  </TextField>
+                </>
+              )}
+
+              <TextField
+                value={outcomeNotes}
+                onChange={(e) => setOutcomeNotes(e.target.value)}
+                label="Eligibility Notes & Relocation Recommendations"
+                multiline
+                rows={4}
+                fullWidth
+                required
+                placeholder="Document client's passport status, income statements audited, and recommended translations checklist."
+              />
             </>
           )}
-
-          <TextField
-            value={outcomeNotes}
-            onChange={(e) => setOutcomeNotes(e.target.value)}
-            label="Eligibility Notes & Relocation Recommendations"
-            multiline
-            rows={4}
-            fullWidth
-            required
-            placeholder="Document client's passport status, income statements audited, and recommended translations checklist."
-          />
         </Box>
       </AppModal>
     </Box>

@@ -191,20 +191,33 @@ export const AdminConsultationDetails = () => {
     updateStatusMutation.mutate({ id: cons.id, status });
   };
 
+  const [followUpStatus, setFollowUpStatus] = useState('Completed');
+
   const handleCompleteSubmit = () => {
-    const requestedObj = SERVICES.find((s) => s.id === clientRequested);
-    const recommendedObj = SERVICES.find((s) => s.id === aaaRecommended);
-    completeMutation.mutate({
-      id: cons.id,
-      outcome: {
-        eligibility: eligibilityStatus,
-        clientRequestedService: requestedObj ? requestedObj.name : 'Digital Nomad Visa (DNV)',
-        aaaRecommendedService: recommendedObj ? recommendedObj.name : 'Digital Nomad Visa (DNV)'
-      },
-      notes: outcomeNotes,
-      recommendedService: eligibilityStatus === 'Eligible' ? (recommendedObj ? recommendedObj.name : 'Digital Nomad Visa (DNV)') : null,
-      recommendedPackageId: eligibilityStatus === 'Eligible' ? recommendedPackage : null
-    });
+    if (cons?.type === 'follow_up' || cons?.clientId) {
+      completeMutation.mutate({
+        id: cons.id,
+        status: followUpStatus || 'Completed',
+        notes: outcomeNotes,
+        internalNotes: outcomeNotes
+      });
+      setCompleteModalOpen(false);
+    } else {
+      const requestedObj = SERVICES.find((s) => s.id === clientRequested);
+      const recommendedObj = SERVICES.find((s) => s.id === aaaRecommended);
+      completeMutation.mutate({
+        id: cons.id,
+        outcome: {
+          eligibility: eligibilityStatus,
+          clientRequestedService: requestedObj ? requestedObj.name : 'Digital Nomad Visa (DNV)',
+          aaaRecommendedService: recommendedObj ? recommendedObj.name : 'Digital Nomad Visa (DNV)'
+        },
+        notes: outcomeNotes,
+        recommendedService: eligibilityStatus === 'Eligible' ? (recommendedObj ? recommendedObj.name : 'Digital Nomad Visa (DNV)') : null,
+        recommendedPackageId: eligibilityStatus === 'Eligible' ? recommendedPackage : null
+      });
+      setCompleteModalOpen(false);
+    }
   };
 
   return (
@@ -551,7 +564,7 @@ export const AdminConsultationDetails = () => {
       <AppModal
         open={completeModalOpen}
         onClose={() => setCompleteModalOpen(false)}
-        title="Log Meeting Assessment Outcome"
+        title={cons?.type === 'follow_up' || cons?.clientId ? "Complete Follow-up Consultation" : "Log Meeting Assessment Outcome"}
         actions={
           <>
             <Button onClick={() => setCompleteModalOpen(false)} variant="outlined">
@@ -563,87 +576,120 @@ export const AdminConsultationDetails = () => {
               color="success"
               disabled={completeMutation.isPending}
             >
-              Submit Outcome
+              {cons?.type === 'follow_up' || cons?.clientId ? "Save Follow-up Notes" : "Submit Outcome"}
             </Button>
           </>
         }
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-          <Typography variant="body2">
-            Log the final results of the visa consultation. This updates the Lead qualification state and enables package invoice generation.
-          </Typography>
-
-          <TextField
-            select
-            value={eligibilityStatus}
-            onChange={(e) => setEligibilityStatus(e.target.value)}
-            label="Eligibility Status *"
-            fullWidth
-            sx={{ mb: 2 }}
-          >
-            <MenuItem value="Eligible">Eligible</MenuItem>
-            <MenuItem value="Not Eligible">Not Eligible</MenuItem>
-          </TextField>
-
-          {eligibilityStatus === 'Eligible' && (
+          {(cons?.type === 'follow_up' || cons?.clientId) ? (
             <>
-              <TextField
-                select
-                value={clientRequested}
-                onChange={(e) => setClientRequested(e.target.value)}
-                label="Client Requested Service (Assessment Start)"
-                fullWidth
-                sx={{ mb: 2 }}
-              >
-                {SERVICES.map((s) => (
-                  <MenuItem key={s.id} value={s.id}>
-                    {s.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+              <Typography variant="body2" color="text.secondary">
+                Update session status and enter internal staff remarks/notes for this follow-up consultation.
+              </Typography>
 
               <TextField
                 select
-                value={aaaRecommended}
-                onChange={(e) => setAaaRecommended(e.target.value)}
-                label="Recommended Spain Visa Pathway"
+                value={followUpStatus}
+                onChange={(e) => setFollowUpStatus(e.target.value)}
+                label="Follow-up Meeting Status *"
                 fullWidth
-                sx={{ mb: 2 }}
+                size="small"
               >
-                {SERVICES.map((s) => (
-                  <MenuItem key={s.id} value={s.id}>
-                    {s.name}
-                  </MenuItem>
-                ))}
+                <MenuItem value="Completed">Completed ✅</MenuItem>
+                <MenuItem value="Cancelled">Cancelled ❌</MenuItem>
+                <MenuItem value="No Show">No Show 🚫</MenuItem>
               </TextField>
 
               <TextField
+                value={outcomeNotes}
+                onChange={(e) => setOutcomeNotes(e.target.value)}
+                label="Staff Follow-up Notes & Remarks"
+                multiline
+                rows={4}
+                fullWidth
+                placeholder="Enter details discussed during the follow-up meeting (e.g. document preparation status, visa appointment updates)."
+              />
+            </>
+          ) : (
+            <>
+              <Typography variant="body2">
+                Log the final results of the visa consultation. This updates the Lead qualification state and enables package invoice generation.
+              </Typography>
+
+              <TextField
                 select
-                value={recommendedPackage}
-                onChange={(e) => setRecommendedPackage(e.target.value)}
-                label="Recommended Relocation Package *"
+                value={eligibilityStatus}
+                onChange={(e) => setEligibilityStatus(e.target.value)}
+                label="Eligibility Status *"
                 fullWidth
                 sx={{ mb: 2 }}
               >
-                <MenuItem value="OPTION_A">Option A: Professional Case Assessment (€250)</MenuItem>
-                <MenuItem value="OPTION_B">Option B: Full Processing Package (€3,500)</MenuItem>
-                <MenuItem value="OPTION_C">Option C: Administrative Relocation Package (€1,750)</MenuItem>
-                <MenuItem value="OPTION_D">Option D: Premium Package (€4,750)</MenuItem>
-                <MenuItem value="Tourist Visa">Schengen Tourist Visa (€500)</MenuItem>
+                <MenuItem value="Eligible">Eligible</MenuItem>
+                <MenuItem value="Not Eligible">Not Eligible</MenuItem>
               </TextField>
+
+              {eligibilityStatus === 'Eligible' && (
+                <>
+                  <TextField
+                    select
+                    value={clientRequested}
+                    onChange={(e) => setClientRequested(e.target.value)}
+                    label="Client Requested Service (Assessment Start)"
+                    fullWidth
+                    sx={{ mb: 2 }}
+                  >
+                    {SERVICES.map((s) => (
+                      <MenuItem key={s.id} value={s.id}>
+                        {s.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+
+                  <TextField
+                    select
+                    value={aaaRecommended}
+                    onChange={(e) => setAaaRecommended(e.target.value)}
+                    label="Recommended Spain Visa Pathway"
+                    fullWidth
+                    sx={{ mb: 2 }}
+                  >
+                    {SERVICES.map((s) => (
+                      <MenuItem key={s.id} value={s.id}>
+                        {s.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+
+                  <TextField
+                    select
+                    value={recommendedPackage}
+                    onChange={(e) => setRecommendedPackage(e.target.value)}
+                    label="Recommended Relocation Package *"
+                    fullWidth
+                    sx={{ mb: 2 }}
+                  >
+                    <MenuItem value="OPTION_A">Option A: Professional Case Assessment (€250)</MenuItem>
+                    <MenuItem value="OPTION_B">Option B: Full Processing Package (€3,500)</MenuItem>
+                    <MenuItem value="OPTION_C">Option C: Administrative Relocation Package (€1,750)</MenuItem>
+                    <MenuItem value="OPTION_D">Option D: Premium Package (€4,750)</MenuItem>
+                    <MenuItem value="Tourist Visa">Schengen Tourist Visa (€500)</MenuItem>
+                  </TextField>
+                </>
+              )}
+
+              <TextField
+                value={outcomeNotes}
+                onChange={(e) => setOutcomeNotes(e.target.value)}
+                label="Eligibility Notes & Relocation Recommendations"
+                multiline
+                rows={4}
+                fullWidth
+                required
+                placeholder="Document client's passport status, income statements audited, and recommended translations checklist."
+              />
             </>
           )}
-
-          <TextField
-            value={outcomeNotes}
-            onChange={(e) => setOutcomeNotes(e.target.value)}
-            label="Eligibility Notes & Relocation Recommendations"
-            multiline
-            rows={4}
-            fullWidth
-            required
-            placeholder="Document client's passport status, income statements audited, and recommended translations checklist."
-          />
         </Box>
       </AppModal>
     </Box>
