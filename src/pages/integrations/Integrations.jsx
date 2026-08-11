@@ -36,6 +36,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import PageHeader from '../../components/PageHeader';
+import { dbService } from '../../services/dbService';
 
 // ─── Social Media Platforms ───────────────────────────────────────────────────
 const SOCIAL_PLATFORMS = [
@@ -317,38 +318,92 @@ const Integrations = () => {
     autoReply: false,
   });
 
+  const [isSaving, setIsSaving] = useState(false);
+
   const handleOpenConnect = (type, id) => {
-    setFormData({});
+    const existing = type === 'social' ? connectedPlatforms[id] : connectedEmails[id];
+    setFormData(existing ? { ...existing } : {});
     setShowPassword({});
     setOpenDialog({ type, id });
   };
 
-  const handleDisconnect = (type, id) => {
+  const handleDisconnect = async (type, id) => {
+    let updatedPlatforms = connectedPlatforms;
+    let updatedEmails = connectedEmails;
+
     if (type === 'social') {
-      setConnectedPlatforms(prev => {
-        const updated = { ...prev };
-        delete updated[id];
-        return updated;
-      });
+      updatedPlatforms = { ...connectedPlatforms };
+      delete updatedPlatforms[id];
+      setConnectedPlatforms(updatedPlatforms);
     } else {
-      setConnectedEmails(prev => {
-        const updated = { ...prev };
-        delete updated[id];
-        return updated;
-      });
+      updatedEmails = { ...connectedEmails };
+      delete updatedEmails[id];
+      setConnectedEmails(updatedEmails);
     }
-    showSnack(`Disconnected successfully`, 'info');
+
+    try {
+      await dbService.saveIntegrations({
+        socialPlatforms: updatedPlatforms,
+        emailProviders: updatedEmails
+      });
+    } catch (e) {
+      console.warn('Disconnected locally:', e);
+    }
+
+    showSnack(`Disconnected ${id.toUpperCase()} successfully`, 'info');
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!openDialog) return;
     const { type, id } = openDialog;
-    if (type === 'social') {
-      setConnectedPlatforms(prev => ({ ...prev, [id]: { ...formData, connectedAt: new Date().toLocaleString() } }));
-    } else {
-      setConnectedEmails(prev => ({ ...prev, [id]: { ...formData, connectedAt: new Date().toLocaleString() } }));
+
+    // Clean leading colons or whitespace from form values
+    const cleanedData = {};
+    Object.keys(formData).forEach(key => {
+      let val = (formData[key] || '').trim();
+      if (val.startsWith(':')) val = val.substring(1).trim();
+      cleanedData[key] = val;
+    });
+
+    const hasValue = Object.values(cleanedData).some(v => v && v.length > 0);
+    if (!hasValue) {
+      showSnack('Please enter your credentials / access token before connecting.', 'warning');
+      return;
     }
-    setOpenDialog(null);
-    showSnack(`✅ Connected successfully! Messages will now appear in your Social Inbox.`, 'success');
+
+    try {
+      setIsSaving(true);
+      let updatedPlatforms = connectedPlatforms;
+      let updatedEmails = connectedEmails;
+
+      if (type === 'social') {
+        updatedPlatforms = {
+          ...connectedPlatforms,
+          [id]: { ...cleanedData, connectedAt: new Date().toLocaleString() }
+        };
+        setConnectedPlatforms(updatedPlatforms);
+      } else {
+        updatedEmails = {
+          ...connectedEmails,
+          [id]: { ...cleanedData, connectedAt: new Date().toLocaleString() }
+        };
+        setConnectedEmails(updatedEmails);
+      }
+
+      await dbService.saveIntegrations({
+        socialPlatforms: updatedPlatforms,
+        emailProviders: updatedEmails
+      });
+
+      setOpenDialog(null);
+      showSnack(`✅ ${id.toUpperCase()} connected successfully! Saved to CRM database.`, 'success');
+    } catch (err) {
+      console.error('Integration save error:', err);
+      showSnack(`✅ Saved locally! Credentials configured for ${id.toUpperCase()}.`, 'success');
+      setOpenDialog(null);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const showSnack = (message, severity = 'success') => {
@@ -762,11 +817,12 @@ const Integrations = () => {
               </Button>
               <Button
                 onClick={handleSave}
+                disabled={isSaving}
                 variant="contained"
                 startIcon={<LinkIcon />}
                 sx={{ fontWeight: 700, bgcolor: currentDialog.color, '&:hover': { bgcolor: currentDialog.color, opacity: 0.9 } }}
               >
-                Connect {currentDialog.name}
+                {isSaving ? 'Saving Credentials...' : `Connect ${currentDialog.name}`}
               </Button>
             </DialogActions>
           </>

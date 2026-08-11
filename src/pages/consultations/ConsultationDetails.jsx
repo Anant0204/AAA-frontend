@@ -57,6 +57,8 @@ export const ConsultationDetails = () => {
   const [clientRequested, setClientRequested] = useState('dnv');
   const [aaaRecommended, setAaaRecommended] = useState('dnv');
   const [outcomeNotes, setOutcomeNotes] = useState('');
+  const [eligibilityStatus, setEligibilityStatus] = useState('Eligible');
+  const [recommendedPackage, setRecommendedPackage] = useState('Option B');
 
   // Interactive Audio Player States (for legacy S3 playback)
   const [isPlaying, setIsPlaying] = useState(false);
@@ -194,11 +196,13 @@ export const ConsultationDetails = () => {
     completeMutation.mutate({
       id: cons.id,
       outcome: {
-        eligibility: 'Eligible',
+        eligibility: eligibilityStatus,
         clientRequestedService: requestedObj ? requestedObj.name : 'Digital Nomad Visa (DNV)',
         aaaRecommendedService: recommendedObj ? recommendedObj.name : 'Digital Nomad Visa (DNV)'
       },
-      notes: outcomeNotes
+      notes: outcomeNotes,
+      recommendedService: eligibilityStatus === 'Eligible' ? (recommendedObj ? recommendedObj.name : 'Digital Nomad Visa (DNV)') : null,
+      recommendedPackageId: eligibilityStatus === 'Eligible' ? recommendedPackage : null
     });
   };
 
@@ -548,32 +552,49 @@ export const ConsultationDetails = () => {
 
           <TextField
             select
-            value={clientRequested}
-            onChange={(e) => setClientRequested(e.target.value)}
-            label="Client Requested Service (Assessment Start)"
+            value={eligibilityStatus}
+            onChange={(e) => setEligibilityStatus(e.target.value)}
+            label="Eligibility Status *"
             fullWidth
             sx={{ mb: 2 }}
           >
-            {SERVICES.map((s) => (
-              <MenuItem key={s.id} value={s.id}>
-                {s.name}
-              </MenuItem>
-            ))}
+            <MenuItem value="Eligible">Eligible</MenuItem>
+            <MenuItem value="Not Eligible">Not Eligible</MenuItem>
           </TextField>
 
-          <TextField
-            select
-            value={aaaRecommended}
-            onChange={(e) => setAaaRecommended(e.target.value)}
-            label="Recommended Spain Visa Pathway"
-            fullWidth
-          >
-            {SERVICES.map((s) => (
-              <MenuItem key={s.id} value={s.id}>
-                {s.name}
-              </MenuItem>
-            ))}
-          </TextField>
+          {eligibilityStatus === 'Eligible' && (
+            <>
+              <TextField
+                select
+                value={clientRequested}
+                onChange={(e) => setClientRequested(e.target.value)}
+                label="Client Requested Service (Assessment Start)"
+                fullWidth
+                sx={{ mb: 2 }}
+              >
+                {SERVICES.map((s) => (
+                  <MenuItem key={s.id} value={s.id}>
+                    {s.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              <TextField
+                select
+                value={aaaRecommended}
+                onChange={(e) => setAaaRecommended(e.target.value)}
+                label="Recommended Spain Visa Pathway"
+                fullWidth
+                sx={{ mb: 2 }}
+              >
+                {SERVICES.map((s) => (
+                  <MenuItem key={s.id} value={s.id}>
+                    {s.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </>
+          )}
 
           <TextField
             value={outcomeNotes}

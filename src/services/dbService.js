@@ -244,6 +244,18 @@ export const dbService = {
     });
     return res.data;
   },
+  getIntegrations: async () => {
+    const res = await apiClient.get('/settings/customization');
+    return res.data?.integrations || {};
+  },
+  saveIntegrations: async (integrationsData) => {
+    const res = await apiClient.post('/settings/customization', {
+      settings: {
+        integrations: integrationsData
+      }
+    });
+    return res.data;
+  },
   reviewDocument: async (documentId, status, comment) => {
     const res = await apiClient.patch(`/documents/${documentId}/verify`, { status, feedbackComment: comment });
     return res.data;
