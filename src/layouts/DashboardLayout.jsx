@@ -240,6 +240,22 @@ export const DashboardLayout = () => {
     queryFn: dbService.getCustomizationSettings
   });
 
+  const { data: allDocuments = [] } = useQuery({
+    queryKey: ['documents'],
+    queryFn: dbService.getDocuments,
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
+    retry: false
+  });
+
+  const pendingDocsCount = React.useMemo(() => {
+    if (!Array.isArray(allDocuments)) return 0;
+    return allDocuments.filter(doc => {
+      const statusLower = (doc.status || '').toLowerCase();
+      return statusLower === 'pending verification' || statusLower === 'under review' || statusLower === 'pending';
+    }).length;
+  }, [allDocuments]);
+
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [socialMenuOpen, setSocialMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -845,6 +861,8 @@ export const DashboardLayout = () => {
 
     const active = isActive(item);
     const itemPath = getDynamicPath(item);
+    const isDocVerification = item.label === 'Doc Verification';
+    const showBadgeCount = isDocVerification ? pendingDocsCount : 0;
 
     return (
       <ListItemButton
@@ -888,10 +906,12 @@ export const DashboardLayout = () => {
             transition: 'color 0.2s ease',
           }}
         >
-          {item.icon}
+          <Badge badgeContent={showBadgeCount} color="error" max={99}>
+            {item.icon}
+          </Badge>
         </ListItemIcon>
         {sidebarOpen && (
-          <>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexGrow: 1, width: '100%' }}>
             <ListItemText
               primary={t(item.label === 'Leads' && (currentUser?.role === 'consultant' || currentUser?.role === 'agent') ? 'Leads' : item.label)}
               sx={{ m: 0 }}
@@ -906,7 +926,25 @@ export const DashboardLayout = () => {
                 }
               }}
             />
-          </>
+            {showBadgeCount > 0 && (
+              <Box
+                sx={{
+                  backgroundColor: '#EF4444',
+                  color: '#FFFFFF',
+                  borderRadius: '10px',
+                  px: 1,
+                  py: 0.2,
+                  fontSize: '0.7rem',
+                  fontWeight: 900,
+                  lineHeight: 1,
+                  ml: 1,
+                  boxShadow: '0 2px 6px rgba(239, 68, 68, 0.45)'
+                }}
+              >
+                {showBadgeCount}
+              </Box>
+            )}
+          </Box>
         )}
       </ListItemButton>
     );
