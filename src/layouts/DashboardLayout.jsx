@@ -1233,7 +1233,7 @@ export const DashboardLayout = () => {
                         key={notif.id}
                         onClick={() => {
                           handleNotifClick(notif.id);
-                          if (notif.type === 'new_lead' || notif.type === 'new_booking') {
+                          if (notif.type === 'new_lead' || notif.type === 'new_booking' || notif.type === 'meeting_cancelled') {
                             navigate(`/${getRolePrefix()}/leads`);
                           } else {
                             navigate(`/${getRolePrefix()}/documents`);
