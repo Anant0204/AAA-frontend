@@ -198,6 +198,7 @@ export const SuperAdminConsultationDetails = () => {
   }
 
   const consultant = consultants.find((c) => c.id === cons.assignedConsultantId);
+
   const handleStatusChange = (status) => {
     updateStatusMutation.mutate({ id: cons.id, status });
   };
@@ -230,29 +231,6 @@ export const SuperAdminConsultationDetails = () => {
       setCompleteModalOpen(false);
     }
   };
-
-  if (isLoading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '300px' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (!cons) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Button startIcon={<KeyboardArrowLeftIcon />} onClick={() => navigate(-1)} sx={{ mb: 2 }}>
-          Back to Calendar
-        </Button>
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Typography variant="h6" color="text.secondary">Consultation not found.</Typography>
-        </Paper>
-      </Box>
-    );
-  }
-
-  const consultant = consultants.find((c) => c.id === cons.assignedConsultantId);
 
   return (
     <Box>
