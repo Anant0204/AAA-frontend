@@ -194,6 +194,7 @@ export const ConsultationDetails = () => {
     completeMutation.mutate({
       id: cons.id,
       outcome: {
+        eligibility: 'Eligible',
         clientRequestedService: requestedObj ? requestedObj.name : 'Digital Nomad Visa (DNV)',
         aaaRecommendedService: recommendedObj ? recommendedObj.name : 'Digital Nomad Visa (DNV)'
       },
