@@ -2037,6 +2037,25 @@ export const SuperAdminCustomization = () => {
                     size="small"
                     helperText="Grace period allocated to join zoom calls or lock timeslots."
                   />
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={Boolean(localSettings?.flowAutomationSettings?.allowSameDayBooking)}
+                        onChange={(e) => handleUpdateFlowSetting('allowSameDayBooking', e.target.checked)}
+                        color="primary"
+                      />
+                    }
+                    label={
+                      <Box sx={{ ml: 0.5 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: '#051A3B' }}>
+                          Allow Same-Day Consultation Booking 🚀
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                          When ON, clients can book available time slots for Today on the Lead Form. When OFF, Same-Day booking is restricted and clients must pick tomorrow or a future date.
+                        </Typography>
+                      </Box>
+                    }
+                  />
                 </Box>
               </Paper>
 
