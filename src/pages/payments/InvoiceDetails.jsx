@@ -119,7 +119,7 @@ export const InvoiceDetails = () => {
   };
 
   const invoiceNumber = invoice.invoiceNumber || invoice.invoiceNo || `INV-2026-${(invoice.id || '').replace(/-/g, '').slice(-6).toUpperCase()}`;
-  const customerId = client?.clientCode || client?.displayId || client?.clientCustomId || client?.cid || (client?.id ? 'CID-' + client.id.slice(-5).toUpperCase() : (invoice?.clientId ? 'CID-' + invoice.clientId.slice(-5).toUpperCase() : 'CID-12001'));
+  const customerId = invoice?.clientCode || client?.clientCode || client?.displayId || client?.clientCustomId || client?.cid || (client?.id ? 'CID-' + client.id.slice(-5).toUpperCase() : (invoice?.clientId ? 'CID-' + invoice.clientId.slice(-5).toUpperCase() : 'CID-12001'));
 
   const currentPkg = (dbPackages && dbPackages.length > 0)
     ? dbPackages.find(p => p.id === invoice.packageType || p.code === invoice.packageType || p.id === invoice.packageId || p.code === invoice.packageId)

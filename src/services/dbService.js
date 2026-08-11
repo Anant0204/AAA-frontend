@@ -238,6 +238,12 @@ export const dbService = {
     });
     return res.data;
   },
+  uploadDocumentBatch: async (formData) => {
+    const res = await apiClient.post('/documents/upload-batch', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return res.data;
+  },
   reviewDocument: async (documentId, status, comment) => {
     const res = await apiClient.patch(`/documents/${documentId}/verify`, { status, feedbackComment: comment });
     return res.data;

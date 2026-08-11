@@ -354,6 +354,9 @@ export const ClientPortalDocs = () => {
   const [addonCalcPrice, setAddonCalcPrice] = useState(30);
   const [addonLoading, setAddonLoading] = useState(false);
 
+  // Staged Documents Batch Upload State (Main Applicant + Additional Applicants)
+  const [stagedFiles, setStagedFiles] = useState({});
+
   // Visa Package selection & Billing states
   const [selectedPackage, setSelectedPackage] = useState('OPTION_A');
   const [addApplicants, setAddApplicants] = useState(0);
@@ -972,33 +975,39 @@ export const ClientPortalDocs = () => {
       doc.setFont("helvetica", "bold");
       doc.text("Client Information:", 14, 60);
       doc.setFont("helvetica", "normal");
+      const receiptCustomerId = client?.clientCode || (client?.id ? `CID-${client.id.slice(-5).toUpperCase()}` : 'N/A');
       doc.text(`Name: ${client.firstName} ${client.lastName}`, 14, 65);
-      doc.text(`Email: ${client.email}`, 14, 70);
-      doc.text(`Phone: ${client.phone || 'N/A'}`, 14, 75);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(5, 26, 59);
+      doc.text(`Customer ID: ${receiptCustomerId}`, 14, 70);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(50, 50, 50);
+      doc.text(`Email: ${client.email}`, 14, 75);
+      doc.text(`Phone: ${client.phone || 'N/A'}`, 14, 80);
 
       // Translation Settings
       doc.setFont("helvetica", "bold");
       doc.text("Translation Details:", 110, 60);
       doc.setFont("helvetica", "normal");
-      doc.text(`Source Language: ${sourceLang}`, 110, 65);
-      doc.text(`Target Language: ${targetLang}`, 110, 70);
-      doc.text(`Translation Rate: EUR ${wordRate.toFixed(2)} / word`, 110, 75);
+      doc.text(`Source Language: ${sourceLang}`, 110, 67);
+      doc.text(`Target Language: ${targetLang}`, 110, 73);
+      doc.text(`Translation Rate: EUR ${wordRate.toFixed(2)} / word`, 110, 79);
 
-      doc.line(14, 82, 196, 82);
+      doc.line(14, 87, 196, 87);
 
       // Table Header (Documents & Wordcounts)
       doc.setFillColor(248, 245, 237);
-      doc.rect(14, 88, 182, 8, "F");
+      doc.rect(14, 93, 182, 8, "F");
       doc.setFont("helvetica", "bold");
       doc.setTextColor(5, 26, 59);
-      doc.text("DOCUMENT FILENAME", 16, 93);
-      doc.text("CATEGORY", 95, 93);
-      doc.text("STATUS", 140, 93);
-      doc.text("WORDS", 175, 93);
+      doc.text("DOCUMENT FILENAME", 16, 98);
+      doc.text("CATEGORY", 95, 98);
+      doc.text("STATUS", 140, 98);
+      doc.text("WORDS", 175, 98);
 
       doc.setFont("helvetica", "normal");
       doc.setTextColor(80, 80, 80);
-      let currentY = 102;
+      let currentY = 107;
 
       const translationDocs = (documents || []).filter((d) => d && d.clientId === client?.id);
       translationDocs.forEach((d) => {
@@ -1212,11 +1221,61 @@ export const ClientPortalDocs = () => {
 
 
 
-  const handleDocUploaded = (docData, belongsTo) => {
-    uploadDocMutation.mutate({
-      ...docData,
-      belongsTo
+  const uploadBatchDocMutation = useMutation({
+    mutationFn: async (stagedList) => {
+      const results = await Promise.all(
+        stagedList.map(item =>
+          dbService.uploadDocument({
+            file: item.file,
+            clientId: client.id,
+            clientName: `${client.firstName} ${client.lastName}`,
+            category: item.category,
+            belongsTo: item.belongsTo,
+            status: 'Pending Verification'
+          })
+        )
+      );
+      return results;
+    },
+    onSuccess: (results) => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ['clientProfile'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      refetchDocs();
+      setStagedFiles({});
+      showAlert(`🎉 ${results.length} document(s) submitted successfully as a complete package! All items are now updated in your checklist.`, 'success');
+    },
+    onError: (err) => {
+      console.error('Batch upload error:', err);
+      showAlert(err?.response?.data?.message || err?.message || 'Failed to submit document package.', 'error');
+    }
+  });
+
+  const handleStageDoc = (docData, belongsTo) => {
+    const stageKey = `${belongsTo}_${docData.category}_${docData.fileName}_${Date.now()}`;
+    setStagedFiles(prev => ({
+      ...prev,
+      [stageKey]: {
+        file: docData.file,
+        category: docData.category,
+        belongsTo: belongsTo,
+        fileName: docData.fileName,
+        fileSize: docData.fileSize
+      }
+    }));
+    showAlert(`Attached "${docData.fileName}" for ${belongsTo} (${docData.category}). Scroll down & click "Submit Complete Document Package" when all applicant passports are attached!`, 'info');
+  };
+
+  const handleUnstageDoc = (key) => {
+    setStagedFiles(prev => {
+      const copy = { ...prev };
+      delete copy[key];
+      return copy;
     });
+  };
+
+  const handleDocUploaded = (docData, belongsTo) => {
+    handleStageDoc(docData, belongsTo);
   };
 
   const handleLogout = () => {
@@ -1374,6 +1433,42 @@ export const ClientPortalDocs = () => {
       applicantsList.push(`Dependent ${i}`);
     }
   }
+
+  // Mandatory Passport Gatekeeper Validation for All Applicants
+  const missingPassports = applicantsList.filter(person => {
+    // 1. Check if Passport is already uploaded in DB
+    const hasUploadedPassport = documents.some(d => {
+      if (d.clientId !== client?.id) return false;
+      const docPerson = d.belongsTo || 'Main Applicant';
+      const isPersonMatch = docPerson === person || (person === 'Main Applicant' && (docPerson === 'Main Applicant' || !d.belongsTo));
+      const isPassport = (d.category || '').toLowerCase().includes('passport') || (d.name || '').toLowerCase().includes('passport');
+      return isPersonMatch && isPassport;
+    });
+
+    // 2. Check if Passport is staged locally
+    const hasStagedPassport = Object.values(stagedFiles).some(f => {
+      const isPersonMatch = f.belongsTo === person;
+      const isPassport = (f.category || '').toLowerCase().includes('passport') || (f.fileName || '').toLowerCase().includes('passport');
+      return isPersonMatch && isPassport;
+    });
+
+    return !hasUploadedPassport && !hasStagedPassport;
+  });
+
+  const handleSubmitBatchDossier = () => {
+    const stagedList = Object.values(stagedFiles);
+    if (stagedList.length === 0) {
+      showAlert('No new files attached to submit. Please select files for your applicants first.', 'warning');
+      return;
+    }
+
+    if (missingPassports.length > 0) {
+      showAlert(`Mandatory passports missing! You must attach passports for: ${missingPassports.join(', ')} before submitting.`, 'error');
+      return;
+    }
+
+    uploadBatchDocMutation.mutate(stagedList);
+  };
 
   const isRTL = portalLang === 'Arabic' || portalLang === 'Urdu';
 
@@ -1887,7 +1982,13 @@ export const ClientPortalDocs = () => {
                             </Typography>
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2, pl: isRTL ? 0 : 2, pr: isRTL ? 2 : 0 }}>
                               {allDisplayDocs.map((cat, idx) => {
-                                const isUploaded = personDocs.some(d => d.category === cat);
+                                const isUploaded = personDocs.some(d => {
+                                  const catLower = (cat || '').toLowerCase();
+                                  const docCatLower = (d.category || '').toLowerCase();
+                                  const docNameLower = (d.name || '').toLowerCase();
+                                  if (catLower.includes('passport')) return docCatLower.includes('passport') || docNameLower.includes('passport');
+                                  return docCatLower === catLower || docCatLower.includes(catLower.split(' ')[0]) || catLower.includes(docCatLower);
+                                });
                                 return (
                                   <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                                     <CheckCircleIcon sx={{ fontSize: 18, color: isUploaded ? '#10B981' : '#CBD5E1' }} />
@@ -2082,12 +2183,52 @@ export const ClientPortalDocs = () => {
                       bgcolor: 'background.paper'
                     }}
                   >
-                    <Typography variant="h6" sx={{ fontWeight: 900, mb: 3, color: '#051A3B', fontFamily: 'Outfit, sans-serif' }}>Category Document Uploaders</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 900, mb: 2, color: '#051A3B', fontFamily: 'Outfit, sans-serif' }}>Category Document Uploaders</Typography>
+
+                    {/* Mandatory Passport Requirement Alert Banner */}
+                    <Alert
+                      severity={missingPassports.length > 0 ? "error" : "success"}
+                      sx={{
+                        mb: 3,
+                        borderRadius: 3,
+                        p: 2,
+                        border: '1.5px solid',
+                        borderColor: missingPassports.length > 0 ? '#FCA5A5' : '#6EE7B7',
+                        bgcolor: missingPassports.length > 0 ? '#FEF2F2' : '#ECFDF5'
+                      }}
+                    >
+                      <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 0.5, color: missingPassports.length > 0 ? '#991B1B' : '#065F46' }}>
+                        {missingPassports.length > 0 ? '⚠️ Mandatory Applicant Passports Required' : '✅ All Mandatory Passports Attached & Ready to Submit'}
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 500, color: missingPassports.length > 0 ? '#7F1D1D' : '#047857' }}>
+                        {missingPassports.length > 0 ? (
+                          <>You cannot submit your document package until mandatory passports are attached for all applicants: <strong>{missingPassports.join(', ')}</strong>.</>
+                        ) : (
+                          <>Passports for all applicants are attached. Attach any additional supporting documents, then click <strong>"Submit Complete Document Package"</strong> below to send all files at once.</>
+                        )}
+                      </Typography>
+                      
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1.5 }}>
+                        {applicantsList.map(person => {
+                          const isMissing = missingPassports.includes(person);
+                          return (
+                            <Chip
+                              key={person}
+                              label={`${person}: ${isMissing ? 'Passport Missing ❌' : 'Passport Attached ✓'}`}
+                              color={isMissing ? "error" : "success"}
+                              size="small"
+                              sx={{ fontWeight: 800 }}
+                            />
+                          );
+                        })}
+                      </Box>
+                    </Alert>
 
                     {/* Dependent wise accordions */}
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                       {applicantsList.map((person, index) => {
                         const personDocs = clientDocuments.filter(d => d.belongsTo === person || (!d.belongsTo && person === 'Main Applicant'));
+                        const personStagedFiles = Object.entries(stagedFiles).filter(([key, item]) => item.belongsTo === person);
                         const docsNeeded = getRequiredDocsForPerson(person);
                         return (
                           <Accordion
@@ -2105,12 +2246,12 @@ export const ClientPortalDocs = () => {
                             <AccordionSummary expandMoreIcon={<ExpandMoreIcon sx={{ color: '#051A3B' }} />}>
                               <Typography variant="subtitle1" sx={{ fontWeight: 900, display: 'flex', alignItems: 'center', gap: 1.5, color: '#051A3B', fontFamily: 'Outfit, sans-serif', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                                 📁 {person === 'Main Applicant' ? `${person} (${client.firstName} ${client.lastName})` : person}
-                                <Chip label={`${personDocs.length} files`} size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 800, bgcolor: 'rgba(197, 155, 39, 0.1)', color: '#A37E1C', border: '1px solid rgba(197, 155, 39, 0.2)' }} />
+                                <Chip label={`${personDocs.length} uploaded | ${personStagedFiles.length} staged`} size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 800, bgcolor: 'rgba(197, 155, 39, 0.1)', color: '#A37E1C', border: '1px solid rgba(197, 155, 39, 0.2)' }} />
                               </Typography>
                             </AccordionSummary>
                             <AccordionDetails sx={{ px: 3, pb: 3, textAlign: isRTL ? 'right' : 'left', bgcolor: 'rgba(250, 246, 237, 0.2)' }}>
                               <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5, fontWeight: 500 }}>
-                                Upload files specifically belonging to **{person}**. Required files include: {docsNeeded.join(', ')}.
+                                Select files specifically belonging to **{person}**. Required files include: {docsNeeded.join(', ')}.
                               </Typography>
 
                               <FileUploader
@@ -2120,14 +2261,34 @@ export const ClientPortalDocs = () => {
                                 categories={docsNeeded}
                                 existingDocs={personDocs}
                                 requirePassportFirst={true}
-                                isLoading={uploadDocMutation.isPending}
+                                isLoading={uploadBatchDocMutation.isPending}
                               />
+
+                              {/* Staged Files for this person */}
+                              {personStagedFiles.length > 0 && (
+                                <Box sx={{ mt: 2, p: 2, bgcolor: '#FFFDF7', borderRadius: 2.5, border: '1px dashed #C59B27' }}>
+                                  <Typography variant="caption" sx={{ fontWeight: 800, color: '#051A3B', display: 'block', mb: 1 }}>
+                                    📌 STAGED FILES FOR {person.toUpperCase()} (READY FOR BATCH SUBMISSION):
+                                  </Typography>
+                                  <List disablePadding>
+                                    {personStagedFiles.map(([key, item]) => (
+                                      <Paper key={key} sx={{ p: 1, px: 2, mb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: 2, border: '1px solid rgba(0,0,0,0.06)' }}>
+                                        <Box>
+                                          <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#051A3B' }}>{item.fileName}</Typography>
+                                          <Typography variant="caption" color="text.secondary">Category: <strong>{item.category}</strong> | Size: {item.fileSize}</Typography>
+                                        </Box>
+                                        <Button size="small" color="error" onClick={() => handleUnstageDoc(key)}>Remove</Button>
+                                      </Paper>
+                                    ))}
+                                  </List>
+                                </Box>
+                              )}
 
                               <Divider sx={{ my: 3, borderColor: 'rgba(0,0,0,0.06)' }} />
 
-                              <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2, color: '#051A3B', fontFamily: 'Outfit, sans-serif' }}>Files uploaded for {person}:</Typography>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2, color: '#051A3B', fontFamily: 'Outfit, sans-serif' }}>Verified / Previous Uploads for {person}:</Typography>
                               {personDocs.length === 0 ? (
-                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', py: 2, fontStyle: 'italic' }}>No files uploaded yet for this applicant.</Typography>
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', py: 2, fontStyle: 'italic' }}>No verified files uploaded yet for this applicant.</Typography>
                               ) : (
                                 <List disablePadding>
                                   {personDocs.map((doc) => {
@@ -2173,6 +2334,46 @@ export const ClientPortalDocs = () => {
                         );
                       })}
                     </Box>
+
+                    {/* Final Staged Package Submission Card */}
+                    <Paper sx={{ p: 3.5, borderRadius: 4, bgcolor: '#FAF6ED', border: '2px solid rgba(197, 155, 39, 0.4)', mt: 4, boxShadow: '0 10px 30px rgba(5, 26, 59, 0.05)' }}>
+                      <Typography variant="h6" sx={{ fontWeight: 900, color: '#051A3B', mb: 1, fontFamily: 'Outfit, sans-serif' }}>
+                        📦 Complete Application Package Submission
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5, fontWeight: 500 }}>
+                        All attached files for Main Applicant and Co-applicants will be submitted together in one atomic package to Operations.
+                      </Typography>
+
+                      <Button
+                        variant="contained"
+                        size="large"
+                        fullWidth
+                        onClick={handleSubmitBatchDossier}
+                        disabled={missingPassports.length > 0 || Object.keys(stagedFiles).length === 0 || uploadBatchDocMutation.isPending}
+                        sx={{
+                          py: 2,
+                          fontWeight: 900,
+                          fontSize: '1.05rem',
+                          borderRadius: 3,
+                          bgcolor: missingPassports.length > 0 ? '#94A3B8' : '#051A3B',
+                          color: '#ffffff',
+                          fontFamily: 'Outfit, sans-serif',
+                          textTransform: 'none',
+                          boxShadow: '0 6px 20px rgba(5, 26, 59, 0.15)',
+                          '&:hover': { bgcolor: '#C59B27', color: '#051A3B' }
+                        }}
+                      >
+                        {uploadBatchDocMutation.isPending ? (
+                          'Uploading Complete Package...'
+                        ) : missingPassports.length > 0 ? (
+                          `🔒 Mandatory Passports Missing for (${missingPassports.length}) Applicant(s)`
+                        ) : Object.keys(stagedFiles).length === 0 ? (
+                          '⚠️ Attach Files for Applicants First'
+                        ) : (
+                          `🚀 Submit Complete Package (${Object.keys(stagedFiles).length} file${Object.keys(stagedFiles).length > 1 ? 's' : ''} ready)`
+                        )}
+                      </Button>
+                    </Paper>
                   </Paper>
                 </Box>
 
@@ -3720,7 +3921,7 @@ export const ClientPortalDocs = () => {
                 AAA BUSINESS CONSULTANCY LLC
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, letterSpacing: '0.05em' }}>
-                OFFICIAL TAX INVOICE & RELOCATION STATEMENT
+                Receipt
               </Typography>
             </Box>
           </Box>
@@ -3757,32 +3958,32 @@ export const ClientPortalDocs = () => {
             return (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 {/* Meta Header */}
-                <Grid container spacing={2} sx={{ p: 2.5, bgcolor: '#FAF6ED', borderRadius: 3, border: '1px solid rgba(197, 155, 39, 0.3)' }}>
+                <Grid container spacing={2} sx={{ p: 2.5, bgcolor: '#FAF6ED', borderRadius: 3, border: '1px solid rgba(197, 155, 39, 0.3)', alignItems: 'center' }}>
                   <Grid item xs={12} sm={6}>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>Billed To:</Typography>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#051A3B', fontFamily: 'Outfit, sans-serif' }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Billed To:</Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#051A3B', fontFamily: 'Outfit, sans-serif', mt: 0.5 }}>
                       {client ? `${client.firstName} ${client.lastName}` : 'Valued Client'}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>{client?.email || 'client@email.com'}</Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, color: '#1e293b' }}>
-                      Customer ID: {client?.clientCode || client?.clientCustomId || client?.cid || client?.id || 'CLIENT-ID'}
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: '#051A3B', mt: 0.5 }}>
+                      Customer ID: {client?.clientCode || client?.clientCustomId || client?.cid || (client?.id ? `CID-${client.id.slice(-5).toUpperCase()}` : 'CLIENT-ID')}
                     </Typography>
                   </Grid>
 
-                  <Grid item xs={12} sm={6} sx={{ textAlign: { sm: 'right' } }}>
+                  <Grid item xs={12} sm={6} sx={{ display: 'flex', flexDirection: 'column', alignItems: { sm: 'flex-end', xs: 'flex-start' }, textAlign: { sm: 'right', xs: 'left' } }}>
                     {isOptA && isOptAPaid ? (
-                      <Chip label="PAID RECEIPT" color="success" size="small" sx={{ fontWeight: 900, mb: 1 }} />
+                      <Chip label="PAID RECEIPT" color="success" size="small" sx={{ fontWeight: 900, mb: 1, px: 1 }} />
                     ) : (
-                      <Chip label="UNPAID INVOICE" color="warning" size="small" sx={{ fontWeight: 900, mb: 1 }} />
+                      <Chip label="UNPAID INVOICE" color="warning" size="small" sx={{ fontWeight: 900, mb: 1, px: 1 }} />
                     )}
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 700 }}>
+                    <Typography variant="caption" sx={{ display: 'block', fontWeight: 800, color: '#051A3B', fontSize: '0.85rem' }}>
                       INVOICE NO: INV-2026-{(client?.id || '84920').slice(-6).toUpperCase()}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 500 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 600, mt: 0.3 }}>
                       Date: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 500 }}>
-                      Payment Status: {isOptA && isOptAPaid ? 'Paid in Full (€250 + VAT)' : 'Immediate upon selection'}
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 600, mt: 0.3 }}>
+                      Payment Status: <span style={{ color: isOptA && isOptAPaid ? '#2e7d32' : '#ed6c02', fontWeight: 800 }}>{isOptA && isOptAPaid ? 'Paid in Full (€250 + VAT)' : 'Immediate upon selection'}</span>
                     </Typography>
                   </Grid>
                 </Grid>

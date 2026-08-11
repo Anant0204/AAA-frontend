@@ -432,7 +432,7 @@ export const AdminPaymentDashboard = () => {
                 {payments.map((p) => {
                   const dueAmt = p.amount - (p.discount || 0);
                   const formattedDueDate = p.dueDate ? (p.dueDate.includes('T') ? p.dueDate.split('T')[0] : p.dueDate) : 'N/A';
-                  const displayInvoiceId = p.id ? `INV-${p.id.slice(0, 8)}` : 'INV-00000000';
+                  const displayInvoiceId = p.invoiceNumber || (p.id ? `INV-${p.id.slice(0, 8)}` : 'INV-00000000');
                   return (
                     <TableRow key={p.id}>
                       <TableCell sx={{ fontWeight: 700, color: '#4F46E5', whiteSpace: 'nowrap' }} title={p.id}>{displayInvoiceId}</TableCell>
@@ -698,7 +698,7 @@ export const AdminPaymentDashboard = () => {
               </Box>
               <Box className="col-span-6" align="right">
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>INVOICE ID:</Typography>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{selectedInvoice.id}</Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{selectedInvoice.invoiceNumber || selectedInvoice.id}</Typography>
               </Box>
               <Box className="col-span-6">
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>PAYMENT DATE:</Typography>
