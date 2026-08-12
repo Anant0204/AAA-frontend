@@ -597,6 +597,14 @@ export const dbService = {
     const res = await apiClient.put('/settings/templates/whatsapp', data);
     return res.data;
   },
+  getIntegrations: async () => {
+    const res = await apiClient.get('/settings/integrations');
+    return res.data;
+  },
+  saveIntegrations: async (data) => {
+    const res = await apiClient.post('/settings/integrations', data);
+    return res.data;
+  },
   getCommissionRates: async () => {
     const res = await apiClient.get('/payments/commissions/rates');
     return res.data;
