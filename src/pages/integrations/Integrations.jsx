@@ -307,6 +307,19 @@ const Integrations = () => {
   useEffect(() => {
     localStorage.setItem('crm-connected-emails', JSON.stringify(connectedEmails));
   }, [connectedEmails]);
+
+  useEffect(() => {
+    dbService.getIntegrations()
+      .then((data) => {
+        if (data && data.socialPlatforms) {
+          setConnectedPlatforms(prev => ({ ...prev, ...data.socialPlatforms }));
+        }
+        if (data && data.emailProviders) {
+          setConnectedEmails(prev => ({ ...prev, ...data.emailProviders }));
+        }
+      })
+      .catch((err) => console.warn('Could not fetch saved integrations:', err.message));
+  }, []);
   const [openDialog, setOpenDialog] = useState(null);
   const [formData, setFormData] = useState({});
   const [showPassword, setShowPassword] = useState({});
