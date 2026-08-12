@@ -349,6 +349,26 @@ export const SuperAdminPaymentDashboard = () => {
       <PageHeader
         title="Revenue Dashboard"
         subtitle="Review relocation revenues, outstanding balances, generated payment links, and receipts."
+        action={
+          <Button
+            variant="contained"
+            onClick={() => window.location.hash = '#/super_admin/payments/refund-commission?tab=coupons'}
+            sx={{
+              bgcolor: '#051A3B',
+              color: 'white',
+              fontWeight: 800,
+              borderRadius: 2.5,
+              px: 2.5,
+              py: 1,
+              fontFamily: 'Outfit, sans-serif',
+              textTransform: 'none',
+              boxShadow: '0 4px 14px rgba(5, 26, 59, 0.2)',
+              '&:hover': { bgcolor: '#C59B27', color: '#051A3B' }
+            }}
+          >
+            🎟️ Manage 24h Coupons
+          </Button>
+        }
       />
 
       {/* Overview stats */}

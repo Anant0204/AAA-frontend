@@ -203,8 +203,8 @@ export const dbService = {
     const res = await apiClient.patch(`/payments/${paymentId}/status`, { status, paymentMethod, transactionId });
     return res.data;
   },
-  createCheckoutSession: async ({ packageId, amount, discount, paymentMethod, clientId }) => {
-    const res = await apiClient.post('/payments/create-checkout-session', { packageId, amount, discount, paymentMethod, clientId });
+  createCheckoutSession: async ({ packageId, amount, discount, paymentMethod, clientId, couponCode }) => {
+    const res = await apiClient.post('/payments/create-checkout-session', { packageId, amount, discount, paymentMethod, clientId, couponCode });
     return res.data;
   },
   verifyCheckoutSession: async (sessionId, paymentId) => {
@@ -716,6 +716,28 @@ export const dbService = {
 
   summarizeClient: async (clientId) => {
     const res = await apiClient.post('/ai/summarize-client', { clientId });
+    return res.data;
+  },
+
+  // ─── Coupons & Discounts ────────────────────────────────────────────────
+  validateCoupon: async (code, amount) => {
+    const res = await apiClient.post('/coupons/validate', { code, amount });
+    return res.data;
+  },
+  createCoupon: async (code, discountPercent) => {
+    const res = await apiClient.post('/coupons', { code, discountPercent });
+    return res.data;
+  },
+  getCoupons: async () => {
+    const res = await apiClient.get('/coupons');
+    return res.data;
+  },
+  deactivateCoupon: async (id) => {
+    const res = await apiClient.delete(`/coupons/${id}`);
+    return res.data;
+  },
+  deleteCouponPermanently: async (id) => {
+    const res = await apiClient.delete(`/coupons/${id}/permanent`);
     return res.data;
   },
 };

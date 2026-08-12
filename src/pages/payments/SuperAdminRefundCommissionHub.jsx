@@ -6,6 +6,7 @@ import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
+import Alert from '@mui/material/Alert';
 
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
@@ -69,6 +70,13 @@ export const SuperAdminRefundCommissionHub = () => {
   const { showAlert } = useAlert();
   const { currentUser, isViewOnlyMenu } = useAuth();
 
+  React.useEffect(() => {
+    const hash = window.location.hash || window.location.search;
+    if (hash.includes('tab=coupons') || hash.includes('tab=2')) {
+      setTabValue(2);
+    }
+  }, []);
+
   const { data: customizationSettings } = useQuery({
     queryKey: ['customization-settings'],
     queryFn: dbService.getCustomizationSettings
@@ -125,6 +133,51 @@ export const SuperAdminRefundCommissionHub = () => {
     queryFn: () => dbService.getCommissionHistory(historyAgentId),
     enabled: !!historyAgentId
   });
+
+  // Coupon Management State & Queries
+  const { data: coupons = [], isLoading: loadingCoupons } = useQuery({
+    queryKey: ['coupons'],
+    queryFn: dbService.getCoupons
+  });
+
+  const [newCouponCode, setNewCouponCode] = useState('');
+  const [newDiscountPercent, setNewDiscountPercent] = useState('10');
+
+  const createCouponMutation = useMutation({
+    mutationFn: ({ code, discountPercent }) => dbService.createCoupon(code, discountPercent),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['coupons'] });
+      showAlert('Coupon created successfully!', 'success');
+      setNewCouponCode('');
+      setNewDiscountPercent('10');
+    },
+    onError: (err) => {
+      showAlert(err?.response?.data?.message || 'Failed to create coupon', 'error');
+    }
+  });
+
+  const deactivateCouponMutation = useMutation({
+    mutationFn: (id) => dbService.deactivateCoupon(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['coupons'] });
+      showAlert('Coupon deactivated successfully!', 'success');
+    },
+    onError: (err) => {
+      showAlert(err?.response?.data?.message || 'Failed to deactivate coupon', 'error');
+    }
+  });
+
+  const deleteCouponMutation = useMutation({
+    mutationFn: (id) => dbService.deleteCouponPermanently(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['coupons'] });
+      showAlert('Coupon permanently deleted!', 'success');
+    },
+    onError: (err) => {
+      showAlert(err?.response?.data?.message || 'Failed to delete coupon', 'error');
+    }
+  });
+
   // Mutations
   const createRefundMutation = useMutation({
     mutationFn: dbService.createRefundRequest,
@@ -336,6 +389,7 @@ export const SuperAdminRefundCommissionHub = () => {
       >
         <Tab label="Commission Management" />
         <Tab label="Refund Management" />
+        <Tab label="🎟️ Coupons & Discounts" />
       </Tabs>
 
       {/* Tab 1: Commission Management */}
@@ -732,7 +786,179 @@ export const SuperAdminRefundCommissionHub = () => {
         </Box>
       )}
 
-      {/* Modal: Request Refund */}
+      {/* Tab 3: Coupon & Discount Management */}
+      {tabValue === 2 && (
+        <Box className="grid grid-cols-12 gap-3">
+          {/* Create Coupon Form Card */}
+          <Box className="col-span-12 lg:col-span-4">
+            <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
+              <Typography variant="h6" sx={{ fontWeight: 800, mb: 1, color: '#051A3B' }}>
+                🎟️ Create New Coupon
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+                Generated coupons are percentage-based and valid for <strong>exactly 24 hours</strong> from creation. Coupons are single-use globally upon payment.
+              </Typography>
+
+              <Stack spacing={2}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Coupon Code"
+                  placeholder="e.g. SAVE10"
+                  value={newCouponCode}
+                  onChange={(e) => setNewCouponCode(e.target.value.toUpperCase().trim())}
+                  helperText="Alphanumeric, auto-capitalized"
+                  inputProps={{ style: { fontWeight: 700, letterSpacing: '0.05em' } }}
+                />
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Discount Percentage (%)"
+                  type="number"
+                  placeholder="10"
+                  value={newDiscountPercent}
+                  onChange={(e) => setNewDiscountPercent(e.target.value)}
+                  inputProps={{ min: 1, max: 99, style: { fontWeight: 700 } }}
+                />
+
+                <Alert severity="info" sx={{ fontSize: '0.78rem', py: 0.5 }}>
+                  ⏰ Validity: 24 Hours from creation time. Single-use globally upon payment completion.
+                </Alert>
+
+                <Button
+                  variant="contained"
+                  disabled={createCouponMutation.isPending || !newCouponCode.trim() || !newDiscountPercent}
+                  onClick={() => {
+                    const pct = Number(newDiscountPercent);
+                    if (isNaN(pct) || pct <= 0 || pct >= 100) {
+                      showAlert('Discount percentage must be between 1% and 99%', 'warning');
+                      return;
+                    }
+                    createCouponMutation.mutate({ code: newCouponCode.trim(), discountPercent: pct });
+                  }}
+                  sx={{
+                    py: 1.2,
+                    borderRadius: 2.5,
+                    fontWeight: 800,
+                    textTransform: 'none',
+                    bgcolor: '#051A3B',
+                    color: 'white',
+                    '&:hover': { bgcolor: '#C59B27' }
+                  }}
+                >
+                  {createCouponMutation.isPending ? 'Generating...' : '⚡ Generate 24-Hour Coupon'}
+                </Button>
+              </Stack>
+            </Paper>
+          </Box>
+
+          {/* Coupons Summary & Table */}
+          <Box className="col-span-12 lg:col-span-8">
+            <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 800, color: '#051A3B' }}>
+                  Coupons & Discounts Directory
+                </Typography>
+                <Chip
+                  label={`${coupons.filter(c => c.computedStatus === 'ACTIVE').length} Active`}
+                  color="success"
+                  size="small"
+                  sx={{ fontWeight: 800 }}
+                />
+              </Box>
+
+              <TableContainer sx={{ overflowX: 'auto', width: '100%' }}>
+                <Table sx={{ minWidth: 650 }}>
+                  <TableHead sx={{ bgcolor: '#051A3B' }}>
+                    <TableRow>
+                      <TableCell sx={{ color: 'white', fontWeight: 800 }}>Coupon Code</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 800 }}>Discount (%)</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 800 }}>Created Date</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 800 }}>Expiry (24h Limit)</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 800 }}>Status</TableCell>
+                      <TableCell align="right" sx={{ color: 'white', fontWeight: 800 }}>Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {loadingCoupons ? (
+                      <TableRow>
+                        <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
+                          Loading coupon codes...
+                        </TableCell>
+                      </TableRow>
+                    ) : coupons.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                          No coupons created yet. Use the form on the left to generate a 24-hour coupon code!
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      coupons.map((c) => {
+                        const status = c.computedStatus || (c.isUsed ? 'USED' : new Date(c.expiryDate) < new Date() ? 'EXPIRED' : 'ACTIVE');
+                        const isBtnDisabled = status !== 'ACTIVE' || deactivateCouponMutation.isPending;
+
+                        return (
+                          <TableRow key={c.id}>
+                            <TableCell sx={{ fontWeight: 900, letterSpacing: '0.05em', color: '#051A3B' }}>
+                              {c.code}
+                            </TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: 'success.main' }}>
+                              {c.discountPercent}% OFF
+                            </TableCell>
+                            <TableCell sx={{ fontSize: '0.85rem' }}>
+                              {new Date(c.createdAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}
+                            </TableCell>
+                            <TableCell sx={{ fontSize: '0.85rem' }}>
+                              {new Date(c.expiryDate).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={status}
+                                size="small"
+                                color={status === 'ACTIVE' ? 'success' : status === 'USED' ? 'info' : 'error'}
+                                sx={{ fontWeight: 900 }}
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+                                {status === 'ACTIVE' && (
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    color="warning"
+                                    onClick={() => deactivateCouponMutation.mutate(c.id)}
+                                    disabled={isBtnDisabled}
+                                    sx={{ fontWeight: 800, textTransform: 'none' }}
+                                  >
+                                    Deactivate
+                                  </Button>
+                                )}
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => {
+                                    if (window.confirm(`Are you sure you want to delete coupon code "${c.code}"?`)) {
+                                      deleteCouponMutation.mutate(c.id);
+                                    }
+                                  }}
+                                  disabled={deleteCouponMutation.isPending}
+                                  title="Delete Coupon Permanently"
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Paper>
+          </Box>
+        </Box>
+      )}
       <AppModal
         open={refundModalOpen}
         onClose={() => setRefundModalOpen(false)}
