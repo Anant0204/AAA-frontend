@@ -3797,7 +3797,7 @@ export const ClientPortalDocs = () => {
                               />
                             </Box>
                             <Typography variant="h6" color="error.main" sx={{ fontWeight: 800 }}>
-                              €{r.amount.toLocaleString()}
+                              €{(Number(r?.amount) || 0).toLocaleString()}
                             </Typography>
                             <Typography variant="caption" color="text.secondary" display="block">
                               Category: {r.category} | Date: {r.date}

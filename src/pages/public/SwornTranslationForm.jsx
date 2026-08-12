@@ -391,12 +391,68 @@ const SwornTranslationForm = () => {
     setQuote(null);
   };
 
+  const recalculateQuoteForDocs = (updatedDocs, currentQuote) => {
+    if (!currentQuote || !Array.isArray(currentQuote.documents)) return currentQuote;
+
+    const updatedDocResults = currentQuote.documents.map((doc, idx) => {
+      const docState = updatedDocs[idx];
+      if (!docState) return doc;
+
+      let finalLang = docState.documentLanguage;
+      if (docState.documentLanguage === 'Other' && docState.otherLanguage?.trim()) {
+        finalLang = docState.otherLanguage.trim();
+      }
+      let finalCat = docState.category;
+      if (docState.category === 'Other' && docState.customCategory?.trim()) {
+        finalCat = `Other: ${docState.customCategory.trim()}`;
+      }
+
+      const rateObj = (translationRates || []).find(r => (r.name || r.value || '').toLowerCase().includes(finalLang.toLowerCase()));
+      const rate = rateObj ? Number(rateObj.rate) : 0.15;
+      const wordCount = doc.wordCount || 0;
+      const subtotal = parseFloat((wordCount * rate).toFixed(2));
+      const vat = parseFloat((subtotal * 0.05).toFixed(2));
+      const estimatedPrice = parseFloat((subtotal + vat).toFixed(2));
+
+      return {
+        ...doc,
+        category: finalCat,
+        documentLanguage: finalLang,
+        rate,
+        subtotal,
+        vat,
+        estimatedPrice
+      };
+    });
+
+    const totalWordCount = updatedDocResults.reduce((sum, d) => sum + d.wordCount, 0);
+    const totalSubtotal = parseFloat(updatedDocResults.reduce((sum, d) => sum + d.subtotal, 0).toFixed(2));
+    const totalVat = parseFloat((totalSubtotal * 0.05).toFixed(2));
+    const totalEstimatedPrice = parseFloat((totalSubtotal + totalVat).toFixed(2));
+
+    return {
+      ...currentQuote,
+      documents: updatedDocResults,
+      totalWordCount,
+      wordCount: totalWordCount,
+      subtotal: totalSubtotal,
+      vat: totalVat,
+      estimatedPrice: totalEstimatedPrice
+    };
+  };
+
   const handleUpdateDoc = (index, field, value) => {
     setDocuments((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
+
+      if (quote && ['documentLanguage', 'otherLanguage', 'category', 'customCategory'].includes(field)) {
+        setQuote((prevQuote) => recalculateQuoteForDocs(updated, prevQuote));
+      }
+
       return updated;
     });
+
     if (field === 'file') {
       setQuote(null);
     }

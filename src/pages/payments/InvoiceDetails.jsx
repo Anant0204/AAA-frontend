@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Box from '@mui/material/Box';
-
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
@@ -25,19 +24,34 @@ import PrintIcon from '@mui/icons-material/Print';
 import DownloadIcon from '@mui/icons-material/Download';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 
-// Components & Services
+// Assets & Components
+import aaaLogo from '../../assets/aaa-logo.png';
 import { dbService } from '../../services/dbService';
 import PageHeader from '../../components/PageHeader';
 import StatusBadge from '../../components/StatusBadge';
 import AppModal from '../../components/AppModal';
 import { useAlert } from '../../contexts/AlertContext';
 import useAuth from '../../hooks/useAuth';
-import { SERVICES, PACKAGES } from '../../constants/mockData';
+import { SERVICES } from '../../constants/mockData';
 import { getPackageDisplayName } from '../../utils/packageHelper';
+
+// Official AAA Logo Image Component (Exact replica of Image 2)
+const AaaLogoComponent = ({ width = 76, height = 76, style = {} }) => (
+  <img
+    src={aaaLogo}
+    alt="AAA Business Consultancy Logo"
+    style={{
+      width,
+      height,
+      objectFit: 'contain',
+      display: 'block',
+      ...style
+    }}
+  />
+);
 
 export const InvoiceDetails = () => {
   const { id } = useParams();
@@ -60,7 +74,8 @@ export const InvoiceDetails = () => {
   // Fetch payments
   const { data: payments = [], isLoading } = useQuery({
     queryKey: ['payments'],
-    queryFn: dbService.getPayments });
+    queryFn: dbService.getPayments
+  });
 
   // Fetch packages dynamically
   const { data: dbPackages = [] } = useQuery({
@@ -74,7 +89,8 @@ export const InvoiceDetails = () => {
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: dbService.getClients,
-    enabled: !!invoice });
+    enabled: !!invoice
+  });
 
   const client = invoice ? clients.find(c => c.id === invoice.clientId) : null;
 
@@ -87,7 +103,8 @@ export const InvoiceDetails = () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       showAlert('Payment transaction recorded successfully', 'success');
       setPaymentModalOpen(false);
-    } });
+    }
+  });
 
   if (isLoading) {
     return (
@@ -119,7 +136,7 @@ export const InvoiceDetails = () => {
   };
 
   const invoiceNumber = invoice.invoiceNumber || invoice.invoiceNo || `INV-2026-${(invoice.id || '').replace(/-/g, '').slice(-6).toUpperCase()}`;
-  const customerId = invoice?.clientCode || client?.clientCode || client?.displayId || client?.clientCustomId || client?.cid || (client?.id ? 'CID-' + client.id.slice(-5).toUpperCase() : (invoice?.clientId ? 'CID-' + invoice.clientId.slice(-5).toUpperCase() : 'CID-12001'));
+  const customerId = invoice?.clientCode || client?.clientCode || client?.displayId || client?.clientCustomId || client?.cid || (client?.id ? 'CID-' + client.id.slice(-5).toUpperCase() : (invoice?.clientId ? 'CID-' + invoice.clientId.slice(-5).toUpperCase() : 'CID-12005'));
 
   const currentPkg = (dbPackages && dbPackages.length > 0)
     ? dbPackages.find(p => p.id === invoice.packageType || p.code === invoice.packageType || p.id === invoice.packageId || p.code === invoice.packageId)
@@ -155,7 +172,8 @@ export const InvoiceDetails = () => {
       id: invoice.id,
       status: 'Paid',
       method: gateway,
-      txn: transactionId });
+      txn: transactionId
+    });
   };
 
   const handleMarkFailed = () => {
@@ -164,7 +182,8 @@ export const InvoiceDetails = () => {
         id: invoice.id,
         status: 'Failed',
         method: '-',
-        txn: '-' });
+        txn: '-'
+      });
     }
   };
 
@@ -178,57 +197,62 @@ export const InvoiceDetails = () => {
       
       // Header
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(22);
-      doc.setTextColor(15, 23, 42);
-      doc.text("AAA BUSINESS CONSULTANCY", 14, 20);
+      doc.setFontSize(20);
+      doc.setTextColor(12, 35, 64);
+      doc.text("AAA BUSINESS CONSULTANCY FZC LLC", 14, 20);
 
-      doc.setFontSize(10);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(197, 155, 39);
+      doc.text("ADVISE  *  ASSIST  *  ACHIEVE", 14, 26);
+
+      doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(100, 116, 139);
-      doc.text("Spain Relocation Legal & Consulting Services", 14, 26);
-      doc.text("Email: info@aaabusinessconsultancy.com | Website: www.aaabusinessconsultancy.com", 14, 31);
+      doc.text("Email: Info@aaabusinessconsultancy.com | Tel: +971509554142", 14, 32);
+      doc.text("Business Village B, Office F-09, Port Saeed, Deira, Dubai, UAE", 14, 37);
 
-      doc.setDrawColor(203, 213, 225);
-      doc.setLineWidth(0.5);
-      doc.line(14, 35, 196, 35);
+      doc.setDrawColor(197, 155, 39);
+      doc.setLineWidth(0.8);
+      doc.line(14, 41, 196, 41);
 
       // Title & Reference
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
-      doc.setTextColor(30, 41, 59);
-      doc.text(`OFFICIAL INVOICE #${invoiceNumber}`, 14, 46);
+      doc.setTextColor(12, 35, 64);
+      doc.text(`OFFICIAL INVOICE #${invoiceNumber}`, 14, 52);
 
-      doc.setFontSize(10);
+      doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(71, 85, 105);
-      doc.text(`Date Issued: ${formatInvoiceDate(invoice.billingDate || invoice.createdAt)}`, 130, 46);
-      doc.text(`Due Date: ${formatInvoiceDate(invoice.dueDate)}`, 130, 52);
-      doc.text(`Status: ${invoice.status}`, 130, 58);
+      doc.text(`Date Issued: ${formatInvoiceDate(invoice.billingDate || invoice.createdAt)}`, 130, 52);
+      doc.text(`Due Date: ${formatInvoiceDate(invoice.dueDate)}`, 130, 58);
+      doc.text(`Status: ${invoice.status}`, 130, 64);
 
       // Client info box
       doc.setFillColor(248, 250, 252);
-      doc.rect(14, 65, 182, 24, "F");
+      doc.rect(14, 70, 182, 24, "F");
       doc.setFont("helvetica", "bold");
-      doc.text("Billed To:", 18, 73);
+      doc.text("BILL TO:", 18, 78);
       doc.setFont("helvetica", "normal");
-      doc.text(`Client Name: ${invoice.clientName || (client ? `${client.firstName} ${client.lastName}` : 'Valued Client')}`, 18, 80);
-      doc.text(`Customer ID: ${customerId}`, 18, 86);
+      doc.text(`Client Name: ${invoice.clientName || (client ? `${client.firstName} ${client.lastName}` : 'Valued Client')}`, 18, 85);
+      doc.text(`Customer ID: ${customerId}`, 18, 91);
 
       // Summary Table Headers
-      doc.setFillColor(30, 41, 59);
-      doc.rect(14, 98, 182, 8, "F");
+      doc.setFillColor(12, 35, 64);
+      doc.rect(14, 102, 182, 8, "F");
       doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "bold");
-      doc.text("Description", 18, 103.5);
-      doc.text("Amount (€)", 165, 103.5);
+      doc.text("Description", 18, 107.5);
+      doc.text("Amount (€)", 165, 107.5);
 
       // Table Row
       doc.setTextColor(30, 41, 59);
       doc.setFont("helvetica", "normal");
-      doc.text(`${itemTitle.slice(0, 45)}`, 18, 116);
-      doc.text(`€${serviceBasePrice.toFixed(2)}`, 165, 116);
+      doc.text(`${itemTitle.slice(0, 45)}`, 18, 118);
+      doc.text(`€${serviceBasePrice.toFixed(2)}`, 165, 118);
 
-      let currentY = 124;
+      let currentY = 126;
       if (additionalApplicantsCount > 0) {
         doc.text(`Co-Applicants (${additionalApplicantsCount} person(s))`, 18, currentY);
         doc.text(`+€${additionalApplicantsTotal.toFixed(2)}`, 165, currentY);
@@ -236,14 +260,14 @@ export const InvoiceDetails = () => {
       }
 
       if (assessmentCredit > 0) {
-        doc.setTextColor(34, 197, 94);
+        doc.setTextColor(22, 163, 74);
         doc.text("Assessment Fee Credit", 18, currentY);
         doc.text(`-€${assessmentCredit.toFixed(2)}`, 165, currentY);
         currentY += 8;
       }
 
       if (discount > 0) {
-        doc.setTextColor(225, 29, 72);
+        doc.setTextColor(22, 163, 74);
         doc.text("Applied Promotional Discount", 18, currentY);
         doc.text(`-€${discount.toFixed(2)}`, 165, currentY);
         currentY += 8;
@@ -256,7 +280,7 @@ export const InvoiceDetails = () => {
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
-      doc.setTextColor(15, 23, 42);
+      doc.setTextColor(12, 35, 64);
       doc.text("Grand Total Due:", 115, currentY + 14);
       doc.text(`€${grandTotal.toFixed(2)}`, 165, currentY + 14);
 
@@ -268,6 +292,8 @@ export const InvoiceDetails = () => {
       doc.save(`Invoice-${invoiceNumber}.pdf`);
     } catch (err) {
       console.error("PDF generation failed:", err);
+      // Fallback to print
+      window.print();
     }
   };
 
@@ -292,292 +318,407 @@ export const InvoiceDetails = () => {
 
   return (
     <Box>
+      {/* Inject Print Stylesheet */}
+      <style>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 0;
+          }
+          html, body {
+            background: #ffffff !important;
+            color: #000000 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          nav, header, aside, .no-print, [class*="MuiDrawer"], [class*="Sidebar"], [class*="PageHeader"], .dunning-log-section {
+            display: none !important;
+          }
+          .printable-invoice-letterhead {
+            border: none !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+            padding: 12mm 12mm !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            border-radius: 0 !important;
+          }
+        }
+      `}</style>
+
       <Button
         startIcon={<KeyboardArrowLeftIcon />}
         onClick={() => navigate(-1)}
         sx={{ mb: 2, color: 'text.secondary', display: 'inline-flex', '@media print': { display: 'none' } }}
+        className="no-print"
       >
         Back to Invoices
       </Button>
 
-      <PageHeader
-        title={`Invoice ${invoiceNumber}`}
-        subtitle="Review account retainer bills and client payment receipts."
-        action={
-          <Stack direction="row" spacing={1} sx={{ '@media print': { display: 'none' } }}>
-            <Button variant="outlined" startIcon={<PrintIcon />} onClick={handlePrint}>
-              Print Invoice
-            </Button>
-            <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleDownload}>
-              Download Invoice
-            </Button>
-            {invoice.status === 'Pending' && (
-              <Button
-                variant="contained"
-                startIcon={<CreditCardIcon />}
-                onClick={handleStripePay}
-                sx={{
-                  bgcolor: '#4F46E5',
-                  color: 'white',
-                  fontWeight: 700,
-                  '&:hover': { bgcolor: '#4338CA' }
-                }}
-              >
-                Pay Now with Stripe
+      <Box className="no-print">
+        <PageHeader
+          title={`Invoice ${invoiceNumber}`}
+          subtitle="Review account retainer bills and client payment receipts."
+          action={
+            <Stack direction="row" spacing={1}>
+              <Button variant="outlined" startIcon={<PrintIcon />} onClick={handlePrint}>
+                Print Invoice
               </Button>
-            )}
-            {!isViewOnly && invoice.status === 'Pending' && (
-              <>
+              <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleDownload}>
+                Download Invoice
+              </Button>
+              {invoice.status === 'Pending' && (
                 <Button
                   variant="contained"
-                  color="success"
-                  startIcon={<CheckCircleIcon />}
-                  onClick={handleOpenPaymentModal}
+                  startIcon={<CreditCardIcon />}
+                  onClick={handleStripePay}
+                  sx={{
+                    bgcolor: '#4F46E5',
+                    color: 'white',
+                    fontWeight: 700,
+                    '&:hover': { bgcolor: '#4338CA' }
+                  }}
                 >
-                  Record Payment
+                  Pay Now with Stripe
                 </Button>
-                <Button
-                  variant="outlined"
-                  color="error"
-                  startIcon={<HighlightOffIcon />}
-                  onClick={handleMarkFailed}
-                >
-                  Mark Failed
-                </Button>
-              </>
-            )}
-          </Stack>
-        }
-      />
+              )}
+              {!isViewOnly && invoice.status === 'Pending' && (
+                <>
+                  <Button
+                    variant="contained"
+                    color="success"
+                    startIcon={<CheckCircleIcon />}
+                    onClick={handleOpenPaymentModal}
+                  >
+                    Record Payment
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    startIcon={<HighlightOffIcon />}
+                    onClick={handleMarkFailed}
+                  >
+                    Mark Failed
+                  </Button>
+                </>
+              )}
+            </Stack>
+          }
+        />
+      </Box>
 
-      <Paper sx={{ p: 4, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
-        {/* Invoice Header */}
-        <Box className="grid grid-cols-12 gap-2" sx={{ mb: 4 }}>
-          <Box className="col-span-12 sm:col-span-6">
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <Box
-                sx={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 1,
-                  background: 'linear-gradient(135deg, #2563EB 0%, #14B8A6 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontWeight: 800,
-                  fontSize: '1.2rem' }}
-              >
-                A³
+      {/* ── OFFICIAL AAA BUSINESS CONSULTANCY FZC LLC LETTERHEAD INVOICE CONTAINER ── */}
+      <Paper
+        className="printable-invoice-letterhead"
+        sx={{
+          position: 'relative',
+          bgcolor: '#ffffff',
+          borderRadius: 3,
+          border: '1px solid #E2E8F0',
+          overflow: 'hidden',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.04)',
+          minHeight: '850px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          p: { xs: 2.5, sm: 4, md: 5 }
+        }}
+      >
+        {/* Background Faint Watermark Logo */}
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '52%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            opacity: 0.04,
+            pointerEvents: 'none',
+            zIndex: 0,
+            width: '380px',
+            height: '380px'
+          }}
+        >
+          <AaaLogoComponent width="100%" height="100%" />
+        </Box>
+
+        {/* Content Wrapper */}
+        <Box sx={{ position: 'relative', zIndex: 1 }}>
+          {/* 1. OFFICIAL LETTERHEAD HEADER */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2, mb: 2.5 }}>
+            {/* Left Header: Logo & Company Name */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <AaaLogoComponent width={76} height={76} />
+              <Box sx={{ borderLeft: '1.5px solid #C59B27', pl: 2, py: 0.5 }}>
+                <Typography sx={{ fontWeight: 900, fontSize: '1.8rem', color: '#0C2340', lineHeight: 1.1, letterSpacing: '1px' }}>
+                  AAA
+                </Typography>
+                <Typography sx={{ fontWeight: 800, fontSize: '0.88rem', color: '#0C2340', letterSpacing: '0.5px', mt: 0.2 }}>
+                  BUSINESS CONSULTANCY
+                </Typography>
+                <Typography sx={{ fontWeight: 700, fontSize: '0.88rem', color: '#C59B27', letterSpacing: '0.5px', mb: 0.5 }}>
+                  FZC LLC
+                </Typography>
+
+                {/* Divider Line & Tagline */}
+                <Box sx={{ borderTop: '1px solid #D4AF37', borderBottom: '1px solid #D4AF37', py: 0.3, px: 0.5, textAlign: 'center', mt: 0.5 }}>
+                  <Typography sx={{ fontWeight: 700, fontSize: '0.6rem', color: '#C59B27', letterSpacing: '1.8px', textTransform: 'uppercase' }}>
+                    ADVISE  •  ASSIST  •  ACHIEVE
+                  </Typography>
+                </Box>
               </Box>
-              <Typography variant="h4" sx={{ fontWeight: 800 }}>
-                AAA BUSINESS CONSULTANCY
+            </Box>
+
+            {/* Right Header: Contact Details Block */}
+            <Box sx={{ borderLeft: '1.5px solid #C59B27', pl: 2.5, py: 0.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                <Box sx={{ width: 22, height: 22, borderRadius: '50%', bgcolor: '#0C2340', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}>
+                  ✉️
+                </Box>
+                <Typography sx={{ fontSize: '0.78rem', color: '#1E293B', fontWeight: 600 }}>
+                  Info@aaabusinessconsultancy.com
+                </Typography>
+              </Box>
+
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                <Box sx={{ width: 22, height: 22, borderRadius: '50%', bgcolor: '#0C2340', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}>
+                  📞
+                </Box>
+                <Typography sx={{ fontSize: '0.78rem', color: '#1E293B', fontWeight: 600 }}>
+                  +971509554142
+                </Typography>
+              </Box>
+
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+                <Box sx={{ width: 22, height: 22, borderRadius: '50%', bgcolor: '#0C2340', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}>
+                  🌐
+                </Box>
+                <Typography sx={{ fontSize: '0.78rem', color: '#1E293B', fontWeight: 600 }}>
+                  www.aaabusinessconsultancy.com
+                </Typography>
+              </Box>
+
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.2 }}>
+                <Box sx={{ width: 22, height: 22, borderRadius: '50%', bgcolor: '#0C2340', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0, mt: 0.2 }}>
+                  📍
+                </Box>
+                <Typography sx={{ fontSize: '0.75rem', color: '#1E293B', fontWeight: 600, maxWidth: '240px', lineHeight: 1.3 }}>
+                  Business Village B , office number F-09 Port Saeed Deira Dubai, UAE
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+
+          {/* 2. DUAL-TONE HEADER DIVIDER BAR */}
+          <Box sx={{ width: '100%', height: '5px', borderRadius: '2px', display: 'flex', mb: 3.5, overflow: 'hidden' }}>
+            <Box sx={{ width: '28%', bgcolor: '#0C2340' }} />
+            <Box sx={{ width: '6%', bgcolor: '#C59B27' }} />
+            <Box sx={{ width: '66%', bgcolor: '#0C2340' }} />
+          </Box>
+
+          {/* 3. INVOICE META & STATUS BAR */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2, mb: 3.5 }}>
+            <Box>
+              <Typography sx={{ fontSize: '1.75rem', fontWeight: 900, color: '#0C2340', letterSpacing: '1px', lineHeight: 1 }}>
+                INVOICE
+              </Typography>
+              <Typography sx={{ fontSize: '0.98rem', fontWeight: 700, color: '#334155', mt: 0.5 }}>
+                Invoice #: {invoiceNumber}
+              </Typography>
+              <Box sx={{ mt: 1 }}>
+                <StatusBadge status={invoice.status} />
+              </Box>
+            </Box>
+
+            <Box sx={{ textAlign: { sm: 'right' } }}>
+              <Typography sx={{ fontSize: '0.82rem', color: '#64748B', fontWeight: 600 }}>
+                <strong>Date Issued:</strong> {formatInvoiceDate(invoice.billingDate || invoice.createdAt)}
+              </Typography>
+              <Typography sx={{ fontSize: '0.82rem', color: '#64748B', fontWeight: 600, mt: 0.4 }}>
+                <strong>Due Date:</strong> {formatInvoiceDate(invoice.dueDate)}
               </Typography>
             </Box>
-            <Typography variant="caption" color="text.secondary" display="block">
-              Business Village, Block B, 4th Floor, Office F09
-            </Typography>
-            <Typography variant="caption" color="text.secondary" display="block">
-              Port Saeed, Deira, Dubai, UAE
-            </Typography>
-            <Typography variant="caption" color="text.secondary" display="block">
-              TRN: 105469065400001
-            </Typography>
           </Box>
 
-          <Box className="col-span-12 sm:col-span-6" sx={{ textAlign: { sm: 'right' } }}>
-            <Typography variant="h3" sx={{ fontWeight: 700, mb: 1 }}>
-              INVOICE
-            </Typography>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#051A3B' }}>
-              Invoice #: {invoiceNumber}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Date: {formatInvoiceDate(invoice.billingDate || invoice.createdAt)}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Due Date: {formatInvoiceDate(invoice.dueDate)}
-            </Typography>
-            <Box sx={{ mt: 1.5, display: 'flex', justifyContent: { sm: 'flex-end' } }}>
-              <StatusBadge status={invoice.status} />
+          {/* 4. BILL TO / PAYMENT DETAILS */}
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3, mb: 3.5, bgcolor: '#F8FAFC', p: 2.5, borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+            <Box>
+              <Typography sx={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px', mb: 0.5 }}>
+                BILL TO
+              </Typography>
+              <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: '#0C2340' }}>
+                {invoice.clientName || (client ? `${client.firstName} ${client.lastName}` : 'Valued Client')}
+              </Typography>
+              <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', mt: 0.3 }}>
+                Customer ID: {customerId}
+              </Typography>
+            </Box>
+
+            <Box sx={{ textAlign: { sm: 'right' } }}>
+              <Typography sx={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px', mb: 0.5 }}>
+                PAYMENT DETAILS
+              </Typography>
+              <Typography sx={{ fontSize: '0.88rem', fontWeight: 600, color: '#1E293B' }}>
+                Method: {invoice.paymentMethod || 'Credit / Debit Card'}
+              </Typography>
             </Box>
           </Box>
-        </Box>
 
-        <Divider sx={{ my: 3 }} />
-
-        {/* Bill To / Bill From */}
-        <Box className="grid grid-cols-12 gap-2" sx={{ mb: 4 }}>
-          <Box className="col-span-12 sm:col-span-6">
-            <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', mb: 1 }}>
-              Bill To
-            </Typography>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#051A3B', fontSize: '1.1rem' }}>
-              {invoice.clientName || (client ? `${client.firstName} ${client.lastName}` : 'Valued Client')}
-            </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600, color: '#4B5563', mt: 0.5 }}>
-              Customer ID: {customerId}
-            </Typography>
-          </Box>
-
-          <Box className="col-span-12 sm:col-span-6" sx={{ textAlign: { sm: 'right' } }}>
-            <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', mb: 1 }}>
-              Payment Details
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Method: {invoice.paymentMethod || 'Credit / Debit Card'}
-            </Typography>
-          </Box>
-        </Box>
-
-        {/* Items Table */}
-        <TableContainer sx={{ mb: 4, overflowX: 'auto' }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 700 }}>Description</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700 }}>Qty</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700 }}>Unit Price</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700 }}>Total</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              <TableRow>
-                <TableCell>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    {itemTitle}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {itemDescription}
-                  </Typography>
-                </TableCell>
-                <TableCell align="right">1</TableCell>
-                <TableCell align="right">€{serviceBasePrice.toFixed(2)}</TableCell>
-                <TableCell align="right">€{serviceBasePrice.toFixed(2)}</TableCell>
-              </TableRow>
-
-              {additionalApplicantsCount > 0 && (
+          {/* 5. ITEMIZED TABLE */}
+          <TableContainer sx={{ mb: 3.5, borderRadius: '8px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+            <Table>
+              <TableHead sx={{ bgcolor: '#0C2340' }}>
                 <TableRow>
+                  <TableCell sx={{ color: 'white', fontWeight: 700, fontSize: '0.85rem' }}>Description</TableCell>
+                  <TableCell align="right" sx={{ color: 'white', fontWeight: 700, fontSize: '0.85rem' }}>Qty</TableCell>
+                  <TableCell align="right" sx={{ color: 'white', fontWeight: 700, fontSize: '0.85rem' }}>Unit Price</TableCell>
+                  <TableCell align="right" sx={{ color: 'white', fontWeight: 700, fontSize: '0.85rem' }}>Total</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                <TableRow sx={{ '&:nth-of-type(even)': { bgcolor: '#F8FAFC' } }}>
                   <TableCell>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                      Co-Applicants Relocation Support ({additionalApplicantsCount} person(s))
+                    <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: '#0C2340' }}>
+                      {itemTitle}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Additional family member documentation and processing support.
+                    <Typography sx={{ fontSize: '0.78rem', color: '#64748B', mt: 0.2 }}>
+                      {itemDescription}
                     </Typography>
                   </TableCell>
-                  <TableCell align="right">{additionalApplicantsCount}</TableCell>
-                  <TableCell align="right">€{additionalApplicantRate.toFixed(2)}</TableCell>
-                  <TableCell align="right">+€{additionalApplicantsTotal.toFixed(2)}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 600 }}>1</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 600 }}>€{serviceBasePrice.toFixed(2)}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700, color: '#0C2340' }}>€{serviceBasePrice.toFixed(2)}</TableCell>
                 </TableRow>
-              )}
 
-              {assessmentCredit > 0 && (
-                <TableRow>
-                  <TableCell>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'success.main' }}>
-                      Eligibility Assessment Fee Credit (100% Deduction)
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right">1</TableCell>
-                  <TableCell align="right" sx={{ color: 'success.main', fontWeight: 700 }}>-€{assessmentCredit.toFixed(2)}</TableCell>
-                  <TableCell align="right" sx={{ color: 'success.main', fontWeight: 700 }}>-€{assessmentCredit.toFixed(2)}</TableCell>
-                </TableRow>
-              )}
+                {additionalApplicantsCount > 0 && (
+                  <TableRow sx={{ '&:nth-of-type(even)': { bgcolor: '#F8FAFC' } }}>
+                    <TableCell>
+                      <Typography sx={{ fontWeight: 700, fontSize: '0.88rem', color: '#0C2340' }}>
+                        Co-Applicants Relocation Support ({additionalApplicantsCount} person(s))
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>{additionalApplicantsCount}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>€{additionalApplicantRate.toFixed(2)}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, color: '#0C2340' }}>+€{additionalApplicantsTotal.toFixed(2)}</TableCell>
+                  </TableRow>
+                )}
 
-              {discount > 0 && (
-                <TableRow>
-                  <TableCell>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'success.main' }}>
-                      Applied Promotional Discount
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right">1</TableCell>
-                  <TableCell align="right" sx={{ color: 'success.main', fontWeight: 700 }}>-€{discount.toFixed(2)}</TableCell>
-                  <TableCell align="right" sx={{ color: 'success.main', fontWeight: 700 }}>-€{discount.toFixed(2)}</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                {assessmentCredit > 0 && (
+                  <TableRow>
+                    <TableCell>
+                      <Typography sx={{ fontWeight: 700, fontSize: '0.88rem', color: '#16A34A' }}>
+                        Eligibility Assessment Fee Credit (100% Deduction)
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">1</TableCell>
+                    <TableCell align="right" sx={{ color: '#16A34A', fontWeight: 700 }}>-€{assessmentCredit.toFixed(2)}</TableCell>
+                    <TableCell align="right" sx={{ color: '#16A34A', fontWeight: 700 }}>-€{assessmentCredit.toFixed(2)}</TableCell>
+                  </TableRow>
+                )}
 
-        {/* Pricing totals — Itemized */}
-        <Box className="grid grid-cols-12 gap-2">
-          <Box className="col-span-12 sm:col-span-6" />
-          <Box className="col-span-12 sm:col-span-6">
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2, pl: { sm: 4 } }}>
-              {/* Itemized Rows */}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body2" color="text.secondary">Base Service Fee</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>€{serviceBasePrice.toFixed(2)}</Typography>
+                {discount > 0 && (
+                  <TableRow>
+                    <TableCell>
+                      <Typography sx={{ fontWeight: 700, fontSize: '0.88rem', color: '#16A34A' }}>
+                        Applied Promotional Discount
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">1</TableCell>
+                    <TableCell align="right" sx={{ color: '#16A34A', fontWeight: 700 }}>-€{discount.toFixed(2)}</TableCell>
+                    <TableCell align="right" sx={{ color: '#16A34A', fontWeight: 700 }}>-€{discount.toFixed(2)}</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          {/* 6. FINANCIAL TOTALS SUMMARY */}
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 4 }}>
+            <Box sx={{ width: { xs: '100%', sm: '320px' }, display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                <Typography sx={{ color: '#64748B', fontWeight: 600 }}>Base Service Fee</Typography>
+                <Typography sx={{ fontWeight: 700, color: '#1E293B' }}>€{serviceBasePrice.toFixed(2)}</Typography>
               </Box>
 
               {additionalApplicantsCount > 0 && (
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">Co-Applicants ({additionalApplicantsCount})</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>+€{additionalApplicantsTotal.toFixed(2)}</Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                  <Typography sx={{ color: '#64748B', fontWeight: 600 }}>Co-Applicants ({additionalApplicantsCount})</Typography>
+                  <Typography sx={{ fontWeight: 700, color: '#1E293B' }}>+€{additionalApplicantsTotal.toFixed(2)}</Typography>
                 </Box>
               )}
 
               {assessmentCredit > 0 && (
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', color: 'success.main' }}>
-                  <Typography variant="body2">Assessment Fee Credit</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>-€{assessmentCredit.toFixed(2)}</Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#16A34A' }}>
+                  <Typography sx={{ fontWeight: 600 }}>Assessment Fee Credit</Typography>
+                  <Typography sx={{ fontWeight: 700 }}>-€{assessmentCredit.toFixed(2)}</Typography>
                 </Box>
               )}
 
               {discount > 0 && (
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', color: 'success.main' }}>
-                  <Typography variant="body2">Promotional Discount</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>-€{discount.toFixed(2)}</Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#16A34A' }}>
+                  <Typography sx={{ fontWeight: 600 }}>Promotional Discount</Typography>
+                  <Typography sx={{ fontWeight: 700 }}>-€{discount.toFixed(2)}</Typography>
                 </Box>
               )}
 
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body2" color="text.secondary">UAE VAT (5%)</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>€{vatAmount.toFixed(2)}</Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                <Typography sx={{ color: '#64748B', fontWeight: 600 }}>UAE VAT (5%)</Typography>
+                <Typography sx={{ fontWeight: 700, color: '#1E293B' }}>€{vatAmount.toFixed(2)}</Typography>
               </Box>
 
-              <Divider />
+              <Divider sx={{ my: 0.5, borderColor: '#CBD5E1' }} />
 
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', color: 'primary.main' }}>
-                <Typography variant="h5" sx={{ fontWeight: 700 }}>Grand Total</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700 }}>€{grandTotal.toFixed(2)}</Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', bgcolor: '#0C2340', color: 'white', p: 1.5, borderRadius: '8px', borderLeft: '4px solid #C59B27' }}>
+                <Typography sx={{ fontWeight: 800, fontSize: '1.05rem' }}>Grand Total</Typography>
+                <Typography sx={{ fontWeight: 900, fontSize: '1.2rem', color: '#FACC15' }}>€{grandTotal.toFixed(2)}</Typography>
               </Box>
             </Box>
           </Box>
+
+          <Typography sx={{ fontSize: '0.78rem', color: '#94A3B8', textAlign: 'center', mb: 2 }}>
+            Thank you for choosing AAA Business Consultancy for your Spain Relocation journey.
+          </Typography>
         </Box>
-        {/* Dunning Reminders Log */}
-        {invoice.status === 'Pending' && (
-          <Box sx={{ mt: 4 }}>
-            <Divider sx={{ mb: 3 }} />
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <NotificationsActiveIcon color="primary" fontSize="small" />
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Dunning Reminder Log</Typography>
-            </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Automated follow-up reminders scheduled for this pending invoice.
-            </Typography>
-            {[
-              { label: 'Reminder #1 — Abandoned Checkout', timing: 'Immediate (sent upon invoice creation)', status: 'Sent', color: 'success' },
-              { label: 'Reminder #2 — 24h Follow-Up', timing: '24 hours after invoice generation', status: 'Queued', color: 'info' },
-              { label: 'Reminder #3 — 2-Day Follow-Up', timing: '2 days after invoice generation', status: 'Pending', color: 'warning' },
-              { label: 'Reminder #4 — CEO 5-Day Final Notice', timing: '5 days (CEO email with special 24h discount offer)', status: 'Scheduled', color: 'error' },
-            ].map((r, i) => (
-              <Box key={i} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
-                <Box sx={{ mt: 0.5, width: 10, height: 10, borderRadius: '50%', bgcolor: `${r.color}.main`, flexShrink: 0 }} />
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{r.label}</Typography>
-                  <Typography variant="caption" color="text.secondary">{r.timing}</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" sx={{ fontWeight: 700, color: `${r.color}.main`, textTransform: 'uppercase', fontSize: '0.7rem' }}>{r.status}</Typography>
-                </Box>
-              </Box>
-            ))}
-          </Box>
-        )}
+
+        {/* 7. DUAL-TONE LETTERHEAD FOOTER BAR */}
+        <Box sx={{ position: 'relative', width: '100%', mt: 3 }}>
+          {/* Top Gold Curved accent */}
+          <Box sx={{ height: '4px', bgcolor: '#C59B27', width: '30%', borderRadius: '2px 2px 0 0' }} />
+          {/* Bottom Solid Navy Base Bar */}
+          <Box sx={{ height: '14px', bgcolor: '#0C2340', borderRadius: '0 0 8px 8px' }} />
+        </Box>
       </Paper>
+
+      {/* Dunning Reminders Log (Screen view only) */}
+      {invoice.status === 'Pending' && (
+        <Paper className="dunning-log-section no-print" sx={{ p: 4, mt: 4, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <NotificationsActiveIcon color="primary" fontSize="small" />
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Dunning Reminder Log</Typography>
+          </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Automated follow-up reminders scheduled for this pending invoice.
+          </Typography>
+          {[
+            { label: 'Reminder #1 — Abandoned Checkout', timing: 'Immediate (sent upon invoice creation)', status: 'Sent', color: 'success' },
+            { label: 'Reminder #2 — 24h Follow-Up', timing: '24 hours after invoice generation', status: 'Queued', color: 'info' },
+            { label: 'Reminder #3 — 2-Day Follow-Up', timing: '2 days after invoice generation', status: 'Pending', color: 'warning' },
+            { label: 'Reminder #4 — CEO 5-Day Final Notice', timing: '5 days (CEO email with special 24h discount offer)', status: 'Scheduled', color: 'error' },
+          ].map((r, i) => (
+            <Box key={i} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Box sx={{ mt: 0.5, width: 10, height: 10, borderRadius: '50%', bgcolor: `${r.color}.main`, flexShrink: 0 }} />
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{r.label}</Typography>
+                <Typography variant="caption" color="text.secondary">{r.timing}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ fontWeight: 700, color: `${r.color}.main`, textTransform: 'uppercase', fontSize: '0.7rem' }}>{r.status}</Typography>
+              </Box>
+            </Box>
+          ))}
+        </Paper>
+      )}
 
       {/* MODAL: Record Payment */}
       <AppModal
