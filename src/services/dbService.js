@@ -736,4 +736,8 @@ export const dbService = {
     const res = await apiClient.delete(`/coupons/${id}`);
     return res.data;
   },
+  deleteCouponPermanently: async (id) => {
+    const res = await apiClient.delete(`/coupons/${id}/permanent`);
+    return res.data;
+  },
 };

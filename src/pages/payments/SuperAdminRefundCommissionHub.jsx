@@ -167,6 +167,17 @@ export const SuperAdminRefundCommissionHub = () => {
     }
   });
 
+  const deleteCouponMutation = useMutation({
+    mutationFn: (id) => dbService.deleteCouponPermanently(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['coupons'] });
+      showAlert('Coupon permanently deleted!', 'success');
+    },
+    onError: (err) => {
+      showAlert(err?.response?.data?.message || 'Failed to delete coupon', 'error');
+    }
+  });
+
   // Mutations
   const createRefundMutation = useMutation({
     mutationFn: dbService.createRefundRequest,
@@ -909,18 +920,33 @@ export const SuperAdminRefundCommissionHub = () => {
                               />
                             </TableCell>
                             <TableCell align="right">
-                              {status === 'ACTIVE' && (
-                                <Button
+                              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+                                {status === 'ACTIVE' && (
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    color="warning"
+                                    onClick={() => deactivateCouponMutation.mutate(c.id)}
+                                    disabled={isBtnDisabled}
+                                    sx={{ fontWeight: 800, textTransform: 'none' }}
+                                  >
+                                    Deactivate
+                                  </Button>
+                                )}
+                                <IconButton
                                   size="small"
-                                  variant="outlined"
                                   color="error"
-                                  onClick={() => deactivateCouponMutation.mutate(c.id)}
-                                  disabled={isBtnDisabled}
-                                  sx={{ fontWeight: 800, textTransform: 'none' }}
+                                  onClick={() => {
+                                    if (window.confirm(`Are you sure you want to delete coupon code "${c.code}"?`)) {
+                                      deleteCouponMutation.mutate(c.id);
+                                    }
+                                  }}
+                                  disabled={deleteCouponMutation.isPending}
+                                  title="Delete Coupon Permanently"
                                 >
-                                  Deactivate
-                                </Button>
-                              )}
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Box>
                             </TableCell>
                           </TableRow>
                         );
