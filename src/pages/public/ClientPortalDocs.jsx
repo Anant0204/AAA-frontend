@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { jsPDF } from 'jspdf';
+import aaaLogo from '../../assets/aaa-logo.png';
 import { CaseActivityTimeline } from '../../components/CaseActivityTimeline';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -3942,7 +3943,7 @@ export const ClientPortalDocs = () => {
           </IconButton>
         </DialogTitle>
 
-        <DialogContent sx={{ py: 3 }}>
+        <DialogContent sx={{ p: { xs: 1.5, sm: 3 }, bgcolor: '#F8FAFC' }}>
           {(() => {
             const isShowingOptAReceipt = viewingReceiptForOptA || (isOptionAPackage(selectedPackage) && isOptAPaid);
             
@@ -3969,111 +3970,303 @@ export const ClientPortalDocs = () => {
             const vat5 = subTotal * 0.05;
             const grandTotal = subTotal * 1.05;
 
+            const invNo = `INV-2026-${(client?.id || '84920').slice(-6).toUpperCase()}`;
+            const customerId = client?.clientCode || client?.clientCustomId || client?.cid || (client?.id ? `CID-${client.id.slice(-5).toUpperCase()}` : 'CLIENT-ID');
+
             return (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {/* Meta Header */}
-                <Grid container spacing={2} sx={{ p: 2.5, bgcolor: '#FAF6ED', borderRadius: 3, border: '1px solid rgba(197, 155, 39, 0.3)', alignItems: 'center' }}>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Billed To:</Typography>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#051A3B', fontFamily: 'Outfit, sans-serif', mt: 0.5 }}>
-                      {client ? `${client.firstName} ${client.lastName}` : 'Valued Client'}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>{client?.email || 'client@email.com'}</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700, color: '#051A3B', mt: 0.5 }}>
-                      Customer ID: {client?.clientCode || client?.clientCustomId || client?.cid || (client?.id ? `CID-${client.id.slice(-5).toUpperCase()}` : 'CLIENT-ID')}
-                    </Typography>
-                  </Grid>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                {/* Print Stylesheet */}
+                <style>{`
+                  @media print {
+                    @page {
+                      size: A4 portrait;
+                      margin: 0;
+                    }
+                    html, body {
+                      background: #ffffff !important;
+                      color: #000000 !important;
+                      margin: 0 !important;
+                      padding: 0 !important;
+                      -webkit-print-color-adjust: exact !important;
+                      print-color-adjust: exact !important;
+                    }
+                    body * {
+                      visibility: hidden !important;
+                    }
+                    .printable-client-receipt-letterhead, .printable-client-receipt-letterhead * {
+                      visibility: visible !important;
+                    }
+                    .printable-client-receipt-letterhead {
+                      position: absolute !important;
+                      top: 0 !important;
+                      left: 0 !important;
+                      width: 100% !important;
+                      max-width: 100% !important;
+                      margin: 0 !important;
+                      padding: 12mm 12mm !important;
+                      box-shadow: none !important;
+                      border: none !important;
+                      border-radius: 0 !important;
+                      background: #ffffff !important;
+                      -webkit-print-color-adjust: exact !important;
+                      print-color-adjust: exact !important;
+                    }
+                  }
+                `}</style>
 
-                  <Grid item xs={12} sm={6} sx={{ display: 'flex', flexDirection: 'column', alignItems: { sm: 'flex-end', xs: 'flex-start' }, textAlign: { sm: 'right', xs: 'left' } }}>
-                    {isOptA && isOptAPaid ? (
-                      <Chip label="PAID RECEIPT" color="success" size="small" sx={{ fontWeight: 900, mb: 1, px: 1 }} />
-                    ) : (
-                      <Chip label="UNPAID INVOICE" color="warning" size="small" sx={{ fontWeight: 900, mb: 1, px: 1 }} />
-                    )}
-                    <Typography variant="caption" sx={{ display: 'block', fontWeight: 800, color: '#051A3B', fontSize: '0.85rem' }}>
-                      INVOICE NO: INV-2026-{(client?.id || '84920').slice(-6).toUpperCase()}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 600, mt: 0.3 }}>
-                      Date: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 600, mt: 0.3 }}>
-                      Payment Status: <span style={{ color: isOptA && isOptAPaid ? '#2e7d32' : '#ed6c02', fontWeight: 800 }}>{isOptA && isOptAPaid ? 'Paid in Full (€250 + VAT)' : 'Immediate upon selection'}</span>
-                    </Typography>
-                  </Grid>
-                </Grid>
+                {/* OFFICIAL AAA BUSINESS CONSULTANCY FZC LLC LETTERHEAD CONTAINER */}
+                <Paper
+                  className="printable-client-receipt-letterhead"
+                  sx={{
+                    position: 'relative',
+                    bgcolor: '#ffffff',
+                    borderRadius: 3,
+                    border: '1px solid #E2E8F0',
+                    overflow: 'hidden',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+                    p: { xs: 2.5, sm: 3.5 },
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    minHeight: '680px'
+                  }}
+                >
+                  {/* Background Watermark */}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      opacity: 0.04,
+                      pointerEvents: 'none',
+                      zIndex: 0,
+                      width: '320px',
+                      height: '320px'
+                    }}
+                  >
+                    <img src={aaaLogo} alt="AAA Watermark" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  </Box>
 
-                {/* Itemized Table */}
-                <TableContainer component={Paper} sx={{ borderRadius: 2.5, boxShadow: 'none', border: '1px solid rgba(0,0,0,0.08)' }}>
-                  <Table>
-                    <TableHead sx={{ bgcolor: '#051A3B' }}>
-                      <TableRow>
-                        <TableCell sx={{ color: 'white', fontWeight: 800 }}>Item & Description</TableCell>
-                        <TableCell align="right" sx={{ color: 'white', fontWeight: 800 }}>Amount (€)</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 700, color: '#051A3B' }}>
-                          {currentPkg?.name || 'Spain Relocation Visa Package'}
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontWeight: 500 }}>
-                            Includes professional eligibility guidance, document sworn translations, compliance review, and file assembly.
+                  {/* Letterhead Content */}
+                  <Box sx={{ position: 'relative', zIndex: 1 }}>
+                    {/* Header: Logo + Contact Info */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.8 }}>
+                        <img src={aaaLogo} alt="AAA Logo" style={{ width: 68, height: 68, objectFit: 'contain' }} />
+                        <Box sx={{ borderLeft: '1.5px solid #C59B27', pl: 1.8, py: 0.4 }}>
+                          <Typography sx={{ fontWeight: 900, fontSize: '1.6rem', color: '#0C2340', lineHeight: 1.1, letterSpacing: '0.8px' }}>
+                            AAA
                           </Typography>
-                        </TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 700 }}>€{basePrice.toFixed(2)}</TableCell>
-                      </TableRow>
+                          <Typography sx={{ fontWeight: 800, fontSize: '0.82rem', color: '#0C2340', letterSpacing: '0.4px', mt: 0.1 }}>
+                            BUSINESS CONSULTANCY
+                          </Typography>
+                          <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', color: '#C59B27', letterSpacing: '0.4px', mb: 0.4 }}>
+                            FZC LLC
+                          </Typography>
 
-                      {effectiveAddCount > 0 && !isOptA && (
-                        <TableRow>
-                          <TableCell sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                            Co-Applicants Relocation Support ({effectiveAddCount} person(s))
-                          </TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700 }}>+€{addPrice.toFixed(2)}</TableCell>
-                        </TableRow>
-                      )}
+                          <Box sx={{ borderTop: '1px solid #D4AF37', borderBottom: '1px solid #D4AF37', py: 0.2, px: 0.4, textAlign: 'center', mt: 0.4 }}>
+                            <Typography sx={{ fontWeight: 700, fontSize: '0.56rem', color: '#C59B27', letterSpacing: '1.6px', textTransform: 'uppercase' }}>
+                              ADVISE • ASSIST • ACHIEVE
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Box>
 
-                      {assessmentCredit > 0 && !isOptA && (
-                        <TableRow>
-                          <TableCell sx={{ color: 'success.main', fontWeight: 700 }}>
-                            Eligibility Assessment Fee Credit (100% Deduction)
-                          </TableCell>
-                          <TableCell align="right" sx={{ color: 'success.main', fontWeight: 700 }}>-€{assessmentCredit.toFixed(2)}</TableCell>
-                        </TableRow>
-                      )}
+                      <Box sx={{ borderLeft: '1.5px solid #C59B27', pl: 2, py: 0.4, display: 'flex', flexDirection: 'column', gap: 0.8 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: '#0C2340', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', flexShrink: 0 }}>
+                            ✉️
+                          </Box>
+                          <Typography sx={{ fontSize: '0.74rem', color: '#1E293B', fontWeight: 600 }}>
+                            Info@aaabusinessconsultancy.com
+                          </Typography>
+                        </Box>
 
-                      {appliedCoupon && !isOptA && (
-                        <TableRow>
-                          <TableCell sx={{ color: 'success.main', fontWeight: 700 }}>
-                            Coupon Discount ({appliedCoupon.code} - {appliedCoupon.discountPercent}%)
-                          </TableCell>
-                          <TableCell align="right" sx={{ color: 'success.main', fontWeight: 700 }}>-€{couponDiscount.toFixed(2)}</TableCell>
-                        </TableRow>
-                      )}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: '#0C2340', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', flexShrink: 0 }}>
+                            📞
+                          </Box>
+                          <Typography sx={{ fontSize: '0.74rem', color: '#1E293B', fontWeight: 600 }}>
+                            +971509554142
+                          </Typography>
+                        </Box>
 
-                      <TableRow sx={{ bgcolor: '#F9FAFB' }}>
-                        <TableCell sx={{ fontWeight: 700 }}>Subtotal (Excl. VAT)</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 700 }}>€{(isOptA ? basePrice : subTotal).toFixed(2)}</TableCell>
-                      </TableRow>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: '#0C2340', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', flexShrink: 0 }}>
+                            🌐
+                          </Box>
+                          <Typography sx={{ fontSize: '0.74rem', color: '#1E293B', fontWeight: 600 }}>
+                            www.aaabusinessconsultancy.com
+                          </Typography>
+                        </Box>
 
-                      <TableRow sx={{ bgcolor: '#F9FAFB' }}>
-                        <TableCell sx={{ color: 'text.secondary', fontWeight: 600 }}>UAE Standard VAT (5%)</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 700 }}>€{(isOptA ? basePrice * 0.05 : vat5).toFixed(2)}</TableCell>
-                      </TableRow>
+                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                          <Box sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: '#0C2340', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', flexShrink: 0, mt: 0.1 }}>
+                            📍
+                          </Box>
+                          <Typography sx={{ fontSize: '0.7rem', color: '#1E293B', fontWeight: 600, maxWidth: '220px', lineHeight: 1.25 }}>
+                            Business Village B , office number F-09 Port Saeed Deira Dubai, UAE
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
 
-                      <TableRow sx={{ bgcolor: isOptA && isOptAPaid ? 'rgba(34, 197, 94, 0.1)' : 'rgba(197, 155, 39, 0.1)' }}>
-                        <TableCell sx={{ fontWeight: 900, fontSize: '1.05rem', color: '#051A3B', fontFamily: 'Outfit, sans-serif' }}>
-                          {isOptA && isOptAPaid ? 'TOTAL AMOUNT PAID' : 'TOTAL AMOUNT DUE'}
-                        </TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 900, fontSize: '1.25rem', color: isOptA && isOptAPaid ? 'success.main' : '#C59B27', fontFamily: 'Outfit, sans-serif' }}>
-                          €{(isOptA ? basePrice * 1.05 : grandTotal).toFixed(2)}
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                    {/* Dual-tone Header Divider Bar */}
+                    <Box sx={{ width: '100%', height: '4px', borderRadius: '2px', display: 'flex', mb: 3, overflow: 'hidden' }}>
+                      <Box sx={{ width: '28%', bgcolor: '#0C2340' }} />
+                      <Box sx={{ width: '6%', bgcolor: '#C59B27' }} />
+                      <Box sx={{ width: '66%', bgcolor: '#0C2340' }} />
+                    </Box>
 
-                {/* Coupon Code Input Card */}
+                    {/* Invoice Meta & Status */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+                      <Box>
+                        <Typography sx={{ fontSize: '1.6rem', fontWeight: 900, color: '#0C2340', letterSpacing: '0.8px', lineHeight: 1 }}>
+                          {isOptA && isOptAPaid ? 'RECEIPT' : 'INVOICE'}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.92rem', fontWeight: 700, color: '#334155', mt: 0.4 }}>
+                          Invoice #: {invNo}
+                        </Typography>
+                        <Box sx={{ mt: 0.8 }}>
+                          {isOptA && isOptAPaid ? (
+                            <Chip label="PAID RECEIPT" color="success" size="small" sx={{ fontWeight: 900 }} />
+                          ) : (
+                            <Chip label="UNPAID INVOICE" color="warning" size="small" sx={{ fontWeight: 900 }} />
+                          )}
+                        </Box>
+                      </Box>
+
+                      <Box sx={{ textAlign: { sm: 'right' } }}>
+                        <Typography sx={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 600 }}>
+                          <strong>Date Issued:</strong> {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 600, mt: 0.3 }}>
+                          <strong>Payment Status:</strong> <span style={{ color: isOptA && isOptAPaid ? '#2e7d32' : '#ed6c02', fontWeight: 800 }}>{isOptA && isOptAPaid ? 'Paid in Full (€250 + VAT)' : 'Immediate upon selection'}</span>
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {/* Bill To & Payment Details */}
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, mb: 3, bgcolor: '#F8FAFC', p: 2, borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                      <Box>
+                        <Typography sx={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px', mb: 0.4 }}>
+                          BILL TO
+                        </Typography>
+                        <Typography sx={{ fontSize: '1rem', fontWeight: 800, color: '#0C2340' }}>
+                          {client ? `${client.firstName} ${client.lastName}` : 'Valued Client'}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 500 }}>
+                          {client?.email || 'client@email.com'}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', mt: 0.2 }}>
+                          Customer ID: {customerId}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ textAlign: { sm: 'right' } }}>
+                        <Typography sx={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px', mb: 0.4 }}>
+                          PAYMENT DETAILS
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: '#1E293B' }}>
+                          Method: {isOptA && isOptAPaid ? 'Online Card Payment' : 'Card / Bank Transfer'}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {/* Table */}
+                    <TableContainer sx={{ mb: 3, borderRadius: '8px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                      <Table>
+                        <TableHead sx={{ bgcolor: '#0C2340' }}>
+                          <TableRow>
+                            <TableCell sx={{ color: 'white', fontWeight: 700, fontSize: '0.82rem' }}>Item & Description</TableCell>
+                            <TableCell align="right" sx={{ color: 'white', fontWeight: 700, fontSize: '0.82rem' }}>Amount (€)</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          <TableRow sx={{ '&:nth-of-type(even)': { bgcolor: '#F8FAFC' } }}>
+                            <TableCell>
+                              <Typography sx={{ fontWeight: 700, fontSize: '0.88rem', color: '#0C2340' }}>
+                                {currentPkg?.name || 'Spain Relocation Visa Package'}
+                              </Typography>
+                              <Typography sx={{ fontSize: '0.75rem', color: '#64748B', mt: 0.2 }}>
+                                Includes professional eligibility guidance, document sworn translations, compliance review, and file assembly.
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 700 }}>€{basePrice.toFixed(2)}</TableCell>
+                          </TableRow>
+
+                          {effectiveAddCount > 0 && !isOptA && (
+                            <TableRow sx={{ '&:nth-of-type(even)': { bgcolor: '#F8FAFC' } }}>
+                              <TableCell sx={{ color: '#475569', fontWeight: 600, fontSize: '0.82rem' }}>
+                                Co-Applicants Relocation Support ({effectiveAddCount} person(s))
+                              </TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 700 }}>+€{addPrice.toFixed(2)}</TableCell>
+                            </TableRow>
+                          )}
+
+                          {assessmentCredit > 0 && !isOptA && (
+                            <TableRow>
+                              <TableCell sx={{ color: '#16A34A', fontWeight: 700, fontSize: '0.82rem' }}>
+                                Eligibility Assessment Fee Credit (100% Deduction)
+                              </TableCell>
+                              <TableCell align="right" sx={{ color: '#16A34A', fontWeight: 700 }}>-€{assessmentCredit.toFixed(2)}</TableCell>
+                            </TableRow>
+                          )}
+
+                          {appliedCoupon && !isOptA && (
+                            <TableRow>
+                              <TableCell sx={{ color: '#16A34A', fontWeight: 700, fontSize: '0.82rem' }}>
+                                Coupon Discount ({appliedCoupon.code} - {appliedCoupon.discountPercent}%)
+                              </TableCell>
+                              <TableCell align="right" sx={{ color: '#16A34A', fontWeight: 700 }}>-€{couponDiscount.toFixed(2)}</TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+
+                    {/* Totals Summary Block */}
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
+                      <Box sx={{ width: { xs: '100%', sm: '300px' }, display: 'flex', flexDirection: 'column', gap: 0.8 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                          <Typography sx={{ color: '#64748B', fontWeight: 600 }}>Subtotal (Excl. VAT)</Typography>
+                          <Typography sx={{ fontWeight: 700, color: '#1E293B' }}>€{(isOptA ? basePrice : subTotal).toFixed(2)}</Typography>
+                        </Box>
+
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                          <Typography sx={{ color: '#64748B', fontWeight: 600 }}>UAE Standard VAT (5%)</Typography>
+                          <Typography sx={{ fontWeight: 700, color: '#1E293B' }}>€{(isOptA ? basePrice * 0.05 : vat5).toFixed(2)}</Typography>
+                        </Box>
+
+                        <Divider sx={{ my: 0.4, borderColor: '#CBD5E1' }} />
+
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', bgcolor: '#0C2340', color: 'white', p: 1.2, borderRadius: '8px', borderLeft: '4px solid #C59B27' }}>
+                          <Typography sx={{ fontWeight: 800, fontSize: '1rem' }}>
+                            {isOptA && isOptAPaid ? 'TOTAL PAID' : 'TOTAL DUE'}
+                          </Typography>
+                          <Typography sx={{ fontWeight: 900, fontSize: '1.15rem', color: '#FACC15' }}>
+                            €{(isOptA ? basePrice * 1.05 : grandTotal).toFixed(2)}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+
+                    <Typography sx={{ fontSize: '0.75rem', color: '#94A3B8', textAlign: 'center' }}>
+                      Thank you for choosing AAA Business Consultancy for your Spain Relocation journey.
+                    </Typography>
+                  </Box>
+
+                  {/* Dual-tone Footer Bar */}
+                  <Box sx={{ position: 'relative', width: '100%', mt: 2 }}>
+                    <Box sx={{ height: '3px', bgcolor: '#C59B27', width: '30%', borderRadius: '2px 2px 0 0' }} />
+                    <Box sx={{ height: '12px', bgcolor: '#0C2340', borderRadius: '0 0 6px 6px' }} />
+                  </Box>
+                </Paper>
+
+                {/* Coupon Code Input Card (Screen only) */}
                 {!(isOptA && isOptAPaid) && (
-                  <Box sx={{ p: 2, bgcolor: '#FAF6ED', borderRadius: 2.5, border: '1px solid rgba(197, 155, 39, 0.3)' }}>
+                  <Box className="coupon-section no-print" sx={{ p: 2, bgcolor: '#FAF6ED', borderRadius: 2.5, border: '1px solid rgba(197, 155, 39, 0.3)' }}>
                     <Typography variant="caption" sx={{ fontWeight: 800, color: '#051A3B', display: 'block', mb: 1, letterSpacing: '0.05em' }}>
                       HAVE A DISCOUNT / COUPON CODE?
                     </Typography>
@@ -4135,9 +4328,9 @@ export const ClientPortalDocs = () => {
                   </Box>
                 )}
 
-                {/* Terms Checkbox inside Modal */}
+                {/* Terms Checkbox inside Modal (Screen only) */}
                 {!(isOptA && isOptAPaid) && (
-                  <Box sx={{ p: 2, bgcolor: '#F9FAFB', borderRadius: 2.5, border: '1px solid rgba(0,0,0,0.06)' }}>
+                  <Box className="terms-section no-print" sx={{ p: 2, bgcolor: '#F9FAFB', borderRadius: 2.5, border: '1px solid rgba(0,0,0,0.06)' }}>
                     <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
                       <input
                         type="checkbox"
