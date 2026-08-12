@@ -4055,14 +4055,8 @@ export const ClientPortalDocs = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.8 }}>
                         <img src={aaaLogo} alt="AAA Logo" style={{ width: 68, height: 68, objectFit: 'contain' }} />
                         <Box sx={{ borderLeft: '1.5px solid #C59B27', pl: 1.8, py: 0.4 }}>
-                          <Typography sx={{ fontWeight: 900, fontSize: '1.6rem', color: '#0C2340', lineHeight: 1.1, letterSpacing: '0.8px' }}>
-                            AAA
-                          </Typography>
-                          <Typography sx={{ fontWeight: 800, fontSize: '0.82rem', color: '#0C2340', letterSpacing: '0.4px', mt: 0.1 }}>
-                            BUSINESS CONSULTANCY
-                          </Typography>
-                          <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', color: '#C59B27', letterSpacing: '0.4px', mb: 0.4 }}>
-                            FZC LLC
+                          <Typography sx={{ fontWeight: 900, fontSize: '1.15rem', color: '#0C2340', lineHeight: 1.2, letterSpacing: '0.4px', mb: 0.4 }}>
+                            AAA BUSINESS CONSULTANCY L.L.C
                           </Typography>
 
                           <Box sx={{ borderTop: '1px solid #D4AF37', borderBottom: '1px solid #D4AF37', py: 0.2, px: 0.4, textAlign: 'center', mt: 0.4 }}>
@@ -4079,7 +4073,7 @@ export const ClientPortalDocs = () => {
                             ✉️
                           </Box>
                           <Typography sx={{ fontSize: '0.74rem', color: '#1E293B', fontWeight: 600 }}>
-                            Info@aaabusinessconsultancy.com
+                            client@aaabusinessconsultancy.com
                           </Typography>
                         </Box>
 

@@ -199,7 +199,7 @@ export const InvoiceDetails = () => {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(20);
       doc.setTextColor(12, 35, 64);
-      doc.text("AAA BUSINESS CONSULTANCY FZC LLC", 14, 20);
+      doc.text("AAA BUSINESS CONSULTANCY L.L.C", 14, 20);
 
       doc.setFontSize(9);
       doc.setFont("helvetica", "bold");
@@ -209,7 +209,7 @@ export const InvoiceDetails = () => {
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(100, 116, 139);
-      doc.text("Email: Info@aaabusinessconsultancy.com | Tel: +971509554142", 14, 32);
+      doc.text("Email: client@aaabusinessconsultancy.com | Tel: +971509554142", 14, 32);
       doc.text("Business Village B, Office F-09, Port Saeed, Deira, Dubai, UAE", 14, 37);
 
       doc.setDrawColor(197, 155, 39);
@@ -451,14 +451,8 @@ export const InvoiceDetails = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <AaaLogoComponent width={76} height={76} />
               <Box sx={{ borderLeft: '1.5px solid #C59B27', pl: 2, py: 0.5 }}>
-                <Typography sx={{ fontWeight: 900, fontSize: '1.8rem', color: '#0C2340', lineHeight: 1.1, letterSpacing: '1px' }}>
-                  AAA
-                </Typography>
-                <Typography sx={{ fontWeight: 800, fontSize: '0.88rem', color: '#0C2340', letterSpacing: '0.5px', mt: 0.2 }}>
-                  BUSINESS CONSULTANCY
-                </Typography>
-                <Typography sx={{ fontWeight: 700, fontSize: '0.88rem', color: '#C59B27', letterSpacing: '0.5px', mb: 0.5 }}>
-                  FZC LLC
+                <Typography sx={{ fontWeight: 900, fontSize: '1.25rem', color: '#0C2340', lineHeight: 1.2, letterSpacing: '0.5px', mb: 0.5 }}>
+                  AAA BUSINESS CONSULTANCY L.L.C
                 </Typography>
 
                 {/* Divider Line & Tagline */}
@@ -477,7 +471,7 @@ export const InvoiceDetails = () => {
                   ✉️
                 </Box>
                 <Typography sx={{ fontSize: '0.78rem', color: '#1E293B', fontWeight: 600 }}>
-                  Info@aaabusinessconsultancy.com
+                  client@aaabusinessconsultancy.com
                 </Typography>
               </Box>
 
