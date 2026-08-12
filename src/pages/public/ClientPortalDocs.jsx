@@ -440,9 +440,21 @@ export const ClientPortalDocs = () => {
     return false;
   };
 
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+
   const selectAndPayPackageMutation = useMutation({
-    mutationFn: async ({ packageId, additionalApplicants, clientId }) => {
-      return await dbService.createPackageCheckout({ packageId, additionalApplicants, clientId });
+    mutationFn: async ({ packageId, additionalApplicants, clientId, amount, discount, couponCode }) => {
+      return await dbService.createCheckoutSession({ 
+        packageId, 
+        additionalApplicants, 
+        clientId, 
+        amount, 
+        discount, 
+        paymentMethod: 'stripe',
+        couponCode 
+      });
     },
     onSuccess: (res) => {
       const redirectUrl = res?.stripeUrl || res?.url;
@@ -3951,7 +3963,9 @@ export const ClientPortalDocs = () => {
 
             const basePrice = currentPkg?.price || (isOptA ? 250 : 3500);
             const addPrice = currentPkg?.isFixedPrice ? 0 : (effectiveAddCount * (currentPkg?.additionalApplicantPrice || 500));
-            const subTotal = isOptA ? basePrice : Math.max(0, basePrice + addPrice - assessmentCredit);
+            const grossSubTotal = isOptA ? basePrice : Math.max(0, basePrice + addPrice - assessmentCredit);
+            const couponDiscount = appliedCoupon ? Math.round((grossSubTotal * (appliedCoupon.discountPercent / 100)) * 100) / 100 : 0;
+            const subTotal = Math.max(0, grossSubTotal - couponDiscount);
             const vat5 = subTotal * 0.05;
             const grandTotal = subTotal * 1.05;
 
@@ -4026,6 +4040,15 @@ export const ClientPortalDocs = () => {
                         </TableRow>
                       )}
 
+                      {appliedCoupon && !isOptA && (
+                        <TableRow>
+                          <TableCell sx={{ color: 'success.main', fontWeight: 700 }}>
+                            Coupon Discount ({appliedCoupon.code} - {appliedCoupon.discountPercent}%)
+                          </TableCell>
+                          <TableCell align="right" sx={{ color: 'success.main', fontWeight: 700 }}>-€{couponDiscount.toFixed(2)}</TableCell>
+                        </TableRow>
+                      )}
+
                       <TableRow sx={{ bgcolor: '#F9FAFB' }}>
                         <TableCell sx={{ fontWeight: 700 }}>Subtotal (Excl. VAT)</TableCell>
                         <TableCell align="right" sx={{ fontWeight: 700 }}>€{(isOptA ? basePrice : subTotal).toFixed(2)}</TableCell>
@@ -4047,6 +4070,70 @@ export const ClientPortalDocs = () => {
                     </TableBody>
                   </Table>
                 </TableContainer>
+
+                {/* Coupon Code Input Card */}
+                {!(isOptA && isOptAPaid) && (
+                  <Box sx={{ p: 2, bgcolor: '#FAF6ED', borderRadius: 2.5, border: '1px solid rgba(197, 155, 39, 0.3)' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 800, color: '#051A3B', display: 'block', mb: 1, letterSpacing: '0.05em' }}>
+                      HAVE A DISCOUNT / COUPON CODE?
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <TextField
+                        size="small"
+                        placeholder="Enter Coupon Code (e.g. SAVE10)"
+                        value={couponInput}
+                        onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                        disabled={!!appliedCoupon}
+                        sx={{ bgcolor: 'white', flexGrow: 1, '& .MuiInputBase-input': { fontWeight: 700, letterSpacing: '0.05em' } }}
+                      />
+                      {appliedCoupon ? (
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          onClick={() => {
+                            setAppliedCoupon(null);
+                            setCouponInput('');
+                            showAlert('Coupon removed', 'info');
+                          }}
+                          sx={{ fontWeight: 800, textTransform: 'none' }}
+                        >
+                          Remove
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="contained"
+                          size="small"
+                          disabled={validatingCoupon || !couponInput.trim()}
+                          onClick={async () => {
+                            try {
+                              setValidatingCoupon(true);
+                              const res = await dbService.validateCoupon(couponInput.trim(), grossSubTotal);
+                              if (res.valid) {
+                                setAppliedCoupon(res);
+                                showAlert(`Coupon ${res.code} applied! (${res.discountPercent}% OFF)`, 'success');
+                              } else {
+                                showAlert(res.message || 'Invalid coupon code', 'error');
+                              }
+                            } catch (err) {
+                              showAlert(err?.response?.data?.message || 'Invalid or expired coupon code', 'error');
+                            } finally {
+                              setValidatingCoupon(false);
+                            }
+                          }}
+                          sx={{ bgcolor: '#051A3B', color: 'white', fontWeight: 800, textTransform: 'none', '&:hover': { bgcolor: '#C59B27' } }}
+                        >
+                          {validatingCoupon ? 'Validating...' : 'Apply'}
+                        </Button>
+                      )}
+                    </Box>
+                    {appliedCoupon && (
+                      <Alert severity="success" sx={{ mt: 1.5, py: 0.5, px: 2, fontWeight: 700, fontSize: '0.8rem' }}>
+                        ✓ {appliedCoupon.code} applied successfully! You save €{couponDiscount.toFixed(2)} ({appliedCoupon.discountPercent}% OFF)
+                      </Alert>
+                    )}
+                  </Box>
+                )}
 
                 {/* Terms Checkbox inside Modal */}
                 {!(isOptA && isOptAPaid) && (
@@ -4101,14 +4188,16 @@ export const ClientPortalDocs = () => {
                 const effectiveAddCount = isOptA ? 0 : addApplicants;
                 const baseFee = currentPkg?.price || (selectedPackage === 'premium' ? 4750 : (selectedPackage === 'relocation' ? 1750 : 3500));
                 const addPrice = currentPkg?.isFixedPrice ? 0 : (effectiveAddCount * (currentPkg?.additionalApplicantPrice || 500));
-                const subTotal = Math.max(0, baseFee + addPrice - assessmentCredit);
+                const grossSubTotal = Math.max(0, baseFee + addPrice - assessmentCredit);
+                const couponDiscount = appliedCoupon ? Math.round((grossSubTotal * (appliedCoupon.discountPercent / 100)) * 100) / 100 : 0;
 
                 selectAndPayPackageMutation.mutate({
                   packageId: selectedPackage,
                   additionalApplicants: effectiveAddCount,
                   clientId: client?.id || clientId,
-                  amount: Math.max(0, subTotal),
-                  discount: 0
+                  amount: Math.max(0, grossSubTotal),
+                  discount: couponDiscount,
+                  couponCode: appliedCoupon ? appliedCoupon.code : undefined
                 });
               }}
               sx={{
