@@ -500,10 +500,11 @@ export const dbService = {
   receiveSocialMessage: async ({ conversationId, message, isActive }) => {
     return { success: true };
   },
-  sendSocialMessage: async ({ conversationId, phone, message, templateName }) => {
+  sendSocialMessage: async ({ conversationId, phone, channel, message, templateName }) => {
     try {
       let targetPhone = phone;
-      if (!targetPhone && conversationId) {
+      let targetChannel = channel;
+      if ((!targetPhone || !targetChannel) && conversationId) {
         if (conversationId.includes('+')) {
           targetPhone = conversationId;
         } else if (conversationId.startsWith('conv_phone_')) {
@@ -512,7 +513,10 @@ export const dbService = {
           try {
             const res = await apiClient.get('/social/conversations');
             const conv = res.data?.find(c => c.id === conversationId);
-            if (conv) targetPhone = conv.phone;
+            if (conv) {
+              if (!targetPhone) targetPhone = conv.phone;
+              if (!targetChannel) targetChannel = conv.platform || conv.channel;
+            }
           } catch (err) {
             console.warn('Could not resolve phone from conversations list:', err.message);
           }
@@ -523,6 +527,7 @@ export const dbService = {
 
       const sendRes = await apiClient.post('/social/messages/send', {
         phone: targetPhone || conversationId,
+        channel: targetChannel,
         text: textContent,
         mediaUrl: mediaUrl,
         templateName: templateName
