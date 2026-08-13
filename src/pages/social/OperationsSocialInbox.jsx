@@ -343,6 +343,7 @@ export const OperationsSocialInbox = () => {
     sendSocialMessageMutation.mutate({
       conversationId: activeConvId,
       phone: activeConv.phone,
+      channel: activeConv.platform || activeConv.channel,
       message: newMsg
     });
 
@@ -711,7 +712,7 @@ export const OperationsSocialInbox = () => {
                                         <Chip label="DM" size="small" variant="outlined" sx={{ height: 16, fontSize: '0.6rem' }} />
                                       )}
                                     </Typography>
-                                    {displayName(conv.name, conv.phone) !== conv.phone && (
+                                    {conv.platform !== 'instagram' && conv.platform !== 'facebook' && displayName(conv.name, conv.phone) !== conv.phone && (
                                       <Typography variant="caption" color="text.secondary" sx={{ mt: -0.2 }}>
                                         {conv.phone}
                                       </Typography>
@@ -782,7 +783,7 @@ export const OperationsSocialInbox = () => {
                       <Box>
                         <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
                           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{displayName(activeConv.name, activeConv.phone)}</Typography>
-                          {displayName(activeConv.name, activeConv.phone) !== activeConv.phone && (
+                          {activeConv.platform !== 'instagram' && activeConv.platform !== 'facebook' && displayName(activeConv.name, activeConv.phone) !== activeConv.phone && (
                             <Typography variant="caption" color="text.secondary">{activeConv.phone}</Typography>
                           )}
                         </Box>

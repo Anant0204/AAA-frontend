@@ -724,9 +724,15 @@ export const LeadSelfFillForm = () => {
           initialDeps.push({ firstName: "", lastName: "", relation: "Spouse", passportNumber: "", nationality: "" });
         }
 
+        const rawPhone = phoneParam ? decodeURIComponent(phoneParam).trim() : prev.phone;
+        const sourceVal = (params.get("source") || "").toLowerCase();
+        const isIgOrFb = sourceVal === "instagram" || sourceVal === "facebook" || !!params.get("igid") || !!params.get("fbid");
+        const isNumericId = rawPhone && rawPhone.length >= 13 && !rawPhone.startsWith("+");
+        const safePhone = (isIgOrFb || isNumericId) ? "" : rawPhone;
+
         return {
           ...prev,
-          phone: phoneParam ? decodeURIComponent(phoneParam).trim() : prev.phone,
+          phone: safePhone,
           email: emailParam ? decodeURIComponent(emailParam).trim() : prev.email,
           serviceId: serviceParam ? decodeURIComponent(serviceParam).trim() : prev.serviceId,
           applicantsCount: applicantsVal,
