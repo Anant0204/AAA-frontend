@@ -701,8 +701,8 @@ export const SuperAdminRefundCommissionHub = () => {
                         <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{formatDateDDMMYYYY(ref.date || ref.createdAt)}</TableCell>
                         <TableCell>
                           <Chip
-                            label={ref.status}
-                            color={ref.status === 'Processed' ? 'success' : ref.status === 'Approved' ? 'info' : 'warning'}
+                            label={ref.status || 'Pending Review'}
+                            color={ref.status === 'Processed' ? 'success' : ref.status === 'Approved' ? 'info' : ref.status === 'Rejected' || ref.status === 'Cancelled' ? 'error' : 'warning'}
                             size="small"
                             sx={{ fontWeight: 700 }}
                           />

@@ -4051,66 +4051,69 @@ export const ClientPortalDocs = () => {
                   {/* Letterhead Content */}
                   <Box sx={{ position: 'relative', zIndex: 1 }}>
                     {/* Header: Logo + Contact Info */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2, mb: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.8 }}>
-                        <img src={aaaLogo} alt="AAA Logo" style={{ width: 68, height: 68, objectFit: 'contain' }} />
-                        <Box sx={{ borderLeft: '1.5px solid #C59B27', pl: 1.8, py: 0.4 }}>
-                          <Typography sx={{ fontWeight: 900, fontSize: '1.15rem', color: '#0C2340', lineHeight: 1.2, letterSpacing: '0.4px', mb: 0.4 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, flexShrink: 0 }}>
+                        <img src={aaaLogo} alt="AAA Logo" style={{ width: 64, height: 68, objectFit: 'contain' }} />
+                        <Box sx={{ borderLeft: '1.5px solid #C59B27', pl: 1.2, py: 0.2 }}>
+                          <Typography sx={{ fontWeight: 900, fontSize: '1.05rem', color: '#0C2340', lineHeight: 1.1, letterSpacing: '0.3px', whiteSpace: 'nowrap' }}>
                             AAA BUSINESS CONSULTANCY L.L.C
                           </Typography>
 
-                          <Box sx={{ borderTop: '1px solid #D4AF37', borderBottom: '1px solid #D4AF37', py: 0.2, px: 0.4, textAlign: 'center', mt: 0.4 }}>
-                            <Typography sx={{ fontWeight: 700, fontSize: '0.56rem', color: '#C59B27', letterSpacing: '1.6px', textTransform: 'uppercase' }}>
+                          <Box sx={{ borderTop: '1.5px solid #C59B27', borderBottom: '1.5px solid #C59B27', py: 0.2, px: 0.4, textAlign: 'center', mt: 0.5, display: 'inline-block', width: '100%' }}>
+                            <Typography sx={{ fontWeight: 800, fontSize: '0.55rem', color: '#C59B27', letterSpacing: '2px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                               ADVISE • ASSIST • ACHIEVE
                             </Typography>
                           </Box>
                         </Box>
                       </Box>
 
-                      <Box sx={{ borderLeft: '1.5px solid #C59B27', pl: 2, py: 0.4, display: 'flex', flexDirection: 'column', gap: 0.8 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: '#0C2340', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', flexShrink: 0 }}>
-                            ✉️
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, flexShrink: 0 }}>
+                        <Box sx={{ width: '1.5px', height: '60px', bgcolor: '#C59B27', flexShrink: 0 }} />
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                            <Box sx={{ width: 17, height: 17, borderRadius: '50%', bgcolor: '#0C2340', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', flexShrink: 0 }}>
+                              ✉️
+                            </Box>
+                            <Typography sx={{ fontSize: '0.68rem', color: '#0C2340', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                              client@aaabusinessconsultancy.com
+                            </Typography>
                           </Box>
-                          <Typography sx={{ fontSize: '0.74rem', color: '#1E293B', fontWeight: 600 }}>
-                            client@aaabusinessconsultancy.com
-                          </Typography>
-                        </Box>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: '#0C2340', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', flexShrink: 0 }}>
-                            📞
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                            <Box sx={{ width: 17, height: 17, borderRadius: '50%', bgcolor: '#0C2340', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', flexShrink: 0 }}>
+                              📞
+                            </Box>
+                            <Typography sx={{ fontSize: '0.68rem', color: '#0C2340', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                              +971509554142
+                            </Typography>
                           </Box>
-                          <Typography sx={{ fontSize: '0.74rem', color: '#1E293B', fontWeight: 600 }}>
-                            +971509554142
-                          </Typography>
-                        </Box>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: '#0C2340', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', flexShrink: 0 }}>
-                            🌐
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                            <Box sx={{ width: 17, height: 17, borderRadius: '50%', bgcolor: '#0C2340', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', flexShrink: 0 }}>
+                              🌐
+                            </Box>
+                            <Typography sx={{ fontSize: '0.68rem', color: '#0C2340', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                              www.aaabusinessconsultancy.com
+                            </Typography>
                           </Box>
-                          <Typography sx={{ fontSize: '0.74rem', color: '#1E293B', fontWeight: 600 }}>
-                            www.aaabusinessconsultancy.com
-                          </Typography>
-                        </Box>
 
-                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                          <Box sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: '#0C2340', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', flexShrink: 0, mt: 0.1 }}>
-                            📍
+                          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.8 }}>
+                            <Box sx={{ width: 17, height: 17, borderRadius: '50%', bgcolor: '#0C2340', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', flexShrink: 0, mt: 0.1 }}>
+                              📍
+                            </Box>
+                            <Typography sx={{ fontSize: '0.63rem', color: '#0C2340', fontWeight: 700, maxWidth: '210px', lineHeight: 1.25 }}>
+                              Business Village B , office number F-09 Port Saeed Deira Dubai, UAE
+                            </Typography>
                           </Box>
-                          <Typography sx={{ fontSize: '0.7rem', color: '#1E293B', fontWeight: 600, maxWidth: '220px', lineHeight: 1.25 }}>
-                            Business Village B , office number F-09 Port Saeed Deira Dubai, UAE
-                          </Typography>
                         </Box>
                       </Box>
                     </Box>
 
                     {/* Dual-tone Header Divider Bar */}
-                    <Box sx={{ width: '100%', height: '4px', borderRadius: '2px', display: 'flex', mb: 3, overflow: 'hidden' }}>
-                      <Box sx={{ width: '28%', bgcolor: '#0C2340' }} />
-                      <Box sx={{ width: '6%', bgcolor: '#C59B27' }} />
-                      <Box sx={{ width: '66%', bgcolor: '#0C2340' }} />
+                    <Box sx={{ width: '100%', height: '5px', borderRadius: '1px', display: 'flex', mb: 3, overflow: 'hidden' }}>
+                      <Box sx={{ width: '32%', bgcolor: '#0C2340' }} />
+                      <Box sx={{ width: '35%', bgcolor: '#C59B27' }} />
+                      <Box sx={{ width: '33%', bgcolor: '#0C2340' }} />
                     </Box>
 
                     {/* Invoice Meta & Status */}
@@ -4171,10 +4174,10 @@ export const ClientPortalDocs = () => {
                     {/* Table */}
                     <TableContainer sx={{ mb: 3, borderRadius: '8px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
                       <Table>
-                        <TableHead sx={{ bgcolor: '#0C2340' }}>
-                          <TableRow>
-                            <TableCell sx={{ color: 'white', fontWeight: 700, fontSize: '0.82rem' }}>Item & Description</TableCell>
-                            <TableCell align="right" sx={{ color: 'white', fontWeight: 700, fontSize: '0.82rem' }}>Amount (€)</TableCell>
+                        <TableHead sx={{ bgcolor: '#0C2340 !important', '& .MuiTableCell-head': { color: '#FFFFFF !important', bgcolor: '#0C2340 !important', fontWeight: 800, fontSize: '0.85rem' } }}>
+                          <TableRow sx={{ bgcolor: '#0C2340 !important' }}>
+                            <TableCell sx={{ color: '#FFFFFF !important', bgcolor: '#0C2340 !important', fontWeight: 800, fontSize: '0.85rem', letterSpacing: '0.3px' }}>Item & Description</TableCell>
+                            <TableCell align="right" sx={{ color: '#FFFFFF !important', bgcolor: '#0C2340 !important', fontWeight: 800, fontSize: '0.85rem', letterSpacing: '0.3px' }}>Amount (€)</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -4251,10 +4254,15 @@ export const ClientPortalDocs = () => {
                     </Typography>
                   </Box>
 
-                  {/* Dual-tone Footer Bar */}
-                  <Box sx={{ position: 'relative', width: '100%', mt: 2 }}>
-                    <Box sx={{ height: '3px', bgcolor: '#C59B27', width: '30%', borderRadius: '2px 2px 0 0' }} />
-                    <Box sx={{ height: '12px', bgcolor: '#0C2340', borderRadius: '0 0 6px 6px' }} />
+                  {/* OFFICIAL LETTERHEAD BOTTOM GRAPHIC FOOTER */}
+                  <Box sx={{ position: 'relative', width: '100%', mt: 3, overflow: 'hidden' }}>
+                    <svg viewBox="0 0 1000 45" preserveAspectRatio="none" style={{ width: '100%', height: '38px', display: 'block' }}>
+                      {/* Gold Accent Slanted Line */}
+                      <path d="M 0 10 L 230 10 C 248 10 258 18 266 28 L 278 45 L 1000 45 L 1000 38 L 274 38 L 260 22 C 252 12 240 4 225 4 L 0 4 Z" fill="#C59B27" />
+                      {/* Deep Navy Blue Bottom Base Block */}
+                      <path d="M 0 12 L 225 12 C 240 12 250 20 258 30 L 270 45 L 0 45 Z" fill="#0C2340" />
+                      <path d="M 270 45 L 1000 45 L 1000 38 L 270 38 Z" fill="#0C2340" />
+                    </svg>
                   </Box>
                 </Paper>
 

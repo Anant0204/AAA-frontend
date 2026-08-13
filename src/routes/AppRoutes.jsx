@@ -1227,6 +1227,14 @@ export const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/social-inbox"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'super_admin', 'operations', 'consultant', 'finance', 'marketing']}>
+              <AdminSocialInbox />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Integrations (Admin, Super Admin) */}
         <Route

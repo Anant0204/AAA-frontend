@@ -336,7 +336,7 @@ export const DashboardLayout = () => {
   }, []);
 
   useEffect(() => {
-    if (location.pathname.startsWith('/social-inbox')) {
+    if (location.pathname.includes('/social-inbox')) {
       setSocialMenuOpen(true);
     }
   }, [location.pathname]);
@@ -447,7 +447,7 @@ export const DashboardLayout = () => {
 
     // Social inbox matching
     if (itemPath.includes('/social-inbox')) {
-      return currentPath.includes('/social-inbox') && itemPath === getDynamicPath({ path: location.pathname + location.search });
+      return currentPath.includes('/social-inbox');
     }
 
     // Exact match for payments to prevent overlap with refund-commission
@@ -654,7 +654,7 @@ export const DashboardLayout = () => {
   const subItems = ALL_SUB_ITEMS.filter(item => connectedPlatforms[item.channel]);
 
   const handleSocialClick = () => {
-    navigateTo('/social-inbox');
+    navigateTo(getDynamicPath({ path: '/social-inbox' }));
     if (!sidebarOpen) {
       setSidebarOpen(true);
       setSocialMenuOpen(true);
@@ -737,7 +737,7 @@ export const DashboardLayout = () => {
         <Collapse in={socialMenuOpen && sidebarOpen} timeout="auto" unmountOnExit>
           <List component="div" disablePadding sx={{ pl: 3.5 }}>
             {subItems.map((subItem) => {
-              const subActive = location.pathname === '/social-inbox' && location.search === `?channel=${subItem.channel}`;
+              const subActive = location.pathname.includes('/social-inbox') && location.search === `?channel=${subItem.channel}`;
               const subUnread = getPlatformUnread(subItem.channel);
 
               return (
