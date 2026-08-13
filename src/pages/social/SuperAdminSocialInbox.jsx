@@ -184,8 +184,8 @@ export const SuperAdminSocialInbox = () => {
     mutationFn: (phone) => dbService.clearSocialChat(phone),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['social-messages'] });
       setActiveConvId(null);
-      // showAlert('Chat cleared successfully', 'success');
     }
   });
 

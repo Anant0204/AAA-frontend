@@ -538,6 +538,24 @@ export const dbService = {
       throw e;
     }
   },
+  clearSocialChat: async (phone) => {
+    try {
+      const res = await apiClient.delete(`/social/conversations/${encodeURIComponent(phone)}`);
+      return res.data;
+    } catch (err) {
+      console.error('Error in clearSocialChat:', err);
+      throw err;
+    }
+  },
+  deleteSocialMessage: async (messageId) => {
+    try {
+      const res = await apiClient.delete(`/social/messages/${encodeURIComponent(messageId)}`);
+      return res.data;
+    } catch (err) {
+      console.error('Error in deleteSocialMessage:', err);
+      throw err;
+    }
+  },
   uploadSocialMedia: async (file) => {
     const formData = new FormData();
     formData.append('file', file);
