@@ -726,9 +726,9 @@ export const LeadSelfFillForm = () => {
 
         const rawPhone = phoneParam ? decodeURIComponent(phoneParam).trim() : prev.phone;
         const sourceVal = (params.get("source") || "").toLowerCase();
-        const isIg = sourceVal === "instagram" || !!params.get("igid");
-        const isIgNumeric = rawPhone && rawPhone.length >= 13 && !rawPhone.startsWith("+");
-        const safePhone = (isIg || isIgNumeric) ? "" : rawPhone;
+        const isIgOrFb = sourceVal === "instagram" || sourceVal === "facebook" || !!params.get("igid") || !!params.get("fbid");
+        const isNumericId = rawPhone && rawPhone.length >= 13 && !rawPhone.startsWith("+");
+        const safePhone = (isIgOrFb || isNumericId) ? "" : rawPhone;
 
         return {
           ...prev,
