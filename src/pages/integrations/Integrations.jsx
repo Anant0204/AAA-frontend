@@ -373,12 +373,16 @@ const Integrations = () => {
     // Clean leading colons or whitespace from form values
     const cleanedData = {};
     Object.keys(formData).forEach(key => {
-      let val = (formData[key] || '').trim();
-      if (val.startsWith(':')) val = val.substring(1).trim();
-      cleanedData[key] = val;
+      if (typeof formData[key] === 'string') {
+        let val = formData[key].trim();
+        if (val.startsWith(':')) val = val.substring(1).trim();
+        cleanedData[key] = val;
+      } else {
+        cleanedData[key] = formData[key];
+      }
     });
 
-    const hasValue = Object.values(cleanedData).some(v => v && v.length > 0);
+    const hasValue = Object.values(cleanedData).some(v => v !== null && v !== undefined && String(v).trim().length > 0);
     if (!hasValue) {
       showSnack('Please enter your credentials / access token before connecting.', 'warning');
       return;
