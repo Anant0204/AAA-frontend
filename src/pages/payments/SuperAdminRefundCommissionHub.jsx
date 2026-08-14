@@ -298,7 +298,7 @@ export const SuperAdminRefundCommissionHub = () => {
   };
 
   // Performance calculations
-  const [refundTimeFilter, setRefundTimeFilter] = useState('daily');
+  const [refundTimeFilter, setRefundTimeFilter] = useState('all');
 
   const getAgentPerformance = () => {
     return agents.map(agent => {
@@ -340,33 +340,55 @@ export const SuperAdminRefundCommissionHub = () => {
     }
   };
 
-  const getRefundMetrics = () => {
+  const isRefundToday = (ref) => {
+    if (!ref) return false;
     const now = new Date();
     const y = now.getFullYear();
     const m = String(now.getMonth() + 1).padStart(2, '0');
     const d = String(now.getDate()).padStart(2, '0');
-    const todayStr = `${y}-${m}-${d}`;
-    const monthStr = `${y}-${m}`;
-    const yearStr = `${y}`;
+    const todayLocal = `${y}-${m}-${d}`;
+    const todayUtc = now.toISOString().split('T')[0];
+    const todaySlash = `${d}/${m}/${y}`;
 
+    const rDate = getDateStr(ref.updatedAt || ref.createdAt || ref.date);
+    const rawDateStr = String(ref.date || '');
+
+    return rDate === todayLocal || rDate === todayUtc || rawDateStr.startsWith(todaySlash);
+  };
+
+  const isRefundThisMonth = (ref) => {
+    if (!ref) return false;
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const monthLocal = `${y}-${m}`;
+    const monthUtc = now.toISOString().substring(0, 7);
+    const monthSlash = `/${m}/${y}`;
+
+    const rDate = getDateStr(ref.updatedAt || ref.createdAt || ref.date);
+    const rawDateStr = String(ref.date || '');
+
+    return rDate.startsWith(monthLocal) || rDate.startsWith(monthUtc) || rawDateStr.includes(monthSlash);
+  };
+
+  const isRefundThisYear = (ref) => {
+    if (!ref) return false;
+    const now = new Date();
+    const yearStr = `${now.getFullYear()}`;
+    const rDate = getDateStr(ref.updatedAt || ref.createdAt || ref.date);
+    const rawDateStr = String(ref.date || '');
+
+    return rDate.startsWith(yearStr) || rawDateStr.endsWith(yearStr);
+  };
+
+  const getRefundMetrics = () => {
     const processedRefunds = (Array.isArray(refunds) ? refunds : []).filter(
-      r => r && (r.status === 'Processed' || r.status === 'Approved')
+      r => r && (r.status === 'Processed' || r.status === 'Approved' || r.status === 'Refunded' || r.status === 'Completed' || r.status === 'Paid')
     );
 
-    const dailyRefunds = processedRefunds.filter(r => {
-      const rDate = getDateStr(r.updatedAt || r.createdAt || r.date);
-      return rDate === todayStr;
-    });
-
-    const monthlyRefunds = processedRefunds.filter(r => {
-      const rDate = getDateStr(r.updatedAt || r.createdAt || r.date);
-      return rDate.startsWith(monthStr);
-    });
-
-    const yearlyRefunds = processedRefunds.filter(r => {
-      const rDate = getDateStr(r.updatedAt || r.createdAt || r.date);
-      return rDate.startsWith(yearStr);
-    });
+    const dailyRefunds = processedRefunds.filter(isRefundToday);
+    const monthlyRefunds = processedRefunds.filter(isRefundThisMonth);
+    const yearlyRefunds = processedRefunds.filter(isRefundThisYear);
 
     const dailyTotal = dailyRefunds.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
     const monthlyTotal = monthlyRefunds.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
@@ -390,18 +412,9 @@ export const SuperAdminRefundCommissionHub = () => {
   const filteredRefunds = (Array.isArray(refunds) ? refunds : []).filter(ref => {
     if (!ref) return false;
     if (refundTimeFilter === 'all') return true;
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const d = String(now.getDate()).padStart(2, '0');
-    const todayStr = `${y}-${m}-${d}`;
-    const monthStr = `${y}-${m}`;
-    const yearStr = `${y}`;
-    const rDate = getDateStr(ref.updatedAt || ref.createdAt || ref.date);
-
-    if (refundTimeFilter === 'daily') return rDate === todayStr;
-    if (refundTimeFilter === 'monthly') return rDate.startsWith(monthStr);
-    if (refundTimeFilter === 'yearly') return rDate.startsWith(yearStr);
+    if (refundTimeFilter === 'daily') return isRefundToday(ref);
+    if (refundTimeFilter === 'monthly') return isRefundThisMonth(ref);
+    if (refundTimeFilter === 'yearly') return isRefundThisYear(ref);
     return true;
   });
 
@@ -708,7 +721,14 @@ export const SuperAdminRefundCommissionHub = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {filteredRefunds.map((ref) => (
+                    {filteredRefunds.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} align="center" sx={{ py: 5, color: 'text.secondary', fontWeight: 600 }}>
+                          No refund claims found for this filter period.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredRefunds.map((ref) => (
                       <TableRow key={ref.id}>
                         <TableCell sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
                           <Typography variant="body2" sx={{ fontWeight: 800, fontFamily: 'monospace', color: '#051A3B' }}>
@@ -769,7 +789,7 @@ export const SuperAdminRefundCommissionHub = () => {
                           </Box>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )))}
                   </TableBody>
                 </Table>
               </TableContainer>
