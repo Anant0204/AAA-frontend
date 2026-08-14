@@ -858,14 +858,36 @@ export const SuperAdminSocialInbox = () => {
                               )}
                               {msg.mediaUrl ? (
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                                  {getMediaUrl(msg.mediaUrl).match(/\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i) ? (
+                                  {/* 1. Image Preview */}
+                                  {(getMediaUrl(msg.mediaUrl).match(/\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i) || 
+                                    getMediaUrl(msg.mediaUrl).includes('lookaside.fbsbx.com') || 
+                                    getMediaUrl(msg.mediaUrl).includes('cdninstagram.com') || 
+                                    getMediaUrl(msg.mediaUrl).startsWith('data:image/')) ? (
                                     <Box
                                       component="img"
                                       src={getMediaUrl(msg.mediaUrl)}
                                       alt="Attachment"
-                                      sx={{ maxWidth: '100%', maxHeight: 200, borderRadius: 1, objectFit: 'contain' }}
+                                      sx={{ maxWidth: '100%', maxHeight: 220, borderRadius: 1, objectFit: 'contain', cursor: 'pointer' }}
+                                      onClick={() => window.open(getMediaUrl(msg.mediaUrl), '_blank')}
+                                    />
+                                  ) : /* 2. Video Player */
+                                  getMediaUrl(msg.mediaUrl).match(/\.(mp4|mov|webm|m4v)(\?.*)?$/i) ? (
+                                    <Box
+                                      component="video"
+                                      controls
+                                      src={getMediaUrl(msg.mediaUrl)}
+                                      sx={{ maxWidth: '100%', maxHeight: 220, borderRadius: 1 }}
+                                    />
+                                  ) : /* 3. Audio / Voice Note Player */
+                                  getMediaUrl(msg.mediaUrl).match(/\.(mp3|ogg|wav|m4a|aac)(\?.*)?$/i) ? (
+                                    <Box
+                                      component="audio"
+                                      controls
+                                      src={getMediaUrl(msg.mediaUrl)}
+                                      sx={{ maxWidth: '100%', height: 38, mt: 0.5 }}
                                     />
                                   ) : (
+                                    /* 4. Document / Other Attachment */
                                     <Button
                                       variant="outlined"
                                       size="small"
@@ -891,7 +913,7 @@ export const SuperAdminSocialInbox = () => {
                                 </Box>
                               ) : (
                                 <Typography variant="body2" component="div" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
-                                  {renderWhatsAppText(msg.text, isAgent)}
+                                  {renderWhatsAppText(msg.text || '', isAgent)}
                                 </Typography>
                               )}
                               <IconButton

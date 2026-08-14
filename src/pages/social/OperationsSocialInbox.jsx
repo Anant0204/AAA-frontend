@@ -883,14 +883,66 @@ export const OperationsSocialInbox = () => {
                                 boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                               }}
                             >
-                              {msg.isComment && (
-                                <Typography variant="caption" sx={{ display: 'block', mb: 0.5, color: isAgent ? 'rgba(255,255,255,0.7)' : 'primary.main', fontWeight: 600 }}>
-                                  [Public Comment]
+                              {msg.mediaUrl ? (
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                  {/* 1. Image Preview */}
+                                  {(getMediaUrl(msg.mediaUrl).match(/\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i) || 
+                                    getMediaUrl(msg.mediaUrl).includes('lookaside.fbsbx.com') || 
+                                    getMediaUrl(msg.mediaUrl).includes('cdninstagram.com') || 
+                                    getMediaUrl(msg.mediaUrl).startsWith('data:image/')) ? (
+                                    <Box
+                                      component="img"
+                                      src={getMediaUrl(msg.mediaUrl)}
+                                      alt="Attachment"
+                                      sx={{ maxWidth: '100%', maxHeight: 220, borderRadius: 1, objectFit: 'contain', cursor: 'pointer' }}
+                                      onClick={() => window.open(getMediaUrl(msg.mediaUrl), '_blank')}
+                                    />
+                                  ) : /* 2. Video Player */
+                                  getMediaUrl(msg.mediaUrl).match(/\.(mp4|mov|webm|m4v)(\?.*)?$/i) ? (
+                                    <Box
+                                      component="video"
+                                      controls
+                                      src={getMediaUrl(msg.mediaUrl)}
+                                      sx={{ maxWidth: '100%', maxHeight: 220, borderRadius: 1 }}
+                                    />
+                                  ) : /* 3. Audio / Voice Note Player */
+                                  getMediaUrl(msg.mediaUrl).match(/\.(mp3|ogg|wav|m4a|aac)(\?.*)?$/i) ? (
+                                    <Box
+                                      component="audio"
+                                      controls
+                                      src={getMediaUrl(msg.mediaUrl)}
+                                      sx={{ maxWidth: '100%', height: 38, mt: 0.5 }}
+                                    />
+                                  ) : (
+                                    /* 4. Document / Other Attachment */
+                                    <Button
+                                      variant="outlined"
+                                      size="small"
+                                      startIcon={<InsertDriveFileIcon />}
+                                      endIcon={<DownloadIcon />}
+                                      href={getMediaUrl(msg.mediaUrl)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      sx={{
+                                        color: isAgent && activeConv.platform === 'whatsapp' ? 'text.primary' : 'inherit',
+                                        borderColor: isAgent && activeConv.platform === 'whatsapp' ? 'rgba(0,0,0,0.2)' : 'inherit',
+                                        bgcolor: 'rgba(255,255,255,0.2)'
+                                      }}
+                                    >
+                                      View Attachment
+                                    </Button>
+                                  )}
+                                  {msg.text && (
+                                    <Typography variant="body2" component="div" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                                      {renderWhatsAppText(msg.text, isAgent)}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              ) : (
+                                <Typography variant="body2" component="div" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                                  {renderWhatsAppText(msg.text || '', isAgent)}
                                 </Typography>
                               )}
-                              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-                                {msg.text}
-                              </Typography>
                             </Paper>
                             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, mx: 1, display: 'flex', gap: 0.8, alignItems: 'center' }}>
                               <span>{msg.timestamp}</span>
