@@ -26,6 +26,7 @@ import Chip from '@mui/material/Chip';
 import Tooltip from '@mui/material/Tooltip';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
+import Menu from '@mui/material/Menu';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -69,6 +70,8 @@ import ChatIcon from '@mui/icons-material/Chat';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import DownloadIcon from '@mui/icons-material/Download';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 import PageHeader from '../../components/PageHeader';
 
@@ -168,13 +171,38 @@ export const AdminSocialInbox = () => {
   const uploadSocialMediaMutation = useMutation({
     mutationFn: (file) => dbService.uploadSocialMedia(file)
   });
+  const clearSocialChatMutation = useMutation({
+    mutationFn: (phone) => dbService.clearSocialChat(phone),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['social-messages'] });
+      setActiveConvId(null);
+    }
+  });
+
   const [activeConvId, setActiveConvId] = useState('conv1');
   const [activeTab, setActiveTab] = useState(0);
   const [searchText, setSearchText] = useState('');
   const [replyText, setReplyText] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [headerMenuAnchor, setHeaderMenuAnchor] = useState(null);
   const messageEndRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  const handleHeaderMenuOpen = (event) => {
+    setHeaderMenuAnchor(event.currentTarget);
+  };
+
+  const handleHeaderMenuClose = () => {
+    setHeaderMenuAnchor(null);
+  };
+
+  const handleClearChat = (phone) => {
+    if (window.confirm('Are you sure you want to completely clear this chat from the CRM? This cannot be undone.')) {
+      clearSocialChatMutation.mutate(phone);
+      handleHeaderMenuClose();
+    }
+  };
 
   // Connect to socket to handle real-time inbound/outbound WhatsApp updates
   useEffect(() => {
@@ -692,6 +720,18 @@ export const AdminSocialInbox = () => {
                       <IconButton size="small" onClick={() => navigate(`/leads/details/${activeConv.leadId}`)}>
                         <OpenInNewIcon fontSize="small" />
                       </IconButton>
+                      <IconButton size="small" onClick={handleHeaderMenuOpen}>
+                        <MoreVertIcon fontSize="small" />
+                      </IconButton>
+                      <Menu
+                        anchorEl={headerMenuAnchor}
+                        open={Boolean(headerMenuAnchor)}
+                        onClose={handleHeaderMenuClose}
+                      >
+                        <MenuItem onClick={() => handleClearChat(activeConv.phone)} sx={{ color: 'error.main' }}>
+                          <DeleteIcon fontSize="small" sx={{ mr: 1 }} /> Clear Chat
+                        </MenuItem>
+                      </Menu>
                     </Box>
                   </Box>
 
