@@ -284,15 +284,38 @@ export const DashboardLayout = () => {
       showAlert('Your permissions have been updated by an administrator.', 'info');
     });
 
-    // Listen for new lead/booking notifications — refresh bell icon instantly
-    socket.on('new-notification', (data) => {
+    // Listen for new lead/booking notifications — refresh UI & leads table instantly without page reload
+    const handleNewNotification = (data) => {
       console.log('[Socket] New notification received:', data);
-      // Immediately refresh the notifications list without waiting for the 15s poll
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['consultations'] });
+    };
+
+    const handleNewBooking = (data) => {
+      console.log('[Socket] New booking received:', data);
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['consultations'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    };
+
+    const handlePublicSlotBooked = (data) => {
+      console.log('[Socket] Public slot booked:', data);
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['consultations'] });
+    };
+
+    socket.on('new-notification', handleNewNotification);
+    socket.on('new_booking', handleNewBooking);
+    socket.on('public-slot-booked', handlePublicSlotBooked);
+    socket.on('new_lead', handleNewNotification);
 
     return () => {
-      socket.off('new-notification');
+      socket.off('new-notification', handleNewNotification);
+      socket.off('new_booking', handleNewBooking);
+      socket.off('public-slot-booked', handlePublicSlotBooked);
+      socket.off('new_lead', handleNewNotification);
       socket.disconnect();
     };
   }, [currentUser?.id, currentUser?.role, queryClient, showAlert]);

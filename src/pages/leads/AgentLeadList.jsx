@@ -225,7 +225,10 @@ export const AgentLeadList = () => {
   // Fetch Leads
   const { data: leads = [], isLoading } = useQuery({
     queryKey: ['leads'],
-    queryFn: dbService.getLeads });
+    queryFn: dbService.getLeads,
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true
+  });
 
   // Fetch Agents dynamically
   const { data: agents = [] } = useQuery({
