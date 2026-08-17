@@ -443,7 +443,7 @@ const Integrations = () => {
       <Box className="grid grid-cols-12 gap-2" sx={{ mb: 3 }}>
         {[
           { label: 'Social Channels Connected', value: connectedSocialCount, total: SOCIAL_PLATFORMS.length, color: '#6366F1', icon: '📱' },
-          { label: 'Email Accounts Connected', value: connectedEmailCount, total: EMAIL_PROVIDERS.length, color: '#10B981', icon: '📧' },
+          // { label: 'Email Accounts Connected', value: connectedEmailCount, total: EMAIL_PROVIDERS.length, color: '#10B981', icon: '📧' },
         ].map(stat => (
           <Box className="col-span-6 sm:col-span-3" key={stat.label}>
             <Paper sx={{ p: 2.5, borderRadius: 3, border: '2px solid', borderColor: 'divider', boxShadow: 'none', transition: 'all 0.2s', '&:hover': { borderColor: stat.color } }}>
@@ -467,9 +467,9 @@ const Integrations = () => {
           <Tab
             label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>📱 Social Media Channels {connectedSocialCount > 0 && <Chip label={connectedSocialCount} size="small" color="primary" sx={{ height: 18, fontSize: '0.65rem' }} />}</Box>}
           />
-          <Tab
-            label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>📧 Email Integration {connectedEmailCount > 0 && <Chip label={connectedEmailCount} size="small" color="success" sx={{ height: 18, fontSize: '0.65rem' }} />}</Box>}
-          />
+          {/* <Tab
+            label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>📧 Email Integration {connectedEmailCount > 0 && <Chip label={connectedEmailCount} size="small" color="success" sx={{ height: 18, fontSize: '0.65rem' }} /></Box>}
+          /> */}
 
         </Tabs>
 
@@ -646,8 +646,8 @@ const Integrations = () => {
           </Box>
         )}
 
-        {/* ─── Tab 1: Email Integration ─── */}
-        {tabValue === 1 && (
+        {/* ─── Tab 1: Email Integration (Commented Out) ─── */}
+        {/* {tabValue === 1 && (
           <Box sx={{ p: 3 }}>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
               Connect your business email accounts. Incoming emails from clients will appear in the CRM inbox and be linked to their client profiles automatically.
@@ -726,7 +726,6 @@ const Integrations = () => {
               })}
             </Box>
 
-            {/* Email Settings */}
             {connectedEmailCount > 0 && (
               <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', mt: 4 }}>
                 <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>📋 Email Sync Settings</Typography>
@@ -756,7 +755,7 @@ const Integrations = () => {
               </Paper>
             )}
           </Box>
-        )}
+        )} */}
 
 
       </Paper>
