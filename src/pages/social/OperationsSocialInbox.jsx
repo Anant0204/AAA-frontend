@@ -26,6 +26,7 @@ import Chip from '@mui/material/Chip';
 import Tooltip from '@mui/material/Tooltip';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
+import Menu from '@mui/material/Menu';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -69,6 +70,8 @@ import ChatIcon from '@mui/icons-material/Chat';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import DownloadIcon from '@mui/icons-material/Download';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 import PageHeader from '../../components/PageHeader';
 
@@ -93,9 +96,9 @@ const SOCIAL_PLATFORMS = [
 ];
 import { SERVICES } from '../../constants/mockData';
 
-// Initial Mock Conversations
 const QUICK_TEMPLATES = [
-  { id: 'aaa_greeting', label: 'Greet', text: 'Hello👋 \n\nWelcome to AAA Business Consultancy Services! \n\nWe’re here to help you with your Spain Visa, Residency & Relocation requirements. \n\nReply Hi to get started.' }
+  { id: 'aaa_greeting', label: 'Greet', text: 'Hello👋 \n\nWelcome to AAA Business Consultancy Services! \n\nWe’re here to help you with your Spain Visa, Residency & Relocation requirements. \n\nReply Hi to get started.' },
+  { id: 'booking_form', label: '⚡ Booking & Assessment Form', text: 'Hello! 🇪🇸✈️ Thank you for connecting with AAA Business Consultancy LLC.\n\nTo check your full eligibility for Spain Visa & Residency (Digital Nomad, NLV, Golden Visa) and schedule your consultation, please complete our quick assessment form here:\n👉 https://aaa-crm-service.netlify.app/#/public/lead-form?source=Social_Comment\n\nOur team looks forward to assisting you!' }
 ];
 
 const displayName = (name, phone) => {
@@ -168,13 +171,38 @@ export const OperationsSocialInbox = () => {
   const uploadSocialMediaMutation = useMutation({
     mutationFn: (file) => dbService.uploadSocialMedia(file)
   });
+  const clearSocialChatMutation = useMutation({
+    mutationFn: (phone) => dbService.clearSocialChat(phone),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['social-messages'] });
+      setActiveConvId(null);
+    }
+  });
+
   const [activeConvId, setActiveConvId] = useState('conv1');
   const [activeTab, setActiveTab] = useState(0);
   const [searchText, setSearchText] = useState('');
   const [replyText, setReplyText] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [headerMenuAnchor, setHeaderMenuAnchor] = useState(null);
   const messageEndRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  const handleHeaderMenuOpen = (event) => {
+    setHeaderMenuAnchor(event.currentTarget);
+  };
+
+  const handleHeaderMenuClose = () => {
+    setHeaderMenuAnchor(null);
+  };
+
+  const handleClearChat = (phone) => {
+    if (window.confirm('Are you sure you want to completely clear this chat from the CRM? This cannot be undone.')) {
+      clearSocialChatMutation.mutate(phone);
+      handleHeaderMenuClose();
+    }
+  };
 
   // Connect to socket to handle real-time inbound/outbound WhatsApp updates
   useEffect(() => {
@@ -831,6 +859,18 @@ export const OperationsSocialInbox = () => {
                       <IconButton size="small" onClick={() => navigate(`/leads/details/${activeConv.leadId}`)}>
                         <OpenInNewIcon fontSize="small" />
                       </IconButton>
+                      <IconButton size="small" onClick={handleHeaderMenuOpen}>
+                        <MoreVertIcon fontSize="small" />
+                      </IconButton>
+                      <Menu
+                        anchorEl={headerMenuAnchor}
+                        open={Boolean(headerMenuAnchor)}
+                        onClose={handleHeaderMenuClose}
+                      >
+                        <MenuItem onClick={() => handleClearChat(activeConv.phone)} sx={{ color: 'error.main' }}>
+                          <DeleteIcon fontSize="small" sx={{ mr: 1 }} /> Clear Chat
+                        </MenuItem>
+                      </Menu>
                     </Box>
                   </Box>
 
@@ -883,14 +923,66 @@ export const OperationsSocialInbox = () => {
                                 boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                               }}
                             >
-                              {msg.isComment && (
-                                <Typography variant="caption" sx={{ display: 'block', mb: 0.5, color: isAgent ? 'rgba(255,255,255,0.7)' : 'primary.main', fontWeight: 600 }}>
-                                  [Public Comment]
+                              {msg.mediaUrl ? (
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                  {/* 1. Image Preview */}
+                                  {(getMediaUrl(msg.mediaUrl).match(/\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i) || 
+                                    getMediaUrl(msg.mediaUrl).includes('lookaside.fbsbx.com') || 
+                                    getMediaUrl(msg.mediaUrl).includes('cdninstagram.com') || 
+                                    getMediaUrl(msg.mediaUrl).startsWith('data:image/')) ? (
+                                    <Box
+                                      component="img"
+                                      src={getMediaUrl(msg.mediaUrl)}
+                                      alt="Attachment"
+                                      sx={{ maxWidth: '100%', maxHeight: 220, borderRadius: 1, objectFit: 'contain', cursor: 'pointer' }}
+                                      onClick={() => window.open(getMediaUrl(msg.mediaUrl), '_blank')}
+                                    />
+                                  ) : /* 2. Video Player */
+                                  getMediaUrl(msg.mediaUrl).match(/\.(mp4|mov|webm|m4v)(\?.*)?$/i) ? (
+                                    <Box
+                                      component="video"
+                                      controls
+                                      src={getMediaUrl(msg.mediaUrl)}
+                                      sx={{ maxWidth: '100%', maxHeight: 220, borderRadius: 1 }}
+                                    />
+                                  ) : /* 3. Audio / Voice Note Player */
+                                  getMediaUrl(msg.mediaUrl).match(/\.(mp3|ogg|wav|m4a|aac)(\?.*)?$/i) ? (
+                                    <Box
+                                      component="audio"
+                                      controls
+                                      src={getMediaUrl(msg.mediaUrl)}
+                                      sx={{ maxWidth: '100%', height: 38, mt: 0.5 }}
+                                    />
+                                  ) : (
+                                    /* 4. Document / Other Attachment */
+                                    <Button
+                                      variant="outlined"
+                                      size="small"
+                                      startIcon={<InsertDriveFileIcon />}
+                                      endIcon={<DownloadIcon />}
+                                      href={getMediaUrl(msg.mediaUrl)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      sx={{
+                                        color: isAgent && activeConv.platform === 'whatsapp' ? 'text.primary' : 'inherit',
+                                        borderColor: isAgent && activeConv.platform === 'whatsapp' ? 'rgba(0,0,0,0.2)' : 'inherit',
+                                        bgcolor: 'rgba(255,255,255,0.2)'
+                                      }}
+                                    >
+                                      View Attachment
+                                    </Button>
+                                  )}
+                                  {msg.text && (
+                                    <Typography variant="body2" component="div" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                                      {renderWhatsAppText(msg.text, isAgent)}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              ) : (
+                                <Typography variant="body2" component="div" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                                  {renderWhatsAppText(msg.text || '', isAgent)}
                                 </Typography>
                               )}
-                              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-                                {msg.text}
-                              </Typography>
                             </Paper>
                             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, mx: 1, display: 'flex', gap: 0.8, alignItems: 'center' }}>
                               <span>{msg.timestamp}</span>

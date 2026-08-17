@@ -172,12 +172,36 @@ export const PaymentDashboard = () => {
     }
   });
 
+  // Helper for ISO date parsing
+  const getDateStr = (val) => {
+    if (!val) return '';
+    if (typeof val === 'string' && val.includes('/')) {
+      const parts = val.split('/');
+      if (parts.length === 3) {
+        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      }
+    }
+    try {
+      const d = new Date(val);
+      if (isNaN(d.getTime())) return '';
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    } catch (e) {
+      return '';
+    }
+  };
+
   // Calculations
   const getRevenueStats = () => {
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    const monthStr = todayStr.substring(0, 7);
-    const yearStr = todayStr.substring(0, 4);
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${y}-${m}-${d}`;
+    const monthStr = `${y}-${m}`;
+    const yearStr = `${y}`;
 
     const processedRefunds = (Array.isArray(refundRequests) ? refundRequests : []).filter(
       r => r && (r.status === 'Processed' || r.status === 'Approved')
@@ -185,13 +209,13 @@ export const PaymentDashboard = () => {
 
     const totalRefunded = processedRefunds.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
     const todayRefunded = processedRefunds
-      .filter(r => getDateStr(r.updatedAt || r.createdAt) === todayStr)
+      .filter(r => getDateStr(r.updatedAt || r.createdAt || r.date) === todayStr)
       .reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
     const monthRefunded = processedRefunds
-      .filter(r => getDateStr(r.updatedAt || r.createdAt).startsWith(monthStr))
+      .filter(r => getDateStr(r.updatedAt || r.createdAt || r.date).startsWith(monthStr))
       .reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
     const yearRefunded = processedRefunds
-      .filter(r => getDateStr(r.updatedAt || r.createdAt).startsWith(yearStr))
+      .filter(r => getDateStr(r.updatedAt || r.createdAt || r.date).startsWith(yearStr))
       .reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
 
     let grossPaid = 0;
