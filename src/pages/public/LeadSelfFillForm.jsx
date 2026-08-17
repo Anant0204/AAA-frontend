@@ -497,6 +497,17 @@ export const LeadSelfFillForm = () => {
               setCountryCode(parsed.countryCode);
               setLocalNumber(parsed.localNumber);
             }
+            if (d.serviceType) {
+              const lowerSvc = d.serviceType.toLowerCase();
+              if (lowerSvc.includes("property") || lowerSvc.includes("investment")) {
+                setServiceCategory("property");
+              } else if (lowerSvc.includes("translation") || lowerSvc.includes("sworn")) {
+                setServiceCategory("translation");
+              } else {
+                setServiceCategory("visa");
+              }
+            }
+
             setForm((prev) => ({
               ...prev,
               id: d.clientId || d.id || leadIdParam,
