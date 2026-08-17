@@ -124,38 +124,37 @@ export const AgentConsultationList = () => {
         setCardInfo(null);
         sessionStorage.removeItem('consultationList_filters');
         sessionStorage.removeItem('consultationList_cardInfo');
-        navigate(location.pathname, { replace: true, state: {} });
       } else if (
         location.state.filterStatus !== undefined ||
         location.state.filterConsultantId !== undefined ||
         location.state.cardInfo !== undefined ||
         location.state.startDate !== undefined
       ) {
-        setFilters((prev) => {
-          const isFromDashboard = location.state.cardInfo !== undefined;
-          const cardTitle = location.state?.cardInfo?.title;
-          const fallbackStatus = cardTitle === 'Upcoming Meetings' || cardTitle === 'Upcoming Calls' ? 'Scheduled' : (cardTitle === 'Completed Meetings' ? 'Completed' : '');
-          const nextFilters = {
-            serviceId: isFromDashboard ? '' : prev.serviceId,
-            status: location.state.filterStatus !== undefined ? location.state.filterStatus : (fallbackStatus || prev.status || 'Scheduled'),
-            assignedConsultantId: location.state.filterConsultantId !== undefined ? location.state.filterConsultantId : (isFromDashboard ? '' : prev.assignedConsultantId),
-          };
-          sessionStorage.setItem('consultationList_filters', JSON.stringify(nextFilters));
-          return nextFilters;
-        });
-        if (location.state.startDate !== undefined) {
-          setStartDate(location.state.startDate);
-        }
-        if (location.state.endDate !== undefined) {
-          setEndDate(location.state.endDate);
-        }
+        const cardTitle = location.state?.cardInfo?.title;
+        const targetStatus = location.state.filterStatus || (cardTitle === 'Completed Meetings' ? 'Completed' : (cardTitle === 'Upcoming Meetings' || cardTitle === 'Upcoming Calls' ? 'Scheduled' : 'Scheduled'));
+        
+        const nextFilters = {
+          serviceId: '',
+          status: targetStatus,
+          assignedConsultantId: location.state.filterConsultantId || ''
+        };
+        
+        setFilters(nextFilters);
+        setStartDate(location.state.startDate !== undefined ? location.state.startDate : '');
+        setEndDate(location.state.endDate !== undefined ? location.state.endDate : '');
+        
         if (location.state.cardInfo) {
           setCardInfo(location.state.cardInfo);
           sessionStorage.setItem('consultationList_cardInfo', JSON.stringify(location.state.cardInfo));
+        } else {
+          setCardInfo(null);
+          sessionStorage.removeItem('consultationList_cardInfo');
         }
+
+        sessionStorage.setItem('consultationList_filters', JSON.stringify(nextFilters));
       }
     }
-  }, [location.state, navigate, location.pathname]);
+  }, [location.state]);
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
