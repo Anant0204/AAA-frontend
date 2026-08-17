@@ -370,8 +370,12 @@ export const SuperAdminDashboard = () => {
   const leadsYesterday = leads.filter(l => l.createdDate?.startsWith('2026-06-17'));
 
   // 5. Upcoming Meetings
-  const meetingsInRange = consultations.filter(c => c.status === 'Scheduled' && filterByDate(c.meetingDate, period.start, period.end));
-  const meetingsInPrevRange = period.prevStart ? consultations.filter(c => c.status === 'Scheduled' && filterByDate(c.meetingDate, period.prevStart, period.prevEnd)) : [];
+  const meetingsInRange = consultations.filter(c => (c.status === 'Scheduled' || c.status === 'Meeting Scheduled') && filterByDate(c.meetingDate || c.date, period.start, period.end));
+  const meetingsInPrevRange = period.prevStart ? consultations.filter(c => (c.status === 'Scheduled' || c.status === 'Meeting Scheduled') && filterByDate(c.meetingDate || c.date, period.prevStart, period.prevEnd)) : [];
+
+  // 5b. Completed Meetings
+  const completedMeetingsInRange = consultations.filter(c => (c.status === 'Completed' || c.status === 'Meeting Completed') && filterByDate(c.meetingDate || c.date, period.start, period.end));
+  const completedMeetingsInPrevRange = period.prevStart ? consultations.filter(c => (c.status === 'Completed' || c.status === 'Meeting Completed') && filterByDate(c.meetingDate || c.date, period.prevStart, period.prevEnd)) : [];
 
   // 6. Pending Payments
   const pendingPaymentsInRange = payments.filter(p => p.status === 'Pending' && filterByDate(p.dueDate, period.start, period.end));
@@ -448,6 +452,15 @@ export const SuperAdminDashboard = () => {
       trend: getTrend(meetingsInRange.length, meetingsInPrevRange.length),
       trendLabel: period.trendLabel,
       onClick: () => navigate('/super_admin/consultations', { state: { filterStatus: 'Scheduled', startDate: period.start, endDate: period.end, cardInfo: { title: 'Upcoming Meetings', value: meetingsInRange.length, color: '#2563EB', trend: getTrend(meetingsInRange.length, meetingsInPrevRange.length), iconType: 'CalendarMonth' } } })
+    },
+    {
+      title: 'Completed Meetings',
+      value: completedMeetingsInRange.length,
+      icon: <CheckCircleOutlinedIcon />,
+      color: '#10B981',
+      trend: getTrend(completedMeetingsInRange.length, completedMeetingsInPrevRange.length),
+      trendLabel: period.trendLabel,
+      onClick: () => navigate('/super_admin/consultations', { state: { filterStatus: 'Completed', startDate: period.start, endDate: period.end, cardInfo: { title: 'Completed Meetings', value: completedMeetingsInRange.length, color: '#10B981', trend: getTrend(completedMeetingsInRange.length, completedMeetingsInPrevRange.length), iconType: 'CheckCircleOutlined' } } })
     },
     {
       title: 'Pending Payments',

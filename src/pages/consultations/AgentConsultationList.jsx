@@ -203,8 +203,19 @@ export const AgentConsultationList = () => {
     if (currentUser?.role === 'consultant' && cons.consultantId !== currentUser?.id) return false;
     if (!filterByDate(cons.date || cons.meetingDate, startDate, endDate)) return false;
 
-    const nameMatch = cons.clientName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchStatus = filters.status ? cons.status === filters.status : true;
+    const nameMatch = cons.clientName ? cons.clientName.toLowerCase().includes(searchTerm.toLowerCase()) : true;
+
+    let matchStatus = true;
+    if (filters.status) {
+      if (filters.status === 'Scheduled') {
+        matchStatus = cons.status === 'Scheduled' || cons.status === 'Meeting Scheduled';
+      } else if (filters.status === 'Completed') {
+        matchStatus = cons.status === 'Completed' || cons.status === 'Meeting Completed';
+      } else {
+        matchStatus = cons.status === filters.status;
+      }
+    }
+
     const matchConsultant = filters.assignedConsultantId ? cons.consultantId === filters.assignedConsultantId : true;
     const matchService = filters.serviceId ? cons.serviceId === filters.serviceId : true;
     return nameMatch && matchStatus && matchConsultant && matchService;

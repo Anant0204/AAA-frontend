@@ -150,7 +150,8 @@ export const OperationsDashboard = () => {
   const totalLeads = leads.length;
   const todayDateStr = new Date().toISOString().split('T')[0]; // Real current date
   const todayLeadsCount = leads.filter((l) => l.createdDate?.startsWith(todayDateStr)).length;
-  const upcomingMeetingsCount = consultations.filter((c) => c.status === 'Scheduled').length;
+  const upcomingMeetingsCount = consultations.filter((c) => c.status === 'Scheduled' || c.status === 'Meeting Scheduled').length;
+  const completedMeetingsCount = consultations.filter((c) => c.status === 'Completed' || c.status === 'Meeting Completed').length;
   const pendingPaymentsCount = payments.filter((p) => p.status === 'Pending' || p.status === 'Pending Payment').length;
 
   const processedRefundsList = (Array.isArray(refundRequests) ? refundRequests : []).filter(
@@ -195,6 +196,7 @@ export const OperationsDashboard = () => {
     { title: 'Total Consultations', value: totalLeads, icon: <PeopleAltIcon />, color: '#8B5CF6', trend: '12%', onClick: () => navigate('/operations/leads', { state: { filterToday: false, filterStatus: '', cardInfo: { title: 'Total Consultations', value: totalLeads, color: '#8B5CF6', trend: '12%', iconType: 'PeopleAlt' } } }) },
     { title: "Today's Consultations", value: todayLeadsCount, icon: <AddIcon />, color: '#EC4899', trend: '24%', onClick: () => navigate('/operations/leads', { state: { filterToday: true, filterStatus: '', cardInfo: { title: "Today's Consultations", value: todayLeadsCount, color: '#EC4899', trend: '24%', iconType: 'Add' } } }) },
     { title: 'Upcoming Meetings', value: upcomingMeetingsCount, icon: <CalendarMonthIcon />, color: '#2563EB', trend: '8%', onClick: () => navigate('/operations/consultations', { state: { filterStatus: 'Scheduled', cardInfo: { title: 'Upcoming Meetings', value: upcomingMeetingsCount, color: '#2563EB', trend: '8%', iconType: 'CalendarMonth' } } }) },
+    { title: 'Completed Meetings', value: completedMeetingsCount, icon: <CheckCircleOutlinedIcon />, color: '#10B981', trend: '15%', onClick: () => navigate('/operations/consultations', { state: { filterStatus: 'Completed', cardInfo: { title: 'Completed Meetings', value: completedMeetingsCount, color: '#10B981', trend: '15%', iconType: 'CheckCircleOutlined' } } }) },
     { title: 'Pending Payments', value: pendingPaymentsCount, icon: <PaymentsIcon />, color: '#F59E0B', trend: '-5%' },
     { title: 'Total Revenue', value: `€${revenueTotal.toLocaleString()}`, icon: <TrendingUpIcon />, color: '#22C55E', trend: '18%' },
     { title: 'Active Cases', value: activeCasesCount, icon: <AssignmentIcon />, color: '#3B82F6', trend: '14%', onClick: () => navigate('/operations/clients', { state: { filterStatus: 'Under Process', cardInfo: { title: 'Active Cases', value: activeCasesCount, color: '#3B82F6', trend: '14%', iconType: 'Assignment' } } }) },

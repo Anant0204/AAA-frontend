@@ -77,8 +77,19 @@ export const ConsultationList = () => {
 
   // Filters & Chronological Sorting (Earlier appointments first)
   const filteredConsultations = consultations.filter((cons) => {
-    const nameMatch = cons.clientName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchStatus = filters.status ? cons.status === filters.status : true;
+    const nameMatch = cons.clientName ? cons.clientName.toLowerCase().includes(searchTerm.toLowerCase()) : true;
+
+    let matchStatus = true;
+    if (filters.status) {
+      if (filters.status === 'Scheduled') {
+        matchStatus = cons.status === 'Scheduled' || cons.status === 'Meeting Scheduled';
+      } else if (filters.status === 'Completed') {
+        matchStatus = cons.status === 'Completed' || cons.status === 'Meeting Completed';
+      } else {
+        matchStatus = cons.status === filters.status;
+      }
+    }
+
     const matchConsultant = filters.assignedConsultantId ? cons.assignedConsultantId === filters.assignedConsultantId : true;
     return nameMatch && matchStatus && matchConsultant;
   }).sort((a, b) => getSortableTimestamp(a) - getSortableTimestamp(b));
