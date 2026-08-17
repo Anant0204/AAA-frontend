@@ -90,11 +90,11 @@ export const FilterPanel = ({
                 if (!selected) {
                   return <Box component="span" sx={{ color: 'text.secondary', fontSize: { xs: '0.72rem', sm: '0.875rem' } }}>Status</Box>;
                 }
-                return <Box component="span" sx={{ fontSize: { xs: '0.72rem', sm: '0.875rem' } }}>{selected}</Box>;
+                return <Box component="span" sx={{ fontSize: { xs: '0.72rem', sm: '0.875rem' } }}>{selected === 'ALL' ? 'All Statuses' : selected}</Box>;
               }}
               sx={{ fontSize: { xs: '0.72rem', sm: '0.875rem' } }}
             >
-              <MenuItem value="">All Statuses</MenuItem>
+              <MenuItem value="ALL">All Statuses</MenuItem>
               {statusOptions.map((st) => (
                 <MenuItem key={st} value={st}>
                   {st}

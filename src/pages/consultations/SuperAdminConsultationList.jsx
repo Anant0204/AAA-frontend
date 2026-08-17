@@ -93,7 +93,7 @@ export const SuperAdminConsultationList = () => {
 
     const status = location.state?.filterStatus !== undefined
       ? location.state.filterStatus
-      : (fallbackStatus || (isFromDashboard ? '' : (savedFilters?.status || '')));
+      : (fallbackStatus || (savedFilters?.status || 'Scheduled'));
 
     const assignedConsultantId = location.state?.filterConsultantId !== undefined
       ? location.state.filterConsultantId
@@ -134,7 +134,7 @@ export const SuperAdminConsultationList = () => {
       if (location.state.resetFilters) {
         setFilters({
           serviceId: '',
-          status: '',
+          status: 'Scheduled',
           assignedConsultantId: ''
         });
         setStartDate('');
@@ -155,7 +155,7 @@ export const SuperAdminConsultationList = () => {
           const fallbackStatus = cardTitle === 'Upcoming Meetings' ? 'Scheduled' : (cardTitle === 'Completed Meetings' ? 'Completed' : '');
           const nextFilters = {
             serviceId: isFromDashboard ? '' : prev.serviceId,
-            status: location.state.filterStatus !== undefined ? location.state.filterStatus : (fallbackStatus || (isFromDashboard ? '' : prev.status)),
+            status: location.state.filterStatus !== undefined ? location.state.filterStatus : (fallbackStatus || prev.status || 'Scheduled'),
             assignedConsultantId: location.state.filterConsultantId !== undefined ? location.state.filterConsultantId : (isFromDashboard ? '' : prev.assignedConsultantId),
           };
           sessionStorage.setItem('consultationList_filters', JSON.stringify(nextFilters));
@@ -194,12 +194,14 @@ export const SuperAdminConsultationList = () => {
   // Fetch consultations
   const { data: consultations = [], isLoading } = useQuery({
     queryKey: ['consultations'],
-    queryFn: dbService.getConsultations });
+    queryFn: dbService.getConsultations
+  });
 
   // Fetch consultants dynamically
   const { data: consultantsList = [] } = useQuery({
-    queryKey: ['agents'],
-    queryFn: dbService.getAgents });
+    queryKey: ['consultants'],
+    queryFn: dbService.getConsultants
+  });
 
   // Fetch dynamic stages
   const { data: leadStages = [] } = useQuery({
@@ -281,10 +283,14 @@ export const SuperAdminConsultationList = () => {
     const nameMatch = cons.clientName ? cons.clientName.toLowerCase().includes(searchTerm.toLowerCase()) : true;
     
     // Effective status filter with fallback from active cardInfo
-    const effectiveStatus = filters.status || (cardInfo?.title === 'Upcoming Meetings' ? 'Scheduled' : (cardInfo?.title === 'Completed Meetings' ? 'Completed' : ''));
+    const effectiveStatus = filters.status !== undefined && filters.status !== '' 
+      ? filters.status 
+      : (cardInfo?.title === 'Completed Meetings' ? 'Completed' : 'Scheduled');
 
     let matchStatus = true;
-    if (effectiveStatus === 'Scheduled') {
+    if (effectiveStatus === 'ALL') {
+      matchStatus = true;
+    } else if (effectiveStatus === 'Scheduled') {
       matchStatus = cons.status === 'Scheduled' || cons.status === 'Meeting Scheduled';
     } else if (effectiveStatus === 'Completed') {
       matchStatus = cons.status === 'Completed' || cons.status === 'Meeting Completed';
