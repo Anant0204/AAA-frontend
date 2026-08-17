@@ -70,9 +70,12 @@ export const AgentConsultationList = () => {
     const savedFilters = savedFiltersStr ? JSON.parse(savedFiltersStr) : null;
     const isFromDashboard = location.state?.cardInfo !== undefined;
 
+    const cardTitle = location.state?.cardInfo?.title;
+    const fallbackStatus = cardTitle === 'Upcoming Meetings' || cardTitle === 'Upcoming Calls' ? 'Scheduled' : (cardTitle === 'Completed Meetings' ? 'Completed' : '');
+
     const status = location.state?.filterStatus !== undefined
       ? location.state.filterStatus
-      : (isFromDashboard ? '' : (savedFilters?.status || ''));
+      : (fallbackStatus || (isFromDashboard ? '' : (savedFilters?.status || '')));
 
     const assignedConsultantId = location.state?.filterConsultantId !== undefined
       ? location.state.filterConsultantId
@@ -130,9 +133,11 @@ export const AgentConsultationList = () => {
       ) {
         setFilters((prev) => {
           const isFromDashboard = location.state.cardInfo !== undefined;
+          const cardTitle = location.state?.cardInfo?.title;
+          const fallbackStatus = cardTitle === 'Upcoming Meetings' || cardTitle === 'Upcoming Calls' ? 'Scheduled' : (cardTitle === 'Completed Meetings' ? 'Completed' : '');
           const nextFilters = {
             serviceId: isFromDashboard ? '' : prev.serviceId,
-            status: location.state.filterStatus !== undefined ? location.state.filterStatus : (isFromDashboard ? '' : prev.status),
+            status: location.state.filterStatus !== undefined ? location.state.filterStatus : (fallbackStatus || (isFromDashboard ? '' : prev.status)),
             assignedConsultantId: location.state.filterConsultantId !== undefined ? location.state.filterConsultantId : (isFromDashboard ? '' : prev.assignedConsultantId),
           };
           sessionStorage.setItem('consultationList_filters', JSON.stringify(nextFilters));
@@ -158,7 +163,8 @@ export const AgentConsultationList = () => {
   // Fetch consultations
   const { data: consultations = [], isLoading } = useQuery({
     queryKey: ['consultations'],
-    queryFn: dbService.getConsultations });
+    queryFn: dbService.getConsultations
+  });
 
   // Fetch consultants dynamically
   const { data: consultantsList = [] } = useQuery({
@@ -205,15 +211,16 @@ export const AgentConsultationList = () => {
 
     const nameMatch = cons.clientName ? cons.clientName.toLowerCase().includes(searchTerm.toLowerCase()) : true;
 
+    // Effective status filter with fallback from active cardInfo
+    const effectiveStatus = filters.status || (cardInfo?.title === 'Upcoming Meetings' || cardInfo?.title === 'Upcoming Calls' ? 'Scheduled' : (cardInfo?.title === 'Completed Meetings' ? 'Completed' : ''));
+
     let matchStatus = true;
-    if (filters.status) {
-      if (filters.status === 'Scheduled') {
-        matchStatus = cons.status === 'Scheduled' || cons.status === 'Meeting Scheduled';
-      } else if (filters.status === 'Completed') {
-        matchStatus = cons.status === 'Completed' || cons.status === 'Meeting Completed';
-      } else {
-        matchStatus = cons.status === filters.status;
-      }
+    if (effectiveStatus === 'Scheduled') {
+      matchStatus = cons.status === 'Scheduled' || cons.status === 'Meeting Scheduled';
+    } else if (effectiveStatus === 'Completed') {
+      matchStatus = cons.status === 'Completed' || cons.status === 'Meeting Completed';
+    } else if (effectiveStatus) {
+      matchStatus = cons.status === effectiveStatus;
     }
 
     const matchConsultant = filters.assignedConsultantId ? cons.consultantId === filters.assignedConsultantId : true;

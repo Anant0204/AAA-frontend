@@ -88,9 +88,12 @@ export const SuperAdminConsultationList = () => {
     const savedFilters = savedFiltersStr ? JSON.parse(savedFiltersStr) : null;
     const isFromDashboard = location.state?.cardInfo !== undefined;
 
+    const cardTitle = location.state?.cardInfo?.title;
+    const fallbackStatus = cardTitle === 'Upcoming Meetings' ? 'Scheduled' : (cardTitle === 'Completed Meetings' ? 'Completed' : '');
+
     const status = location.state?.filterStatus !== undefined
       ? location.state.filterStatus
-      : (isFromDashboard ? '' : (savedFilters?.status || ''));
+      : (fallbackStatus || (isFromDashboard ? '' : (savedFilters?.status || '')));
 
     const assignedConsultantId = location.state?.filterConsultantId !== undefined
       ? location.state.filterConsultantId
@@ -148,9 +151,11 @@ export const SuperAdminConsultationList = () => {
       ) {
         setFilters((prev) => {
           const isFromDashboard = location.state.cardInfo !== undefined;
+          const cardTitle = location.state?.cardInfo?.title;
+          const fallbackStatus = cardTitle === 'Upcoming Meetings' ? 'Scheduled' : (cardTitle === 'Completed Meetings' ? 'Completed' : '');
           const nextFilters = {
             serviceId: isFromDashboard ? '' : prev.serviceId,
-            status: location.state.filterStatus !== undefined ? location.state.filterStatus : (isFromDashboard ? '' : prev.status),
+            status: location.state.filterStatus !== undefined ? location.state.filterStatus : (fallbackStatus || (isFromDashboard ? '' : prev.status)),
             assignedConsultantId: location.state.filterConsultantId !== undefined ? location.state.filterConsultantId : (isFromDashboard ? '' : prev.assignedConsultantId),
           };
           sessionStorage.setItem('consultationList_filters', JSON.stringify(nextFilters));
@@ -177,6 +182,14 @@ export const SuperAdminConsultationList = () => {
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [selectedMeetingId, setSelectedMeetingId] = useState('');
   const [selectedAgentId, setSelectedAgentId] = useState('');
+
+  const createLeadMutation = useMutation({
+    mutationFn: dbService.createLead,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['consultations'] });
+      showAlert('Consultation booked successfully.', 'success');
+    }
+  });
 
   // Fetch consultations
   const { data: consultations = [], isLoading } = useQuery({
@@ -267,15 +280,16 @@ export const SuperAdminConsultationList = () => {
 
     const nameMatch = cons.clientName ? cons.clientName.toLowerCase().includes(searchTerm.toLowerCase()) : true;
     
+    // Effective status filter with fallback from active cardInfo
+    const effectiveStatus = filters.status || (cardInfo?.title === 'Upcoming Meetings' ? 'Scheduled' : (cardInfo?.title === 'Completed Meetings' ? 'Completed' : ''));
+
     let matchStatus = true;
-    if (filters.status) {
-      if (filters.status === 'Scheduled') {
-        matchStatus = cons.status === 'Scheduled' || cons.status === 'Meeting Scheduled';
-      } else if (filters.status === 'Completed') {
-        matchStatus = cons.status === 'Completed' || cons.status === 'Meeting Completed';
-      } else {
-        matchStatus = cons.status === filters.status;
-      }
+    if (effectiveStatus === 'Scheduled') {
+      matchStatus = cons.status === 'Scheduled' || cons.status === 'Meeting Scheduled';
+    } else if (effectiveStatus === 'Completed') {
+      matchStatus = cons.status === 'Completed' || cons.status === 'Meeting Completed';
+    } else if (effectiveStatus) {
+      matchStatus = cons.status === effectiveStatus;
     }
 
     const matchConsultant = filters.assignedConsultantId ? cons.assignedConsultantId === filters.assignedConsultantId : true;
