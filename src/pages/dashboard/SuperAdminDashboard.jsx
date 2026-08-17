@@ -451,7 +451,7 @@ export const SuperAdminDashboard = () => {
       color: '#2563EB',
       trend: getTrend(meetingsInRange.length, meetingsInPrevRange.length),
       trendLabel: period.trendLabel,
-      onClick: () => navigate('/super_admin/consultations', { state: { filterStatus: 'Scheduled', startDate: period.start, endDate: period.end, cardInfo: { title: 'Upcoming Meetings', value: meetingsInRange.length, color: '#2563EB', trend: getTrend(meetingsInRange.length, meetingsInPrevRange.length), iconType: 'CalendarMonth' } } })
+      onClick: () => navigate('/super_admin/consultations', { state: { filterStatus: 'Scheduled', startDate: '', endDate: '', cardInfo: { title: 'Upcoming Meetings', value: meetingsInRange.length, color: '#2563EB', trend: getTrend(meetingsInRange.length, meetingsInPrevRange.length), iconType: 'CalendarMonth' } } })
     },
     {
       title: 'Completed Meetings',
@@ -460,7 +460,7 @@ export const SuperAdminDashboard = () => {
       color: '#10B981',
       trend: getTrend(completedMeetingsInRange.length, completedMeetingsInPrevRange.length),
       trendLabel: period.trendLabel,
-      onClick: () => navigate('/super_admin/consultations', { state: { filterStatus: 'Completed', startDate: period.start, endDate: period.end, cardInfo: { title: 'Completed Meetings', value: completedMeetingsInRange.length, color: '#10B981', trend: getTrend(completedMeetingsInRange.length, completedMeetingsInPrevRange.length), iconType: 'CheckCircleOutlined' } } })
+      onClick: () => navigate('/super_admin/consultations', { state: { filterStatus: 'Completed', startDate: '', endDate: '', cardInfo: { title: 'Completed Meetings', value: completedMeetingsInRange.length, color: '#10B981', trend: getTrend(completedMeetingsInRange.length, completedMeetingsInPrevRange.length), iconType: 'CheckCircleOutlined' } } })
     },
     {
       title: 'Pending Payments',
