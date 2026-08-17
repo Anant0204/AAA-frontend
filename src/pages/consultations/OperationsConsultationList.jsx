@@ -240,16 +240,22 @@ export const OperationsConsultationList = () => {
 
     const nameMatch = cons.clientName ? cons.clientName.toLowerCase().includes(searchTerm.toLowerCase()) : true;
 
-    // Effective status filter with fallback from active cardInfo
-    const effectiveStatus = filters.status !== undefined && filters.status !== '' 
-      ? filters.status 
-      : (cardInfo?.title === 'Completed Meetings' ? 'Completed' : 'Scheduled');
+    const activeCardTitle = cardInfo?.title || location.state?.cardInfo?.title;
+    let effectiveStatus = filters.status;
+
+    if (activeCardTitle === 'Upcoming Meetings' || activeCardTitle === 'Upcoming Calls') {
+      effectiveStatus = 'Scheduled';
+    } else if (activeCardTitle === 'Completed Meetings') {
+      effectiveStatus = 'Completed';
+    } else if (!effectiveStatus || effectiveStatus === '') {
+      effectiveStatus = 'Scheduled';
+    }
 
     let matchStatus = true;
     if (effectiveStatus === 'ALL') {
       matchStatus = true;
     } else if (effectiveStatus === 'Scheduled') {
-      matchStatus = cons.status === 'Scheduled' || cons.status === 'Meeting Scheduled';
+      matchStatus = cons.status === 'Scheduled' || cons.status === 'Meeting Scheduled' || cons.status === 'Pending Assignment';
     } else if (effectiveStatus === 'Completed') {
       matchStatus = cons.status === 'Completed' || cons.status === 'Meeting Completed';
     } else if (effectiveStatus) {
@@ -527,13 +533,19 @@ export const OperationsConsultationList = () => {
           <Box sx={{ flexGrow: 1 }}>
             <FilterPanel
               filters={filters}
-              onFilterChange={(key, val) => setFilters((prev) => {
-                const nextFilters = { ...prev, [key]: val };
-                sessionStorage.setItem('consultationList_filters', JSON.stringify(nextFilters));
-                return nextFilters;
-              })}
+              onFilterChange={(key, val) => {
+                if (key === 'status') {
+                  setCardInfo(null);
+                  sessionStorage.removeItem('consultationList_cardInfo');
+                }
+                setFilters((prev) => {
+                  const nextFilters = { ...prev, [key]: val };
+                  sessionStorage.setItem('consultationList_filters', JSON.stringify(nextFilters));
+                  return nextFilters;
+                });
+              }}
               onClearFilters={() => {
-                setFilters({ serviceId: '', status: '', assignedConsultantId: '' });
+                setFilters({ serviceId: '', status: 'Scheduled', assignedConsultantId: '' });
                 setStartDate('');
                 setEndDate('');
                 setCardInfo(null);

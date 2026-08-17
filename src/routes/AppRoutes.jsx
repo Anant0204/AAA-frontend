@@ -250,7 +250,8 @@ const ConsultationDetailsRedirect = () => {
 
 const ConsultationsRedirect = () => {
   const { currentUser } = useAuth();
-  return <Navigate to={`/${getPrefixForRole(currentUser?.role)}/consultations`} replace />;
+  const location = useLocation();
+  return <Navigate to={`/${getPrefixForRole(currentUser?.role)}/consultations`} state={location.state} replace />;
 };
 
 const ConsultationsCalendarRedirect = () => {
