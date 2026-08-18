@@ -965,7 +965,19 @@ export const OperationsLeadDetails = () => {
                             <StatusBadge status={cons.status} />
                           </Box>
                           <Box className="col-span-12 sm:col-span-4" sx={{ textAlign: 'right' }}>
-                            <Button size="small" onClick={() => navigate(`/consultations/details/${cons.id}`)}>
+                            <Button size="small" onClick={async () => {
+                              if (cons.isFallback || (cons.id && String(cons.id).startsWith('pref_'))) {
+                                try {
+                                  const allCons = await dbService.getConsultations();
+                                  const realCons = allCons.find(c => c.leadId === lead.id);
+                                  if (realCons) {
+                                    navigate(`/consultations/details/${realCons.id}`);
+                                    return;
+                                  }
+                                } catch (e) {}
+                              }
+                              navigate(`/consultations/details/${cons.id}`);
+                            }}>
                               View Meeting Details
                             </Button>
                           </Box>
