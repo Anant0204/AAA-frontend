@@ -395,7 +395,12 @@ export const SuperAdminLeadList = () => {
   // Filter & Search Logic
   const filteredLeads = leads
     .filter((lead) => {
-      if (!filterByDate(lead.createdAt || lead.createdDate, startDate, endDate)) return false;
+      const isTodaysConsultationsCard = cardInfo?.title === "Today's Consultations" || (cardInfo?.title && String(cardInfo.title).toLowerCase().includes('consultation'));
+      const dateToFilter = isTodaysConsultationsCard
+        ? (lead.meetingPreferredDate || lead.createdAt || lead.createdDate)
+        : (lead.createdAt || lead.createdDate);
+
+      if (!filterByDate(dateToFilter, startDate, endDate)) return false;
       const fullName = `${lead.firstName || ''} ${lead.lastName || ''}`.toLowerCase();
       const leadIdStr = String(lead.id || '').toLowerCase();
       const emailStr = String(lead.email || '').toLowerCase();
@@ -433,7 +438,7 @@ export const SuperAdminLeadList = () => {
       const matchConsultant = filters.assignedConsultantId
         ? lead.assignedConsultantId === filters.assignedConsultantId
         : true;
-      const matchToday = filters.todayOnly ? lead.createdDate?.startsWith('2026-06-18') : true;
+      const matchToday = filters.todayOnly ? (isTodaysConsultationsCard ? Boolean(lead.meetingPreferredDate) : lead.createdDate?.startsWith('2026-06-18')) : true;
 
       return matchSearch && matchService && matchStatus && matchConsultant && matchToday;
     })

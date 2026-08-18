@@ -341,7 +341,12 @@ export const OperationsLeadList = () => {
   // Filter & Search Logic
   const filteredLeads = leads
     .filter((lead) => {
-      if (!filterByDate(lead.createdAt || lead.createdDate, startDate, endDate)) return false;
+      const isTodaysConsultationsCard = cardInfo?.title === "Today's Consultations" || (cardInfo?.title && String(cardInfo.title).toLowerCase().includes('consultation'));
+      const dateToFilter = isTodaysConsultationsCard
+        ? (lead.meetingPreferredDate || lead.createdAt || lead.createdDate)
+        : (lead.createdAt || lead.createdDate);
+
+      if (!filterByDate(dateToFilter, startDate, endDate)) return false;
 
       const fullName = `${lead.firstName || ''} ${lead.lastName || ''}`.toLowerCase();
       const leadIdStr = String(lead.id || '').toLowerCase();
@@ -355,11 +360,17 @@ export const OperationsLeadList = () => {
         emailStr.includes(searchLower) ||
         phoneStr.includes(searchLower);
 
-      // Role-based scoping: consultants only see their own assigned leads
-      if (!isAdmin && !isOperations && currentUser && currentUser.role === 'consultant') {
-        if (lead.assignedConsultantId !== currentUser.id) {
-          return false;
-        }
+      // Category Tab Filter
+      if (activeCategoryTab === 'visa') {
+        const isTranslation = (lead.serviceId || '').toLowerCase().includes('translation') || (lead.serviceType || '').toLowerCase().includes('translation');
+        const isProperty = (lead.serviceId || '').toLowerCase().includes('property') || (lead.serviceType || '').toLowerCase().includes('property');
+        if (isTranslation || isProperty) return false;
+      } else if (activeCategoryTab === 'property') {
+        const isProperty = (lead.serviceId || '').toLowerCase().includes('property') || (lead.serviceType || '').toLowerCase().includes('property');
+        if (!isProperty) return false;
+      } else if (activeCategoryTab === 'translation') {
+        const isTranslation = (lead.serviceId || '').toLowerCase().includes('translation') || (lead.serviceType || '').toLowerCase().includes('translation');
+        if (!isTranslation) return false;
       }
 
       const matchService = filters.serviceId ? lead.serviceId === filters.serviceId : true;
@@ -367,7 +378,7 @@ export const OperationsLeadList = () => {
       const matchConsultant = filters.assignedConsultantId
         ? lead.assignedConsultantId === filters.assignedConsultantId
         : true;
-      const matchToday = filters.todayOnly ? lead.createdDate?.startsWith('2026-06-18') : true;
+      const matchToday = filters.todayOnly ? (isTodaysConsultationsCard ? Boolean(lead.meetingPreferredDate) : lead.createdDate?.startsWith('2026-06-18')) : true;
 
       return matchSearch && matchService && matchStatus && matchConsultant && matchToday;
     })
