@@ -96,22 +96,22 @@ export const FinancePaymentDashboard = () => {
 
   const { data: payments = [], isLoading } = useQuery({
     queryKey: ['payments'],
-    queryFn: dbService.getPayments 
+    queryFn: dbService.getPayments
   });
 
   const { data: refundRequests = [] } = useQuery({
     queryKey: ['refundRequests'],
-    queryFn: dbService.getRefundRequests 
+    queryFn: dbService.getRefundRequests
   });
 
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
-    queryFn: dbService.getClients 
+    queryFn: dbService.getClients
   });
 
   const { data: agents = [] } = useQuery({
     queryKey: ['agents'],
-    queryFn: dbService.getAgents 
+    queryFn: dbService.getAgents
   });
 
   // Mutations
@@ -563,13 +563,13 @@ export const FinancePaymentDashboard = () => {
                         <Chip
                           label={p.status}
                           size="small"
-                          color={p.status === 'Paid' ? 'success' : p.status === 'Refunded (50%)' ? 'error' : 'warning'}
+                          color={p.status === 'Paid' ? 'success' : (p.status && p.status.includes('Refunded')) ? 'error' : 'warning'}
                           sx={{ fontWeight: 700 }}
                         />
                       </TableCell>
                       <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
-                          {!isViewOnly && p.status !== 'Paid' && p.status !== 'Refunded (50%)' && (
+                          {!isViewOnly && p.status !== 'Paid' && !(p.status && p.status.includes('Refunded')) && (
                             <Button size="small" variant="contained" color="success" onClick={() => updatePaymentStatusMutation.mutate({ id: p.id, status: 'Paid', method: 'Visa', txId: 'TXN-' + Date.now() })}>
                               Mark Paid
                             </Button>
@@ -803,7 +803,7 @@ export const FinancePaymentDashboard = () => {
               AAA BUSINESS CONSULTANCY
             </Typography>
             <Typography variant="caption" align="center" display="block" color="text.secondary" sx={{ mb: 3 }}>
-              Calle Gran Via 45, Madrid, Spain | info@aaabusinessconsultancy.com
+              Business Village, Block B, 4th Floor, Office F09, Port Saeed, Deira, Dubai, UAE | info@aaabusinessconsultancy.com
             </Typography>
 
             <Divider sx={{ mb: 2 }} />

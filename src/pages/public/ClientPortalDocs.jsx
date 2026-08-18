@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { jsPDF } from 'jspdf';
@@ -344,6 +345,143 @@ export const ClientPortalDocs = () => {
   const [claimProofUrl, setClaimProofUrl] = useState('');
   const [claimBankName, setClaimBankName] = useState('');
   const [claimBankIban, setClaimBankIban] = useState('');
+  const [selectedRefundForReceipt, setSelectedRefundForReceipt] = useState(null);
+
+  // Official Letterhead PDF Generator for Refund Receipt
+  const generateRefundReceiptPDF = (refund, clientData) => {
+    try {
+      const doc = new jsPDF();
+      const amountVal = Number(refund?.amount) || 0;
+      const amountStr = `€${amountVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const receiptNo = `RF-2026-${(refund?.id || '').replace(/-/g, '').slice(-6).toUpperCase()}`;
+      const clientName = clientData ? `${clientData.firstName} ${clientData.lastName}` : (client ? `${client.firstName} ${client.lastName}` : 'Valued Client');
+      const clientEmail = clientData?.email || client?.email || 'N/A';
+      const customerId = clientData?.clientCode || client?.clientCode || (clientData?.id ? 'CID-' + clientData.id.slice(-5).toUpperCase() : (client?.id ? 'CID-' + client.id.slice(-5).toUpperCase() : 'CID-12039'));
+      const dateStr = refund?.date || (refund?.createdAt ? dayjs(refund.createdAt).format('DD/MM/YYYY') : dayjs().format('DD/MM/YYYY'));
+
+      // 1. Header (Logo & Company Name)
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.setTextColor(12, 35, 64);
+      doc.text("AAA BUSINESS CONSULTANCY L.L.C", 14, 20);
+
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(197, 155, 39);
+      doc.text("ADVISE  *  ASSIST  *  ACHIEVE", 14, 25);
+
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100, 116, 139);
+      doc.text("Email: client@aaabusinessconsultancy.com | Tel: +971509554142", 14, 31);
+      doc.text("Business Village B, Office F-09, Port Saeed, Deira, Dubai, UAE", 14, 36);
+
+      // Gold line
+      doc.setDrawColor(197, 155, 39);
+      doc.setLineWidth(0.8);
+      doc.line(14, 40, 196, 40);
+
+      // 2. Title & Status
+      doc.setFontSize(15);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(12, 35, 64);
+      doc.text("OFFICIAL REFUND STATEMENT & RECEIPT", 14, 50);
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(71, 85, 105);
+      doc.text(`Receipt #: ${receiptNo}`, 130, 50);
+      doc.text(`Date Issued: ${dateStr}`, 130, 56);
+      doc.text(`Status: ${refund?.status || 'Processed'}`, 130, 62);
+
+      // 3. Client & Payout Box
+      doc.setFillColor(248, 250, 252);
+      doc.rect(14, 68, 182, 30, "F");
+      doc.setDrawColor(226, 232, 240);
+      doc.rect(14, 68, 182, 30, "S");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(100, 116, 139);
+      doc.text("REFUND ISSUED TO", 18, 76);
+      doc.setFontSize(10);
+      doc.setTextColor(12, 35, 64);
+      doc.text(clientName, 18, 83);
+      doc.setFontSize(8.5);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(71, 85, 105);
+      doc.text(`Email: ${clientEmail}`, 18, 89);
+      doc.text(`Customer ID: ${customerId}`, 18, 94);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(100, 116, 139);
+      doc.text("PAYMENT & PAYOUT DETAILS", 115, 76);
+      doc.setFontSize(8.5);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(30, 41, 59);
+      doc.text(`Payout Method: ${refund?.payoutMethod || 'Credit Card / Direct Transfer'}`, 115, 83);
+      doc.text(`Ref / UTR: ${refund?.transactionRef || 'STRIPE-RF-' + (refund?.id || '').slice(0, 8)}`, 115, 89);
+
+      // 4. Table Header
+      doc.setFillColor(12, 35, 64);
+      doc.rect(14, 106, 182, 8, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text("Item & Description", 18, 111.5);
+      doc.text("Category", 120, 111.5);
+      doc.text("Amount (€)", 165, 111.5);
+
+      // 5. Table Body
+      doc.setTextColor(12, 35, 64);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9.5);
+      doc.text("Spain Visa 100% Money-Back Guarantee Refund Settlement", 18, 122);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text("Official refund processed under AAA Business Consultancy Terms & Conditions.", 18, 127);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(30, 41, 59);
+      doc.text(`${refund?.category || 'Visa Rejection'}`, 120, 122);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(197, 155, 39);
+      doc.text(amountStr, 165, 122);
+
+      // Line
+      doc.setDrawColor(203, 213, 225);
+      doc.setLineWidth(0.5);
+      doc.line(14, 135, 196, 135);
+
+      // 6. Grand Total Box
+      doc.setFillColor(12, 35, 64);
+      doc.rect(115, 142, 81, 14, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(255, 255, 255);
+      doc.text("TOTAL REFUNDED:", 119, 151);
+      doc.setTextColor(250, 204, 21);
+      doc.setFontSize(11);
+      doc.text(amountStr, 162, 151);
+
+      // Footer
+      doc.setFontSize(8.5);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(148, 163, 184);
+      doc.text("Thank you for choosing AAA Business Consultancy for your Spain Relocation journey.", 14, 175);
+
+      doc.save(`Refund_Receipt_${receiptNo}.pdf`);
+    } catch (err) {
+      console.error("Refund receipt PDF generation failed:", err);
+      window.print();
+    }
+  };
 
   // Sworn Translation Add-on State
   const [addonFile, setAddonFile] = useState(null);
@@ -1236,27 +1374,29 @@ export const ClientPortalDocs = () => {
 
   const uploadBatchDocMutation = useMutation({
     mutationFn: async (stagedList) => {
-      const results = await Promise.all(
-        stagedList.map(item =>
-          dbService.uploadDocument({
-            file: item.file,
-            clientId: client.id,
-            clientName: `${client.firstName} ${client.lastName}`,
-            category: item.category,
-            belongsTo: item.belongsTo,
-            status: 'Pending Verification'
-          })
-        )
-      );
-      return results;
+      const formData = new FormData();
+      formData.append('clientId', client?.id || clientId);
+      
+      const metadata = stagedList.map(item => ({
+        category: item.category,
+        belongsTo: item.belongsTo
+      }));
+      formData.append('metadata', JSON.stringify(metadata));
+
+      stagedList.forEach(item => {
+        formData.append('files', item.file);
+      });
+
+      return await dbService.uploadDocumentBatch(formData);
     },
-    onSuccess: (results) => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
       queryClient.invalidateQueries({ queryKey: ['clientProfile'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       refetchDocs();
       setStagedFiles({});
-      showAlert(`🎉 ${results.length} document(s) submitted successfully as a complete package! All items are now updated in your checklist.`, 'success');
+      const count = res?.documents?.length || 1;
+      showAlert(`🎉 ${count} document(s) submitted successfully as a complete package! All items are now updated in your checklist.`, 'success');
     },
     onError: (err) => {
       console.error('Batch upload error:', err);
@@ -1497,6 +1637,44 @@ export const ClientPortalDocs = () => {
         fontFamily: 'Plus Jakarta Sans, sans-serif'
       }}
     >
+      {/* Printable Letterhead CSS Styles */}
+      <style>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 0;
+          }
+          html, body {
+            background: #ffffff !important;
+            color: #000000 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          nav, header, aside, .no-print, [class*="MuiDrawer"], [class*="Sidebar"], [class*="PageHeader"], [class*="MuiBackdrop-root"] {
+            display: none !important;
+          }
+          body * {
+            visibility: hidden !important;
+          }
+          .printable-invoice-letterhead, .printable-invoice-letterhead * {
+            visibility: visible !important;
+          }
+          .printable-invoice-letterhead {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            border: none !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+            padding: 10mm !important;
+            border-radius: 0 !important;
+          }
+        }
+      `}</style>
       {/* Header */}
       <Box
         sx={{
@@ -2243,6 +2421,11 @@ export const ClientPortalDocs = () => {
                         const personDocs = clientDocuments.filter(d => d.belongsTo === person || (!d.belongsTo && person === 'Main Applicant'));
                         const personStagedFiles = Object.entries(stagedFiles).filter(([key, item]) => item.belongsTo === person);
                         const docsNeeded = getRequiredDocsForPerson(person);
+                        // A staged passport unlocks the category dropdown immediately (before batch submit)
+                        const hasStagedPassportForPerson = personStagedFiles.some(([, item]) =>
+                          (item.category || '').toLowerCase().includes('passport') ||
+                          (item.fileName || '').toLowerCase().includes('passport')
+                        );
                         return (
                           <Accordion
                             key={person}
@@ -2274,6 +2457,7 @@ export const ClientPortalDocs = () => {
                                 categories={docsNeeded}
                                 existingDocs={personDocs}
                                 requirePassportFirst={true}
+                                stagedPassport={hasStagedPassportForPerson}
                                 isLoading={uploadBatchDocMutation.isPending}
                               />
 
@@ -3731,7 +3915,7 @@ export const ClientPortalDocs = () => {
                                   proofUrl: claimProofUrl,
                                   bankAccountName: claimBankName.trim(),
                                   bankIban: ibanCheck.normalizedIBAN,
-                                  amount: ((Array.isArray(allPayments) ? allPayments.filter(p => p && (p.clientId === clientId || p.clientId === client?.id) && (p.status === 'Paid' || p.status === 'Payment Completed')).reduce((s, p) => s + (Number(p.amount) || 0), 0) : 0)) || (Number(clientActivePkg?.price) || 3500)
+                                  amount: 0
                                 });
                             }}
                             sx={{ mt: 1, py: 1.2, fontWeight: 800 }}
@@ -3739,20 +3923,6 @@ export const ClientPortalDocs = () => {
                             Submit Refund Claim
                           </Button>
                         );
-                      })()}
-                    </Box>
-                  </Paper>
-                </Box>
-
-                {/* Right Side: Existing Claims History */}
-                <Box className="col-span-12 md:col-span-5 flex flex-col h-full">
-                  <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', height: '100%' }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#051A3B', mb: 2 }}>
-                      Your Refund Claim History
-                    </Typography>
-
-                    {allRefunds.filter(r => r.clientId === client.id).length === 0 ? (
-                      <Box sx={{ p: 3, textAlign: 'center', bgcolor: 'background.neutral', borderRadius: 2 }}>
                         <Typography variant="body2" color="text.secondary">
                           No active or past refund claims found for your profile.
                         </Typography>
@@ -3780,13 +3950,17 @@ export const ClientPortalDocs = () => {
                                 sx={{ fontWeight: 700 }}
                               />
                             </Box>
-                            {r.status === 'Processed' && Number(r?.amount) > 0 && (
-                              <Typography variant="subtitle2" color="success.main" sx={{ fontWeight: 800 }}>
-                                Refund Payout Amount: €{(Number(r?.amount) || 0).toLocaleString()}
+{r.status === 'Processed' || r.status === 'Approved' ? (
+                              <Typography variant="h6" color="error.main" sx={{ fontWeight: 800 }}>
+                                €{(Number(r?.amount) || 0).toLocaleString()}
+                              </Typography>
+                            ) : (
+                              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#D97706', my: 0.5 }}>
+                                Pending Admin Audit & Approval
                               </Typography>
                             )}
                             <Typography variant="caption" color="text.secondary" display="block">
-                              Category: {r.category} | Date: {r.date}
+                              Category: {r.category} | Date: {r.date ? (dayjs(r.date).isValid() ? dayjs(r.date).format('DD/MM/YYYY') : r.date) : (r.createdAt ? dayjs(r.createdAt).format('DD/MM/YYYY') : 'N/A')}
                             </Typography>
                             {r.transactionRef && (
                               <Typography variant="caption" color="success.main" sx={{ fontWeight: 700, mt: 0.5, display: 'block' }}>
@@ -3803,9 +3977,7 @@ export const ClientPortalDocs = () => {
                                 size="small"
                                 variant="contained"
                                 color="success"
-                                onClick={() => {
-                                  window.print();
-                                }}
+                                onClick={() => setSelectedRefundForReceipt(r)}
                                 sx={{ mt: 1, ml: 1, textTransform: 'none', fontWeight: 800 }}
                               >
                                 📄 Download Refund Receipt PDF
@@ -4384,6 +4556,250 @@ export const ClientPortalDocs = () => {
             </Button>
           )}
         </DialogActions>
+      </Dialog>
+
+      {/* ── OFFICIAL AAA BUSINESS CONSULTANCY LETTERHEAD REFUND STATEMENT MODAL ── */}
+      <Dialog
+        open={Boolean(selectedRefundForReceipt)}
+        onClose={() => setSelectedRefundForReceipt(null)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 0,
+            overflow: 'hidden'
+          }
+        }}
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#F8FAFC', py: 1.5, px: 3, borderBottom: '1px solid #E2E8F0' }} className="no-print">
+          <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0C2340', fontFamily: 'Outfit, sans-serif' }}>
+            Official Refund Statement & Receipt
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Button
+              size="small"
+              variant="contained"
+              onClick={() => generateRefundReceiptPDF(selectedRefundForReceipt, client)}
+              sx={{ fontWeight: 800, textTransform: 'none', borderRadius: 2, bgcolor: '#0C2340', color: 'white', '&:hover': { bgcolor: '#C59B27', color: '#0C2340' } }}
+            >
+              📥 Download PDF
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => window.print()}
+              sx={{ fontWeight: 800, textTransform: 'none', borderRadius: 2 }}
+            >
+              🖨️ Print Receipt
+            </Button>
+            <IconButton size="small" onClick={() => setSelectedRefundForReceipt(null)}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+
+        <DialogContent sx={{ p: { xs: 2, sm: 4 }, bgcolor: '#FFFFFF' }}>
+          {selectedRefundForReceipt && (() => {
+            const r = selectedRefundForReceipt;
+            const amountVal = Number(r?.amount) || 0;
+            const amountStr = `€${amountVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            const receiptNo = `RF-2026-${(r?.id || '').replace(/-/g, '').slice(-6).toUpperCase()}`;
+            const clientName = client ? `${client.firstName} ${client.lastName}` : 'Valued Client';
+            const customerId = client?.clientCode || (client?.id ? 'CID-' + client.id.slice(-5).toUpperCase() : 'CID-12039');
+            const dateStr = r?.date || (r?.createdAt ? dayjs(r.createdAt).format('DD/MM/YYYY') : dayjs().format('DD/MM/YYYY'));
+
+            return (
+              <Paper
+                className="printable-invoice-letterhead"
+                elevation={0}
+                sx={{
+                  position: 'relative',
+                  bgcolor: '#ffffff',
+                  borderRadius: 2,
+                  border: '1px solid #E2E8F0',
+                  overflow: 'hidden',
+                  minHeight: '720px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  p: { xs: 2.5, sm: 4, md: 4.5 }
+                }}
+              >
+                {/* Background Faint Watermark Logo */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    opacity: 0.04,
+                    pointerEvents: 'none',
+                    zIndex: 0,
+                    width: '350px',
+                    height: '350px'
+                  }}
+                >
+                  <img src={aaaLogo} alt="AAA Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                </Box>
+
+                <Box sx={{ position: 'relative', zIndex: 1 }}>
+                  {/* 1. LETTERHEAD HEADER */}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 2, flexWrap: 'wrap' }}>
+                    {/* Left: Logo & Company Name */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, flexShrink: 0 }}>
+                      <img src={aaaLogo} alt="AAA Logo" style={{ width: 60, height: 60, objectFit: 'contain' }} />
+                      <Box sx={{ borderLeft: '1.5px solid #C59B27', pl: 1.2, py: 0.2 }}>
+                        <Typography sx={{ fontWeight: 900, fontSize: '1.05rem', color: '#0C2340', lineHeight: 1.1, letterSpacing: '0.3px', whiteSpace: 'nowrap' }}>
+                          AAA BUSINESS CONSULTANCY L.L.C
+                        </Typography>
+                        <Box sx={{ borderTop: '1.5px solid #C59B27', borderBottom: '1.5px solid #C59B27', py: 0.2, px: 0.4, textAlign: 'center', mt: 0.5, display: 'inline-block', width: '100%' }}>
+                          <Typography sx={{ fontWeight: 800, fontSize: '0.55rem', color: '#C59B27', letterSpacing: '2px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                            ADVISE • ASSIST • ACHIEVE
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+
+                    {/* Right: Contact Block */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, flexShrink: 0 }}>
+                      <Box sx={{ width: '1.5px', height: '58px', bgcolor: '#C59B27', flexShrink: 0 }} />
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
+                        <Typography sx={{ fontSize: '0.68rem', color: '#0C2340', fontWeight: 700 }}>
+                          ✉️ client@aaabusinessconsultancy.com
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.68rem', color: '#0C2340', fontWeight: 700 }}>
+                          📞 +971509554142
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.68rem', color: '#0C2340', fontWeight: 700 }}>
+                          🌐 www.aaabusinessconsultancy.com
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.63rem', color: '#0C2340', fontWeight: 700, maxWidth: '210px', lineHeight: 1.2 }}>
+                          📍 Business Village B, office number F-09 Port Saeed Deira Dubai, UAE
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  {/* 2. DUAL-TONE DIVIDER BAR */}
+                  <Box sx={{ width: '100%', height: '5px', borderRadius: '1px', display: 'flex', mb: 3.5, overflow: 'hidden' }}>
+                    <Box sx={{ width: '32%', bgcolor: '#0C2340' }} />
+                    <Box sx={{ width: '35%', bgcolor: '#C59B27' }} />
+                    <Box sx={{ width: '33%', bgcolor: '#0C2340' }} />
+                  </Box>
+
+                  {/* 3. STATEMENT META & STATUS BAR */}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2, mb: 3.5 }}>
+                    <Box>
+                      <Typography sx={{ fontSize: '1.6rem', fontWeight: 900, color: '#0C2340', letterSpacing: '0.5px', lineHeight: 1 }}>
+                        REFUND STATEMENT
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#334155', mt: 0.5 }}>
+                        Receipt #: {receiptNo}
+                      </Typography>
+                      <Box sx={{ mt: 1 }}>
+                        <Chip label={r.status || 'Processed'} color="success" size="small" sx={{ fontWeight: 800, textTransform: 'uppercase' }} />
+                      </Box>
+                    </Box>
+
+                    <Box sx={{ textAlign: { sm: 'right' } }}>
+                      <Typography sx={{ fontSize: '0.82rem', color: '#64748B', fontWeight: 600 }}>
+                        <strong>Date Issued:</strong> {dateStr}
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.82rem', color: '#64748B', fontWeight: 600, mt: 0.4 }}>
+                        <strong>Payment Status:</strong> PROCESSED / REFUNDED
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* 4. BILL TO / PAYOUT DETAILS */}
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3, mb: 3.5, bgcolor: '#F8FAFC', p: 2.5, borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+                    <Box>
+                      <Typography sx={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px', mb: 0.5 }}>
+                        REFUND ISSUED TO
+                      </Typography>
+                      <Typography sx={{ fontSize: '1.05rem', fontWeight: 800, color: '#0C2340' }}>
+                        {clientName}
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: '#475569', mt: 0.2 }}>
+                        Email: {client?.email || 'N/A'}
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: '#475569', mt: 0.2 }}>
+                        Customer ID: {customerId}
+                      </Typography>
+                    </Box>
+
+                    <Box sx={{ textAlign: { sm: 'right' } }}>
+                      <Typography sx={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px', mb: 0.5 }}>
+                        PAYMENT & PAYOUT DETAILS
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.88rem', fontWeight: 600, color: '#1E293B' }}>
+                        Payout Method: {r.payoutMethod || 'Credit Card / Direct Transfer'}
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.82rem', fontWeight: 700, color: '#16A34A', mt: 0.4 }}>
+                        Ref / UTR: {r.transactionRef || 'STRIPE-RF-' + (r.id || '').slice(0, 8)}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* 5. ITEMIZED TABLE */}
+                  <TableContainer sx={{ mb: 3.5, borderRadius: '8px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                    <Table>
+                      <TableHead sx={{ bgcolor: '#0C2340 !important' }}>
+                        <TableRow sx={{ bgcolor: '#0C2340 !important' }}>
+                          <TableCell sx={{ color: '#FFFFFF !important', bgcolor: '#0C2340 !important', fontWeight: 800, fontSize: '0.88rem' }}>Description & Settlement</TableCell>
+                          <TableCell sx={{ color: '#FFFFFF !important', bgcolor: '#0C2340 !important', fontWeight: 800, fontSize: '0.88rem' }}>Category</TableCell>
+                          <TableCell align="right" sx={{ color: '#FFFFFF !important', bgcolor: '#0C2340 !important', fontWeight: 800, fontSize: '0.88rem' }}>Amount (€)</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        <TableRow sx={{ bgcolor: '#F8FAFC' }}>
+                          <TableCell>
+                            <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: '#0C2340' }}>
+                              Spain Visa Guarantee Refund Settlement
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.78rem', color: '#64748B', mt: 0.2 }}>
+                              Official refund settlement as per AAA 100% Money-Back Guarantee Terms & Conditions.
+                            </Typography>
+                          </TableCell>
+                          <TableCell sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
+                            {r.category || 'Visa Rejection'}
+                          </TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 800, color: '#C59B27', fontSize: '1rem' }}>
+                            {amountStr}
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+
+                  {/* 6. TOTAL REFUNDED SUMMARY */}
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
+                    <Box sx={{ width: { xs: '100%', sm: '320px' } }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', bgcolor: '#0C2340', color: 'white', p: 1.8, borderRadius: '8px', borderLeft: '4px solid #C59B27' }}>
+                        <Typography sx={{ fontWeight: 800, fontSize: '1.05rem' }}>TOTAL REFUNDED</Typography>
+                        <Typography sx={{ fontWeight: 900, fontSize: '1.2rem', color: '#FACC15' }}>{amountStr}</Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  <Typography sx={{ fontSize: '0.78rem', color: '#94A3B8', textAlign: 'center', mb: 1 }}>
+                    Thank you for choosing AAA Business Consultancy for your Spain Relocation journey.
+                  </Typography>
+                </Box>
+
+                {/* 7. BOTTOM GRAPHIC FOOTER */}
+                <Box sx={{ position: 'relative', width: '100%', mt: 3, overflow: 'hidden' }}>
+                  <svg viewBox="0 0 1000 45" preserveAspectRatio="none" style={{ width: '100%', height: '40px', display: 'block' }}>
+                    <path d="M 0 10 L 230 10 C 248 10 258 18 266 28 L 278 45 L 1000 45 L 1000 38 L 274 38 L 260 22 C 252 12 240 4 225 4 L 0 4 Z" fill="#C59B27" />
+                    <path d="M 0 12 L 225 12 C 240 12 250 20 258 30 L 270 45 L 0 45 Z" fill="#0C2340" />
+                    <path d="M 270 45 L 1000 45 L 1000 38 L 270 38 Z" fill="#0C2340" />
+                  </svg>
+                </Box>
+              </Paper>
+            );
+          })()}
+        </DialogContent>
       </Dialog>
     </Box>
   );

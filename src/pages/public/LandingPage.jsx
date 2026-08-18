@@ -1151,7 +1151,7 @@ export const LandingPage = () => {
                     </div>
                   </div>
                   <div className="text-xs text-slate-300 leading-relaxed font-light mt-4">
-                    Calle de Serrano, 41, Recoletos, 28001 Madrid, Spain
+                    Business Village, Block B, 4th Floor, Office F09, Port Saeed, Deira, Dubai, UAE
                   </div>
                 </div>
                 <div className="pt-3 border-t border-slate-800 text-[10px] text-slate-400 font-light">

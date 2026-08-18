@@ -779,4 +779,15 @@ export const dbService = {
     const res = await apiClient.delete(`/coupons/${id}/permanent`);
     return res.data;
   },
+
+  // ─── Revenue Analytics ──────────────────────────────────────────────────
+  getRevenueAnalytics: async (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.startDate) query.append('startDate', params.startDate);
+    if (params.endDate) query.append('endDate', params.endDate);
+    if (params.consultantId) query.append('consultantId', params.consultantId);
+    const queryStr = query.toString();
+    const res = await apiClient.get(`/payments/revenue-analytics${queryStr ? `?${queryStr}` : ''}`);
+    return res.data;
+  },
 };

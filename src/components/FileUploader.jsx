@@ -29,6 +29,7 @@ export const FileUploader = ({
   categories, 
   existingDocs = [],
   requirePassportFirst = false,
+  stagedPassport = false,
   isLoading = false 
 }) => {
   const baseCategories = Array.isArray(categories) && categories.length > 0 ? categories : CATEGORIES;
@@ -36,9 +37,10 @@ export const FileUploader = ({
     ? baseCategories
     : [...baseCategories, 'Other (Specify Custom Document)'];
 
-  const hasPassportUploaded = Array.isArray(existingDocs) && existingDocs.some(d =>
+  // Passport is considered "present" if it's already in DB OR staged (not yet batch-submitted)
+  const hasPassportUploaded = stagedPassport || (Array.isArray(existingDocs) && existingDocs.some(d =>
     (d.category || d.name || '').toLowerCase().includes('passport')
-  );
+  ));
 
   const isPassportMandatoryFirst = requirePassportFirst && !hasPassportUploaded;
   const passportCat = selectCategories.find(c => c.toLowerCase().includes('passport')) || selectCategories[0];
@@ -136,6 +138,10 @@ export const FileUploader = ({
     };
 
     onUpload(docData);
+
+    // Clear the file preview immediately — staging is synchronous so isLoading never fires
+    setFile(null);
+    setCustomCategory('');
   };
 
   return (

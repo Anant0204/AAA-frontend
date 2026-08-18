@@ -1065,7 +1065,7 @@ export const SuperAdminRefundCommissionHub = () => {
                 VISA REJECTION CLAUSE:
               </Typography>
               <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
-                The system will automatically audit the selected client's payments history and calculate exactly 50% of the total paid amount upon submission.
+                The system will audit the selected client's payments history and record the approved refund amount.
               </Typography>
             </Box>
           )}

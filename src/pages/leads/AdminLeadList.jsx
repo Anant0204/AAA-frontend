@@ -134,10 +134,24 @@ export const AdminLeadList = () => {
     return savedCardInfoStr ? JSON.parse(savedCardInfoStr) : null;
   });
 
+  // UAE timezone helper — converts any timestamp to YYYY-MM-DD in UAE local time (UTC+4)
+  const toUAEDateStr = (ts) => {
+    if (!ts) return '';
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return String(ts).substring(0, 10);
+    const uaeOffset = 4 * 60;
+    const localMs = d.getTime() + uaeOffset * 60 * 1000;
+    const localDate = new Date(localMs);
+    const y = localDate.getUTCFullYear();
+    const m = String(localDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(localDate.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   const filterByDate = (dateStr, start, end) => {
     if (!start && !end) return true;
     if (!dateStr) return false;
-    const formatted = dateStr.substring(0, 10);
+    const formatted = toUAEDateStr(dateStr);
     if (start && !end) return formatted === start;
     return formatted >= start && formatted <= end;
   };
@@ -606,9 +620,15 @@ export const AdminLeadList = () => {
             { label: '30D', key: '30d' },
             { label: 'All', key: 'all' },
           ].map(preset => {
-            const todayStr = new Date().toISOString().split('T')[0];
-            const sevenDaysAgoStr = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-            const thirtyDaysAgoStr = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            const nowUAE = new Date(Date.now() + 4 * 60 * 60 * 1000);
+            const pad = (n) => String(n).padStart(2, '0');
+            const todayStr = `${nowUAE.getUTCFullYear()}-${pad(nowUAE.getUTCMonth() + 1)}-${pad(nowUAE.getUTCDate())}`;
+            const sevenDaysAgoMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
+            const sevenDaysAgoUAE = new Date(sevenDaysAgoMs + 4 * 60 * 60 * 1000);
+            const sevenDaysAgoStr = `${sevenDaysAgoUAE.getUTCFullYear()}-${pad(sevenDaysAgoUAE.getUTCMonth() + 1)}-${pad(sevenDaysAgoUAE.getUTCDate())}`;
+            const thirtyDaysAgoMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
+            const thirtyDaysAgoUAE = new Date(thirtyDaysAgoMs + 4 * 60 * 60 * 1000);
+            const thirtyDaysAgoStr = `${thirtyDaysAgoUAE.getUTCFullYear()}-${pad(thirtyDaysAgoUAE.getUTCMonth() + 1)}-${pad(thirtyDaysAgoUAE.getUTCDate())}`;
 
             const isActive =
               preset.key === 'today' ? startDate === todayStr && endDate === todayStr :
@@ -622,6 +642,7 @@ export const AdminLeadList = () => {
                 variant={isActive ? 'contained' : 'text'}
                 color={isActive ? 'primary' : 'inherit'}
                 onClick={() => {
+                  setPage(0);
                   if (preset.key === 'today') {
                     setStartDate(todayStr);
                     setEndDate(todayStr);
