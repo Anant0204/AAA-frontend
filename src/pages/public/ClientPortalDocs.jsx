@@ -3569,36 +3569,7 @@ export const ClientPortalDocs = () => {
                         </Box>
                       </Box>
 
-                      {/* Calculated Amount Box */}
-                      <Box sx={{ p: 2, borderRadius: 2, bgcolor: '#FAF6ED', border: '1px solid rgba(197, 155, 39, 0.3)' }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block' }}>
-                          Estimated Refund Calculation:
-                        </Typography>
-                        {(() => {
-                          const safePayments = Array.isArray(allPayments) ? allPayments : [];
-                          let totalPaidAmt = safePayments
-                            .filter(p => p && (p.clientId === clientId || p.clientId === client?.id) && (p.status === 'Paid' || p.status === 'Payment Completed'))
-                            .reduce((s, p) => s + (Number(p.amount) || 0), 0);
 
-                          if (totalPaidAmt === 0 && (client?.status === 'Payment Completed' || client?.status === 'Paid' || client?.status === 'Payment Received')) {
-                            const activePkg = (dbPackages && dbPackages.length > 0)
-                              ? dbPackages.find(p => (p.code || p.id) === (client?.packageId || selectedPackage))
-                              : null;
-                            totalPaidAmt = Number(activePkg?.price) || 3500;
-                          }
-
-                          const guaranteePct = customizationSettings?.refundGuaranteePercentage ?? 100;
-                          const estimatedRefund = totalPaidAmt * (guaranteePct / 100);
-                          return (
-                            <Typography variant="h5" sx={{ fontWeight: 900, color: '#C59B27', fontFamily: 'Outfit, sans-serif' }}>
-                              €{(estimatedRefund || 0).toLocaleString()}
-                              <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1, fontWeight: 600 }}>
-                                ({guaranteePct}% of Total Paid Fees €{(totalPaidAmt || 0).toLocaleString()})
-                              </Typography>
-                            </Typography>
-                          );
-                        })()}
-                      </Box>
 
                       {/* Official Proof Upload Button */}
                       <Box sx={{ border: '1px dashed', borderColor: 'divider', borderRadius: 2, p: 2, textAlign: 'center', bgcolor: '#F9FAFB' }}>
@@ -3809,9 +3780,11 @@ export const ClientPortalDocs = () => {
                                 sx={{ fontWeight: 700 }}
                               />
                             </Box>
-                            <Typography variant="h6" color="error.main" sx={{ fontWeight: 800 }}>
-                              €{(Number(r?.amount) || 0).toLocaleString()}
-                            </Typography>
+                            {r.status === 'Processed' && Number(r?.amount) > 0 && (
+                              <Typography variant="subtitle2" color="success.main" sx={{ fontWeight: 800 }}>
+                                Refund Payout Amount: €{(Number(r?.amount) || 0).toLocaleString()}
+                              </Typography>
+                            )}
                             <Typography variant="caption" color="text.secondary" display="block">
                               Category: {r.category} | Date: {r.date}
                             </Typography>
