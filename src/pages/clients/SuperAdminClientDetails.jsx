@@ -1372,10 +1372,10 @@ export const SuperAdminClientDetails = () => {
           {profileRefundCategory === 'Visa Rejection' && (
             <Box sx={{ p: 2, bgcolor: '#FEF2F2', borderRadius: 2, border: '1px solid', borderColor: '#FCA5A5' }}>
               <Typography variant="caption" color="error.dark" sx={{ fontWeight: 700, display: 'block', mb: 0.5 }}>
-                VISA REJECTION CLAUSE (50% GUARANTEE):
+                VISA REJECTION CLAUSE (100% GUARANTEE):
               </Typography>
               <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'error.dark' }}>
-                System will calculate exactly 50% of the total paid fees for this client upon submission.
+                System will calculate 100% of the total paid fees for this client upon submission (Subject to Terms & Conditions).
               </Typography>
             </Box>
           )}
