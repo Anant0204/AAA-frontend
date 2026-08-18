@@ -170,7 +170,14 @@ const navigate = useNavigate();
   const daysInMonth = currentMonth.daysInMonth();
   const yearMonthPrefix = currentMonth.format('YYYY-MM');
   
-  const calendarCells = Array.from({ length: daysInMonth }, (_, i) => {
+  const startDayOfWeek = (currentMonth.day() + 6) % 7;
+
+  const leadingPadding = Array.from({ length: startDayOfWeek }, (_, i) => ({
+    isPadding: true,
+    key: `pad-lead-${i}`
+  }));
+
+  const monthDays = Array.from({ length: daysInMonth }, (_, i) => {
     const dayNum = i + 1;
     const dateStr = `${yearMonthPrefix}-${String(dayNum).padStart(2, '0')}`;
     const dayMeetings = consultations.filter(
@@ -181,8 +188,10 @@ const navigate = useNavigate();
           : true) &&
         matchesCategoryFilter(c, activeCategoryFilter)
     );
-    return { dayNum, dateStr, meetings: dayMeetings };
+    return { dayNum, dateStr, meetings: dayMeetings, isPadding: false, key: dateStr };
   });
+
+  const calendarCells = [...leadingPadding, ...monthDays];
 
   // Current selected day meetings list (with category filter support)
   const selectedDayMeetings = consultations.filter((c) => {
@@ -500,16 +509,35 @@ const navigate = useNavigate();
             {/* Calendar Cells Grid */}
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1, flexGrow: 1 }}>
               {calendarCells.map((cell) => {
+                if (cell.isPadding) {
+                  return (
+                    <Box
+                      key={cell.key}
+                      sx={{
+                        height: 72,
+                        borderRadius: 2,
+                        bgcolor: 'transparent',
+                        opacity: 0.15,
+                        border: '1px dashed',
+                        borderColor: 'divider',
+                        pointerEvents: 'none'
+                      }}
+                    />
+                  );
+                }
+
                 const isSelected = cell.dateStr === selectedDate;
+                const isToday = cell.dateStr === dayjs().format('YYYY-MM-DD');
                 const hasMeetings = cell.meetings.length > 0;
                 const hasNoShowOrCancelled = cell.meetings.some(m => m.status === 'Cancelled' || m.status === 'No-Show');
                 
                 // Color Code styling based on state (Available, Booked, Priority Rebooking)
                 let borderStyle = '1px solid';
-                let borderColor = 'divider';
-                let bgColor = 'background.paper';
+                let borderColor = isToday ? 'primary.main' : 'divider';
+                let bgColor = isToday ? '#F0F7FF' : 'background.paper';
                 
                 if (isSelected) {
+                  borderStyle = '2px solid';
                   borderColor = 'secondary.main';
                   bgColor = 'background.neutral';
                 } else if (hasNoShowOrCancelled) {
@@ -525,13 +553,13 @@ const navigate = useNavigate();
                 } else {
                   // Available: transparent green accents
                   borderStyle = '1px solid';
-                  borderColor = '#10B981';
-                  bgColor = '#ECFDF5';
+                  borderColor = isToday ? 'primary.main' : '#10B981';
+                  bgColor = isToday ? '#EFF6FF' : '#ECFDF5';
                 }
 
                 return (
                   <Paper
-                    key={cell.dayNum}
+                    key={cell.key}
                     onClick={() => setSelectedDate(cell.dateStr)}
                     sx={{
                       height: 72,
@@ -545,18 +573,34 @@ const navigate = useNavigate();
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between',
+                      position: 'relative',
                       transition: 'all 0.15s ease',
                       '&:hover': {
-                        borderColor: 'secondary.main' } }}
+                        borderColor: 'secondary.main',
+                        transform: 'translateY(-1px)'
+                      }
+                    }}
                   >
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        fontWeight: isSelected ? 800 : 500,
-                        color: isSelected ? 'secondary.main' : 'text.primary' }}
-                    >
-                      {cell.dayNum}
-                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: (isSelected || isToday) ? 800 : 600,
+                          color: isSelected ? 'secondary.main' : (isToday ? 'primary.main' : 'text.primary'),
+                          fontSize: '0.85rem'
+                        }}
+                      >
+                        {cell.dayNum}
+                      </Typography>
+                      {isToday && (
+                        <Chip
+                          label="Today"
+                          size="small"
+                          color="primary"
+                          sx={{ height: 16, fontSize: '0.6rem', fontWeight: 800, px: 0 }}
+                        />
+                      )}
+                    </Box>
                     {hasMeetings && (
                       <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
                         {cell.meetings.slice(0, 4).map((m) => (
