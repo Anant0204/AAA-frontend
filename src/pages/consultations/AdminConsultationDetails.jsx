@@ -144,7 +144,34 @@ export const AdminConsultationDetails = () => {
     queryFn: dbService.getConsultants
   });
 
-  const cons = consultations.find((c) => c.id === id || (id && id.startsWith('pref_') && (c.leadId === id.replace('pref_', '') || c.clientId === id.replace('pref_', ''))));
+  const { data: leads = [] } = useQuery({
+    queryKey: ['leads'],
+    queryFn: dbService.getLeads
+  });
+
+  const foundCons = consultations.find((c) => c.id === id || (id && id.startsWith('pref_') && (c.leadId === id.replace('pref_', '') || c.clientId === id.replace('pref_', ''))));
+  const leadFallbackId = (id && id.startsWith('pref_')) ? id.replace('pref_', '') : null;
+  const leadObj = leadFallbackId ? leads.find(l => l.id === leadFallbackId) : null;
+  
+  const cons = foundCons || (leadObj ? {
+    id: id,
+    meetingDate: leadObj.meetingPreferredDate || new Date().toISOString().split('T')[0],
+    meetingTime: leadObj.meetingPreferredTime || 'TBD / Flexible',
+    date: leadObj.meetingPreferredDate || new Date().toISOString().split('T')[0],
+    timeSlot: leadObj.meetingPreferredTime || 'TBD / Flexible',
+    status: leadObj.assignedToId ? 'Scheduled' : 'Pending Assignment',
+    clientName: `${leadObj.firstName || ''} ${leadObj.lastName || ''}`.trim() || 'Lead',
+    clientLanguage: leadObj.preferredLanguage || 'N/A',
+    visaType: leadObj.serviceType || 'Spain Visa',
+    nationality: leadObj.nationality || 'N/A',
+    countryOfResidence: leadObj.countryOfResidence || 'N/A',
+    agentName: leadObj.assignedTo?.fullName || consultants.find(c => c.id === leadObj.assignedToId)?.fullName || 'Unassigned',
+    assignedConsultantName: leadObj.assignedTo?.fullName || consultants.find(c => c.id === leadObj.assignedToId)?.fullName || 'Unassigned',
+    assignedConsultantId: leadObj.assignedToId || null,
+    leadId: leadObj.id,
+    lead: leadObj,
+    isFallback: true
+  } : null);
 
   // Mutations
   const updateStatusMutation = useMutation({
