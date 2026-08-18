@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import dayjs from 'dayjs';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { jsPDF } from 'jspdf';
 import Box from '@mui/material/Box';
@@ -23,6 +24,9 @@ import Chip from '@mui/material/Chip';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Divider from '@mui/material/Divider';
+import LinearProgress from '@mui/material/LinearProgress';
+import Avatar from '@mui/material/Avatar';
+import CircularProgress from '@mui/material/CircularProgress';
 import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 
 // Icons
@@ -84,27 +88,38 @@ export const FinancePaymentDashboard = () => {
   const [generatedLink, setGeneratedLink] = useState('');
 
   // Queries
+  // Queries
+  const { data: analytics, isLoading: isAnalyticsLoading } = useQuery({
+    queryKey: ['revenue-analytics'],
+    queryFn: dbService.getRevenueAnalytics
+  });
+
   const { data: payments = [], isLoading } = useQuery({
     queryKey: ['payments'],
-    queryFn: dbService.getPayments });
+    queryFn: dbService.getPayments 
+  });
 
   const { data: refundRequests = [] } = useQuery({
     queryKey: ['refundRequests'],
-    queryFn: dbService.getRefundRequests });
+    queryFn: dbService.getRefundRequests 
+  });
 
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
-    queryFn: dbService.getClients });
+    queryFn: dbService.getClients 
+  });
 
   const { data: agents = [] } = useQuery({
     queryKey: ['agents'],
-    queryFn: dbService.getAgents });
+    queryFn: dbService.getAgents 
+  });
 
   // Mutations
   const createInvoiceMutation = useMutation({
     mutationFn: dbService.createInvoice,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['revenue-analytics'] });
       showAlert('Invoice generated successfully', 'success');
       setInvoiceModalOpen(false);
       setInvoiceForm({
@@ -125,6 +140,7 @@ export const FinancePaymentDashboard = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['revenue-analytics'] });
       showAlert('Payment status updated successfully', 'success');
     }
   });
@@ -136,143 +152,38 @@ export const FinancePaymentDashboard = () => {
     }
   });
 
-  // Helper for ISO date parsing
-  const getDateStr = (val) => {
-    if (!val) return '';
-    if (typeof val === 'string' && val.includes('/')) {
-      const parts = val.split('/');
-      if (parts.length === 3) {
-        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-      }
-    }
-    try {
-      const d = new Date(val);
-      if (isNaN(d.getTime())) return '';
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
-    } catch (e) {
-      return '';
-    }
-  };
+  // Currency Formatter Helper
+  const formatEUR = (val) => `€${(Number(val) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  // Calculations
-  const getRevenueStats = () => {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const d = String(now.getDate()).padStart(2, '0');
-    const todayStr = `${y}-${m}-${d}`;
-    const monthStr = `${y}-${m}`;
-    const yearStr = `${y}`;
-
-    const processedRefunds = (Array.isArray(refundRequests) ? refundRequests : []).filter(
-      r => r && (r.status === 'Processed' || r.status === 'Approved')
-    );
-
-    const totalRefunded = processedRefunds.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-    const todayRefunded = processedRefunds
-      .filter(r => getDateStr(r.updatedAt || r.createdAt || r.date) === todayStr)
-      .reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-    const monthRefunded = processedRefunds
-      .filter(r => getDateStr(r.updatedAt || r.createdAt || r.date).startsWith(monthStr))
-      .reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-    const yearRefunded = processedRefunds
-      .filter(r => getDateStr(r.updatedAt || r.createdAt || r.date).startsWith(yearStr))
-      .reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-
-    let grossPaid = 0;
-    let totalOutstanding = 0;
-    let expectedRevenue = 0;
-
-    let grossToday = 0;
-    let grossMonth = 0;
-    let grossYear = 0;
-
-    const uniquePaidClients = new Set();
-
-    (Array.isArray(payments) ? payments : []).forEach(p => {
-      if (!p) return;
-      const amt = Number(p.amount || 0) - Number(p.discount || 0);
-      expectedRevenue += amt;
-
-      if (p.status === 'Paid' || p.status === 'Completed') {
-        const paidVal = Number(p.totalPaid || p.amount || 0);
-        grossPaid += paidVal;
-        uniquePaidClients.add(p.clientId);
-
-        const pDate = getDateStr(p.paidAt || p.paymentDate || p.billingDate || p.dueDate || p.createdAt);
-
-        if (pDate === todayStr) {
-          grossToday += paidVal;
-        }
-
-        if (pDate.startsWith(monthStr)) {
-          grossMonth += paidVal;
-        }
-
-        if (pDate.startsWith(yearStr)) {
-          grossYear += paidVal;
-        }
-      } else if (p.status === 'Pending' || p.status === 'Pending Payment' || p.status === 'Overdue') {
-        totalOutstanding += amt;
-      }
-    });
-
-    const netRevenue = Math.max(0, grossPaid - totalRefunded);
-    const revenueToday = Math.max(0, grossToday - todayRefunded);
-    const revenueThisMonth = Math.max(0, grossMonth - monthRefunded);
-    const revenueThisYear = Math.max(0, grossYear - yearRefunded);
-
-    return {
-      totalPaid: netRevenue,
-      grossPaid,
-      totalRefunded,
-      totalOutstanding,
-      expectedRevenue,
-      netRevenue,
-      revenueToday,
-      revenueThisMonth,
-      revenueThisYear,
-      totalPaidClients: uniquePaidClients.size
-    };
-  };
-
-  const revenueStats = getRevenueStats();
+  // Core Revenue Metrics from Authoritative Backend Service
+  const totalRevenue = analytics?.totalRevenue ?? 0;
+  const revenueToday = analytics?.revenueToday ?? 0;
+  const revenueThisWeek = analytics?.revenueThisWeek ?? 0;
+  const revenueThisMonth = analytics?.revenueThisMonth ?? 0;
+  const revenueThisYear = analytics?.revenueThisYear ?? 0;
+  const outstandingRevenue = analytics?.outstandingRevenue ?? 0;
+  const netRevenue = analytics?.netRevenue ?? 0;
+  const totalRefunded = analytics?.totalRefunded ?? 0;
+  const totalPaidClients = analytics?.totalPaidClients ?? 0;
+  const revenueByService = analytics?.revenueByService || [];
+  const revenueByConsultant = analytics?.revenueByConsultant || [];
+  const revenueByPaymentMethod = analytics?.revenueByPaymentMethod || [];
 
   const stats = [
-    { title: 'Total Net Revenue', value: `€${revenueStats.netRevenue.toLocaleString()}`, icon: <CheckCircleIcon />, color: '#22C55E' },
-    { title: 'Expected Revenue (Gross)', value: `€${revenueStats.expectedRevenue.toLocaleString()}`, icon: <PaymentsIcon />, color: '#2563EB' },
-    { title: 'Outstanding Receivables', value: `€${revenueStats.totalOutstanding.toLocaleString()}`, icon: <RequestQuoteIcon />, color: '#F59E0B' },
-    { title: 'Refunded (Rejections)', value: `€${revenueStats.totalRefunded.toLocaleString()}`, icon: <HighlightOffIcon />, color: '#EF4444' }
+    { title: 'Total Revenue', value: formatEUR(totalRevenue), icon: <CheckCircleIcon />, color: '#22C55E' },
+    { title: 'Outstanding Receivables', value: formatEUR(outstandingRevenue), icon: <RequestQuoteIcon />, color: '#F59E0B' },
+    { title: 'Total Net Revenue', value: formatEUR(netRevenue), icon: <PaymentsIcon />, color: '#051A3B' }
   ];
 
   const timeStats = [
-    { label: 'Revenue Today (Net)', value: `€${revenueStats.revenueToday.toLocaleString()}` },
-    { label: 'Revenue This Month (Net)', value: `€${revenueStats.revenueThisMonth.toLocaleString()}` },
-    { label: 'Revenue This Year (Net)', value: `€${revenueStats.revenueThisYear.toLocaleString()}` },
-    { label: 'Total Paid Clients', value: `${revenueStats.totalPaidClients}` }
+    { label: 'Revenue Today (Net)', value: formatEUR(revenueToday) },
+    { label: 'Revenue This Week (Net)', value: formatEUR(revenueThisWeek) },
+    { label: 'Revenue This Month (Net)', value: formatEUR(revenueThisMonth) },
+    { label: 'Revenue This Year (Net)', value: formatEUR(revenueThisYear) },
+    { label: 'Total Paid Clients', value: `${totalPaidClients}` }
   ];
 
-  // Pie chart calculations (Payment method share)
-  const methodDataMap = payments.reduce((acc, curr) => {
-    if (curr.status !== 'Paid') return acc;
-    const m = curr.paymentMethod || 'Visa';
-    acc[m] = (acc[m] || 0) + curr.totalPaid;
-    return acc;
-  }, {});
-  const methodData = Object.entries(methodDataMap).map(([name, value]) => ({ name, value }));
-  const COLORS = ['#2563EB', '#14B8A6', '#8B5CF6', '#F59E0B', '#EC4899', '#EF4444'];
-
-  // Bar chart calculations (Revenue by service)
-  const serviceDataMap = payments.reduce((acc, curr) => {
-    if (curr.status !== 'Paid') return acc;
-    const s = curr.serviceId === 'dnv' ? 'Digital Nomad' : curr.serviceId === 'nlv' ? 'NLV' : curr.serviceId === 'study' ? 'Study' : curr.serviceId === 'property' ? 'Golden Visa' : 'Others';
-    acc[s] = (acc[s] || 0) + curr.totalPaid;
-    return acc;
-  }, {});
-  const serviceData = Object.entries(serviceDataMap).map(([name, value]) => ({ name, value }));
+  const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6', '#06B6D4', '#64748B'];
 
   // Helper form submits
   const handleGenerateInvoice = () => {
@@ -296,13 +207,12 @@ export const FinancePaymentDashboard = () => {
 
   const handleGeneratePaymentLink = () => {
     if (!linkForm.clientName || !linkForm.amount) {
-      showAlert('Please enter client name and amount', 'warning');
+      showAlert('Client Name and Amount are required', 'warning');
       return;
     }
-    const slug = Math.random().toString(36).substr(2, 6).toUpperCase();
-    const link = `https://pay.aaabusinessconsultancy.com/checkout/${slug}`;
-    setGeneratedLink(link);
-    showAlert('Payment Link generated successfully', 'success');
+    const mockUrl = `${window.location.origin}/#/portal/pay?client=${encodeURIComponent(linkForm.clientName)}&amt=${linkForm.amount}&ref=PL-${Date.now()}`;
+    setGeneratedLink(mockUrl);
+    showAlert('Payment Link generated successfully!', 'success');
   };
 
   const handleViewReceipt = (invoice) => {
@@ -345,10 +255,9 @@ export const FinancePaymentDashboard = () => {
 
   const handleAWSBackup = (invoice) => {
     backupFileMutation.mutate({
-      name: `${invoice.id}_invoice.pdf`,
-      size: '144 KB',
-      category: 'Invoice Storage',
-      id: invoice.id
+      id: invoice.id,
+      title: `Invoice-Backup-${invoice.id}`,
+      type: 'invoice_backup'
     });
   };
 
@@ -360,9 +269,9 @@ export const FinancePaymentDashboard = () => {
       />
 
       {/* Overview stats */}
-      <Box className="grid grid-cols-12 gap-2" sx={{ mb: 4 }}>
+      <Box className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-3 gap-3 mb-4">
         {stats.map((st, idx) => (
-          <Box className="col-span-12 sm:col-span-6 md:col-span-3" key={idx}>
+          <Box key={idx}>
             <StatCard title={st.title} value={st.value} icon={st.icon} color={st.color} />
           </Box>
         ))}
@@ -370,9 +279,9 @@ export const FinancePaymentDashboard = () => {
 
       {/* Time Breakdown Cards */}
       <Paper sx={{ p: 3, mb: 4, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
-        <Box className="grid grid-cols-12 gap-2">
+        <Box className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           {timeStats.map((ts, idx) => (
-            <Box className="col-span-6" sm={2.4} key={idx} sx={{ textAlign: 'center', borderRight: idx < 4 ? '1px solid' : 'none', borderColor: 'divider' }}>
+            <Box key={idx} className="col-span-1 text-center" sx={{ borderRight: idx < 4 ? '1px solid' : 'none', borderColor: 'divider' }}>
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
                 {ts.label}
               </Typography>
@@ -398,48 +307,216 @@ export const FinancePaymentDashboard = () => {
         <Tab label="Payment Link & Invoice Console" />
       </Tabs>
 
-      {/* Tab 0: Charts */}
+      {/* Tab 0: Production-Ready Revenue Analytics */}
       {tabValue === 0 && (
-        <Box className="grid grid-cols-12 gap-2">
-          <Box className="col-span-12 md:col-span-6">
-            <ChartCard title="Revenue Share by Payment Method" subheader="Stripe, Emirates NBD Bank, Visa etc.">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={methodData}
-                    cx="50%"
-                    cy="45%"
-                    innerRadius={50}
-                    outerRadius={75}
-                    paddingAngle={3}
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                    fontSize={10}
-                    fontWeight={600}
-                  >
-                    {methodData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <ChartTooltip formatter={(value) => `€${value}`} />
-                </PieChart>
-              </ResponsiveContainer>
-            </ChartCard>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {/* Top Row: Revenue by Service & Revenue by Payment Method */}
+          <Box className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+            {/* 1. Revenue by Service */}
+            <Box className="col-span-12 lg:col-span-7">
+              <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                      Revenue by Service & Package
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Breakdown of recognized revenue and deal volume by service category
+                    </Typography>
+                  </Box>
+                  <Chip label={`${revenueByService.length} Services`} size="small" sx={{ fontWeight: 700, bgcolor: '#F1F5F9' }} />
+                </Box>
+
+                <Box sx={{ height: 220, mb: 2 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={revenueByService} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                      <XAxis dataKey="service" fontSize={10} stroke="#64748B" tickFormatter={(val) => val.length > 14 ? val.slice(0, 14) + '…' : val} />
+                      <YAxis fontSize={10} stroke="#64748B" tickFormatter={(val) => `€${val}`} />
+                      <ChartTooltip formatter={(value) => [`€${Number(value).toLocaleString()}`, 'Revenue']} />
+                      <Bar dataKey="revenue" fill="#4F46E5" radius={[6, 6, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Box>
+
+                <TableContainer sx={{ mt: 'auto' }}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 700 }}>Service</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700 }}>Revenue</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 700 }}>Deals</TableCell>
+                        <TableCell sx={{ fontWeight: 700, width: 140 }}>Share</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {revenueByService.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} align="center" sx={{ py: 3, color: 'text.secondary' }}>
+                            No service revenue data yet.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        revenueByService.map((s, idx) => (
+                          <TableRow key={idx} sx={{ '&:hover': { bgcolor: '#F8FAFC' } }}>
+                            <TableCell sx={{ fontWeight: 600, fontSize: '0.82rem' }}>{s.service}</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 700, color: '#16A34A', fontSize: '0.85rem' }}>{formatEUR(s.revenue)}</TableCell>
+                            <TableCell align="center" sx={{ fontWeight: 600, fontSize: '0.82rem' }}>{s.transactionsCount}</TableCell>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <LinearProgress variant="determinate" value={Math.min(100, s.percentage)} sx={{ flexGrow: 1, height: 6, borderRadius: 3, bgcolor: '#E2E8F0', '& .MuiLinearProgress-bar': { bgcolor: '#4F46E5' } }} />
+                                <Typography variant="caption" sx={{ fontWeight: 700, minWidth: 32, textAlign: 'right' }}>{s.percentage}%</Typography>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
+            </Box>
+
+            {/* 2. Revenue by Payment Method */}
+            <Box className="col-span-12 lg:col-span-5">
+              <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                    Revenue by Payment Method
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Transaction gateways and checkout method distribution
+                  </Typography>
+                </Box>
+
+                <Box sx={{ height: 220, mb: 2 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={revenueByPaymentMethod.map(m => ({ name: m.method, value: m.revenue }))}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={55}
+                        outerRadius={80}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {revenueByPaymentMethod.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <ChartTooltip formatter={(value) => [`€${Number(value).toLocaleString()}`, 'Revenue']} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Box>
+
+                <TableContainer sx={{ mt: 'auto' }}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 700 }}>Method</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700 }}>Revenue</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 700 }}>Txns</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700 }}>Share</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {revenueByPaymentMethod.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} align="center" sx={{ py: 3, color: 'text.secondary' }}>
+                            No payment method data recorded.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        revenueByPaymentMethod.map((m, idx) => (
+                          <TableRow key={idx} sx={{ '&:hover': { bgcolor: '#F8FAFC' } }}>
+                            <TableCell sx={{ fontWeight: 600, fontSize: '0.82rem' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: COLORS[idx % COLORS.length] }} />
+                                {m.method}
+                              </Box>
+                            </TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 700, color: '#16A34A', fontSize: '0.85rem' }}>{formatEUR(m.revenue)}</TableCell>
+                            <TableCell align="center" sx={{ fontWeight: 600, fontSize: '0.82rem' }}>{m.transactionsCount}</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.82rem' }}>{m.percentage}%</TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
+            </Box>
           </Box>
 
-          <Box className="col-span-12 md:col-span-6">
-            <ChartCard title="Revenue Share by Service" subheader="Digital Nomad, Golden Visa, Student visa revenues">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={serviceData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="name" fontSize={11} stroke="#94A3B8" />
-                  <YAxis fontSize={11} stroke="#94A3B8" />
-                  <ChartTooltip formatter={(value) => `€${value}`} />
-                  <Bar dataKey="value" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          </Box>
+          {/* Bottom Row: Revenue by Consultant Performance Table */}
+          <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                  Revenue by Consultant / Agent Performance
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Attributed closed revenue and deal contribution per assigned team consultant
+                </Typography>
+              </Box>
+              <Chip label={`${revenueByConsultant.length} Team Members`} size="small" sx={{ fontWeight: 700, bgcolor: '#F1F5F9' }} />
+            </Box>
+
+            <TableContainer sx={{ overflowX: 'auto' }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700 }}>Consultant / Agent</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>Total Revenue Closed</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 700 }}>Successful Deals</TableCell>
+                    <TableCell sx={{ fontWeight: 700, width: 220 }}>Revenue Share Contribution</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {revenueByConsultant.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} align="center" sx={{ py: 3, color: 'text.secondary' }}>
+                        No consultant-attributed revenue recorded.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    revenueByConsultant.map((c, idx) => (
+                      <TableRow key={idx} sx={{ '&:hover': { bgcolor: '#F8FAFC' } }}>
+                        <TableCell sx={{ fontWeight: 700, fontSize: '0.88rem' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <Avatar
+                              src={c.avatar}
+                              alt={c.consultantName}
+                              sx={{ width: 32, height: 32, bgcolor: '#4F46E5', fontSize: '0.8rem', fontWeight: 800 }}
+                            >
+                              {c.consultantName?.charAt(0) || 'U'}
+                            </Avatar>
+                            <Box>
+                              <Typography sx={{ fontWeight: 700, fontSize: '0.85rem' }}>{c.consultantName}</Typography>
+                              <Typography variant="caption" color="text.secondary">{c.consultantId === 'unassigned' ? 'Unassigned Lead/Client' : 'Immigration Consultant'}</Typography>
+                            </Box>
+                          </Box>
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 800, color: '#16A34A', fontSize: '0.9rem' }}>{formatEUR(c.revenue)}</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.85rem' }}>{c.transactionsCount}</TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <LinearProgress
+                              variant="determinate"
+                              value={Math.min(100, c.percentage)}
+                              sx={{ flexGrow: 1, height: 8, borderRadius: 4, bgcolor: '#E2E8F0', '& .MuiLinearProgress-bar': { bgcolor: '#10B981' } }}
+                            />
+                            <Typography variant="body2" sx={{ fontWeight: 800, minWidth: 42, textAlign: 'right' }}>{c.percentage}%</Typography>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
         </Box>
       )}
 
@@ -471,7 +548,7 @@ export const FinancePaymentDashboard = () => {
               <TableBody>
                 {payments.map((p) => {
                   const dueAmt = p.amount - (p.discount || 0);
-                  const formattedDueDate = p.dueDate ? (p.dueDate.includes('T') ? p.dueDate.split('T')[0] : p.dueDate) : 'N/A';
+                  const formattedDueDate = p.dueDate ? (dayjs(p.dueDate).isValid() ? dayjs(p.dueDate).format('DD/MM/YYYY') : p.dueDate) : 'N/A';
                   const displayInvoiceId = p.invoiceNumber || (p.id ? `INV-${p.id.slice(0, 8)}` : 'INV-00000000');
                   return (
                     <TableRow key={p.id}>
@@ -742,7 +819,7 @@ export const FinancePaymentDashboard = () => {
               </Box>
               <Box className="col-span-6">
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>PAYMENT DATE:</Typography>
-                <Typography variant="subtitle2">{selectedInvoice.billingDate}</Typography>
+                <Typography variant="subtitle2">{selectedInvoice.billingDate ? (dayjs(selectedInvoice.billingDate).isValid() ? dayjs(selectedInvoice.billingDate).format('DD/MM/YYYY') : selectedInvoice.billingDate) : 'N/A'}</Typography>
               </Box>
               <Box className="col-span-6" align="right">
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>TRANSACTION REFERENCE:</Typography>

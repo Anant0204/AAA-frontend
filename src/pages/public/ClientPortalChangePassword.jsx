@@ -179,6 +179,7 @@ export const ClientPortalChangePassword = () => {
                     <IconButton
                       onClick={() => setShowPassword(!showPassword)}
                       edge="end"
+                      aria-label="toggle password visibility"
                       sx={{ color: '#C59B27', '&:hover': { color: '#ffffff' } }}
                     >
                       {showPassword ? <VisibilityOff /> : <Visibility />}
@@ -211,6 +212,7 @@ export const ClientPortalChangePassword = () => {
                     <IconButton
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       edge="end"
+                      aria-label="toggle confirm password visibility"
                       sx={{ color: '#C59B27', '&:hover': { color: '#ffffff' } }}
                     >
                       {showConfirmPassword ? <VisibilityOff /> : <Visibility />}

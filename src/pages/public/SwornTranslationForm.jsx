@@ -479,8 +479,9 @@ const SwornTranslationForm = () => {
       setStatus('loading');
       setError(null);
 
-      // Process each document individually with field name 'document' for 100% backend compatibility
-      const docPromises = documents.map(async (doc, idx) => {
+      // 1. Prepare Batch Upload Form
+      const batchForm = new FormData();
+      const metadata = documents.map((doc, idx) => {
         let finalLang = doc.documentLanguage;
         if (doc.documentLanguage === 'Other' && doc.otherLanguage?.trim()) {
           finalLang = doc.otherLanguage.trim();
@@ -489,54 +490,56 @@ const SwornTranslationForm = () => {
         if (doc.category === 'Other' && doc.customCategory?.trim()) {
           finalCat = `Other: ${doc.customCategory.trim()}`;
         }
-
-        const singleForm = new FormData();
-        singleForm.append('document', doc.file);
-        singleForm.append('category', finalCat);
-        singleForm.append('sourceLanguage', finalLang);
-        singleForm.append('targetLanguage', formData.targetLanguage);
-        singleForm.append('firstName', formData.firstName);
-        singleForm.append('lastName', formData.lastName);
-        singleForm.append('email', formData.email);
-        singleForm.append('phone', formData.phone);
-        singleForm.append('nationality', formData.nationality);
-        singleForm.append('countryOfResidence', formData.countryOfResidence);
-
-        const res = await axios.post(`${API_URL}/booking/translation/upload`, singleForm, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-
-        const resData = res.data?.data || {};
-        const wordCount = Number(resData.wordCount) || 0;
-        const rate = Number(resData.rate) || (
-          translationRates.find(r => (r.name || r.value || '').toLowerCase().includes(finalLang.toLowerCase()))?.rate || 0.15
-        );
-        const subtotal = Number(resData.subtotal) || parseFloat((wordCount * rate).toFixed(2));
-        const vat = Number(resData.vat) || parseFloat((subtotal * 0.05).toFixed(2));
-        const estimatedPrice = Number(resData.estimatedPrice) || parseFloat((subtotal + vat).toFixed(2));
+        
+        batchForm.append('documents', doc.file);
 
         return {
           index: idx,
           name: doc.file.name,
           category: finalCat,
           documentLanguage: finalLang,
-          wordCount,
-          rate,
-          subtotal,
-          vat,
-          estimatedPrice
+          sourceLanguage: finalLang,
+          targetLanguage: formData.targetLanguage
         };
       });
 
-      const docResults = await Promise.all(docPromises);
+      batchForm.append('documentsMetadata', JSON.stringify(metadata));
+      batchForm.append('firstName', formData.firstName);
+      batchForm.append('lastName', formData.lastName);
+      batchForm.append('email', formData.email);
+      batchForm.append('phone', formData.phone);
+      batchForm.append('nationality', formData.nationality);
+      batchForm.append('targetLanguage', formData.targetLanguage);
 
-      const totalWordCount = docResults.reduce((sum, d) => sum + d.wordCount, 0);
-      const totalSubtotal = parseFloat(docResults.reduce((sum, d) => sum + d.subtotal, 0).toFixed(2));
-      const totalVat = parseFloat((totalSubtotal * 0.05).toFixed(2));
-      const totalEstimatedPrice = parseFloat((totalSubtotal + totalVat).toFixed(2));
+      const res = await axios.post(`${API_URL}/booking/translation/upload`, batchForm, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      const resData = res.data?.data || {};
+      const returnedDocs = Array.isArray(resData.documents) && resData.documents.length > 0
+        ? resData.documents
+        : metadata.map((m, idx) => {
+            const wordCount = resData.wordCount || 0;
+            const rate = translationRates.find(r => (r.name || r.value || '').toLowerCase().includes(m.documentLanguage.toLowerCase()))?.rate || 0.15;
+            const subtotal = parseFloat((wordCount * rate).toFixed(2));
+            const vat = parseFloat((subtotal * 0.05).toFixed(2));
+            return {
+              ...m,
+              wordCount,
+              rate,
+              subtotal,
+              vat,
+              estimatedPrice: parseFloat((subtotal + vat).toFixed(2))
+            };
+          });
+
+      const totalWordCount = Number(resData.totalWordCount || resData.wordCount) || returnedDocs.reduce((sum, d) => sum + (d.wordCount || 0), 0);
+      const totalSubtotal = Number(resData.subtotal) || parseFloat(returnedDocs.reduce((sum, d) => sum + (d.subtotal || 0), 0).toFixed(2));
+      const totalVat = Number(resData.vat) || parseFloat((totalSubtotal * 0.05).toFixed(2));
+      const totalEstimatedPrice = Number(resData.estimatedPrice) || parseFloat((totalSubtotal + totalVat).toFixed(2));
 
       setQuote({
-        documents: docResults,
+        documents: returnedDocs,
         totalWordCount,
         wordCount: totalWordCount,
         subtotal: totalSubtotal,
@@ -564,9 +567,11 @@ const SwornTranslationForm = () => {
       setError(null);
 
       const formDataCheckout = new FormData();
-      if (documents[0] && documents[0].file) {
-        formDataCheckout.append('document', documents[0].file);
-      }
+      documents.forEach((doc) => {
+        if (doc.file) {
+          formDataCheckout.append('documents', doc.file);
+        }
+      });
 
       formDataCheckout.append('firstName', formData.firstName);
       formDataCheckout.append('lastName', formData.lastName);
@@ -592,8 +597,13 @@ const SwornTranslationForm = () => {
           index: idx,
           name: doc.name || matchingDocState.file?.name || `Document_${idx + 1}.pdf`,
           documentLanguage: finalLang,
+          sourceLanguage: finalLang,
           category: finalCat,
-          wordCount: doc.wordCount || 0
+          wordCount: doc.wordCount || 0,
+          rate: doc.rate || 0.15,
+          subtotal: doc.subtotal || 0,
+          vat: doc.vat || 0,
+          estimatedPrice: doc.estimatedPrice || 0
         };
       });
 

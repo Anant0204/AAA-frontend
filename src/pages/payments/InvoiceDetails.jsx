@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import dayjs from 'dayjs';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Box from '@mui/material/Box';
@@ -127,12 +128,8 @@ export const InvoiceDetails = () => {
 
   const formatInvoiceDate = (dateStr) => {
     if (!dateStr) return 'N/A';
-    try {
-      const d = new Date(dateStr);
-      return isNaN(d.getTime()) ? String(dateStr).split('T')[0] : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-    } catch (e) {
-      return String(dateStr).split('T')[0];
-    }
+    const d = dayjs(dateStr);
+    return d.isValid() ? d.format('DD/MM/YYYY') : String(dateStr);
   };
 
   const invoiceNumber = invoice.invoiceNumber || invoice.invoiceNo || `INV-2026-${(invoice.id || '').replace(/-/g, '').slice(-6).toUpperCase()}`;

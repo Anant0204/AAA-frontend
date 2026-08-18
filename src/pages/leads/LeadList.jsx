@@ -54,7 +54,7 @@ import AppModal from '../../components/AppModal';
 import StatCard from '../../components/StatCard';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
-import { SERVICES } from '../../constants/mockData';
+import { SERVICES, getLeadStatusOptions, SWORN_TRANSLATION_STATUSES } from '../../constants/mockData';
 
 const leadSchema = yup.object().shape({
   firstName: yup.string().required('First Name is required'),
@@ -389,9 +389,7 @@ export const LeadList = () => {
       sortable: true,
       render: (row) => {
         const currentStatus = row.status || 'New Lead';
-        const options = leadStatuses.includes(currentStatus)
-          ? leadStatuses
-          : [...leadStatuses, currentStatus];
+        const options = getLeadStatusOptions(row, leadStages);
         return (
           <Select
             value={currentStatus}
@@ -433,7 +431,7 @@ export const LeadList = () => {
     'Converted Client',
     'Cancelled'
   ];
-  const leadStatuses = Array.from(new Set([...standardStatuses, ...leadStages.map(s => s.name)]));
+  const leadStatuses = Array.from(new Set([...standardStatuses, ...leadStages.map(s => s.name), ...SWORN_TRANSLATION_STATUSES]));
 
   return (
     <Box>

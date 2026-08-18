@@ -5,20 +5,28 @@ import { dbService } from "../../services/dbService";
 
 const PaymentSuccess = () => {
   const location = useLocation();
+  const hashQuery = new URLSearchParams(window.location.hash.split('?')[1] || '');
   const query = new URLSearchParams(location.search);
-  const sessionId = query.get('session_id');
+  const sessionId = hashQuery.get('session_id') || query.get('session_id');
+  const leadId = hashQuery.get('leadId') || query.get('leadId');
+  const type = hashQuery.get('type') || query.get('type');
 
   const { data: verifyData, isLoading, error } = useQuery({
-    queryKey: ['paymentSession', sessionId],
+    queryKey: ['paymentSession', sessionId, leadId],
     queryFn: async () => {
       try {
-        await dbService.verifyCheckoutSession(sessionId);
+        await dbService.verifyCheckoutSession(sessionId, null, leadId);
       } catch (err) {
         console.error("Failed to verify session, fetching anyway", err);
       }
-      return dbService.getPaymentBySessionId(sessionId);
+      if (sessionId) {
+        try {
+          return await dbService.getPaymentBySessionId(sessionId);
+        } catch (e) {}
+      }
+      return { success: true };
     },
-    enabled: !!sessionId
+    enabled: !!(sessionId || leadId)
   });
 
   return (
@@ -79,7 +87,7 @@ const PaymentSuccess = () => {
             letterSpacing: "-0.5px"
           }}
         >
-          Payment Successful! 🎉
+          {type === 'translation' ? 'Translation Payment Completed! 📜' : 'Payment Successful! 🎉'}
         </h2>
 
         {isLoading ? (
@@ -93,6 +101,55 @@ const PaymentSuccess = () => {
               }
             `}</style>
           </div>
+        ) : type === 'translation' ? (
+          <>
+            <p
+              style={{
+                color: "rgba(255, 255, 255, 0.85)",
+                fontSize: "15px",
+                lineHeight: 1.6,
+                margin: 0
+              }}
+            >
+              Thank you! Your Spanish Sworn Translation (Traducción Jurada Oficial) payment has been received and confirmed.
+            </p>
+            <div
+              style={{
+                background: "rgba(16, 185, 129, 0.1)",
+                border: "1px solid rgba(16, 185, 129, 0.3)",
+                borderRadius: "12px",
+                padding: "14px",
+                width: "100%",
+                boxSizing: "border-box",
+                textAlign: "left",
+                fontSize: "13px",
+                color: "#E2E8F0"
+              }}
+            >
+              <div style={{ fontWeight: 700, color: "#10B981", marginBottom: "6px" }}>✓ Order Status: Payment Completed</div>
+              <div>Your documents are now assigned to our certified sworn translators. The finalized translation with official ministry stamps will be delivered to your email within max 7 working days.</div>
+            </div>
+            <hr style={{ border: "none", borderTop: "1px solid rgba(255, 255, 255, 0.08)", width: "100%", margin: "8px 0" }} />
+            <a
+              href="/#/public/translation"
+              style={{
+                display: "inline-block",
+                width: "100%",
+                padding: "14px",
+                background: "linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)",
+                color: "#fff",
+                border: "none",
+                borderRadius: "12px",
+                fontSize: "14px",
+                fontWeight: 700,
+                textDecoration: "none",
+                boxShadow: "0 4px 15px rgba(99, 102, 241, 0.3)",
+                boxSizing: "border-box"
+              }}
+            >
+              Translate More Documents
+            </a>
+          </>
         ) : error || !verifyData?.success ? (
           // Fallback if session verification failed or no session ID was found
           <>
@@ -129,8 +186,8 @@ const PaymentSuccess = () => {
           </>
         ) : (() => {
           const payment = verifyData.payment;
-          const invoice = payment.invoiceSnapshot;
-          const client = payment.client;
+          const invoice = payment?.invoiceSnapshot;
+          const client = payment?.client;
 
           if (!invoice) {
             const searchParams = new URLSearchParams(window.location.hash.split('?')[1] || window.location.search || '');
