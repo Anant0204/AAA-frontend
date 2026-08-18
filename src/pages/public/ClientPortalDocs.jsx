@@ -3870,20 +3870,6 @@ export const ClientPortalDocs = () => {
 
                       {/* Reason / Remarks */}
                       <Box>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, mb: 0.5, display: 'block' }}>
-                          Notes / Statement
-                        </Typography>
-                        <TextField
-                          fullWidth
-                          multiline
-                          rows={2}
-                          size="small"
-                          placeholder="Please add any details regarding your visa resolution sheet..."
-                          value={claimReason}
-                          onChange={(e) => setClaimReason(e.target.value)}
-                        />
-                      </Box>
-
                       {(() => {
                         const ibanCheck = validateIBAN(claimBankIban);
                         const isFormReady = Boolean(claimBankIban && ibanCheck.valid && claimBankName.trim());
@@ -3923,6 +3909,21 @@ export const ClientPortalDocs = () => {
                             Submit Refund Claim
                           </Button>
                         );
+                      })()}
+                    </Box>
+                    </Box>
+                  </Paper>
+                </Box>
+
+                {/* Right Side: Existing Claims History */}
+                <Box className="col-span-12 md:col-span-5 flex flex-col h-full">
+                  <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', height: '100%' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#051A3B', mb: 2 }}>
+                      Your Refund Claim History
+                    </Typography>
+
+                    {allRefunds.filter(r => r.clientId === client.id).length === 0 ? (
+                      <Box sx={{ p: 3, textAlign: 'center', bgcolor: 'background.neutral', borderRadius: 2 }}>
                         <Typography variant="body2" color="text.secondary">
                           No active or past refund claims found for your profile.
                         </Typography>
