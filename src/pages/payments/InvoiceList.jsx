@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import Box from '@mui/material/Box';
@@ -201,16 +202,12 @@ export const InvoiceList = () => {
       render: (row) => `€${row.amount - row.discount}` },
     {
       id: 'billingDate',
-      label: 'Billing Date',
+      label: 'Invoice Date',
       sortable: true,
       render: (row) => {
         if (!row.billingDate) return 'N/A';
-        try {
-          const d = new Date(row.billingDate);
-          return isNaN(d.getTime()) ? String(row.billingDate).split('T')[0] : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-        } catch (e) {
-          return String(row.billingDate).split('T')[0];
-        }
+        const d = dayjs(row.billingDate);
+        return d.isValid() ? d.format('DD/MM/YYYY') : String(row.billingDate);
       }
     },
     {
@@ -219,12 +216,8 @@ export const InvoiceList = () => {
       sortable: true,
       render: (row) => {
         if (!row.dueDate) return 'N/A';
-        try {
-          const d = new Date(row.dueDate);
-          return isNaN(d.getTime()) ? String(row.dueDate).split('T')[0] : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-        } catch (e) {
-          return String(row.dueDate).split('T')[0];
-        }
+        const d = dayjs(row.dueDate);
+        return d.isValid() ? d.format('DD/MM/YYYY') : String(row.dueDate);
       }
     },
     { id: 'status', label: 'Payment Status', sortable: true },

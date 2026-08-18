@@ -57,7 +57,7 @@ import AppModal from '../../components/AppModal';
 import StatCard from '../../components/StatCard';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
-import { SERVICES } from '../../constants/mockData';
+import { SERVICES, getLeadStatusOptions, SWORN_TRANSLATION_STATUSES } from '../../constants/mockData';
 
 const FollowUpDatePickerInput = ({ value, onChange, isDue, style = {} }) => {
   const displayStr = value ? dayjs(value).format('DD/MM/YYYY') : 'dd/mm/yyyy';
@@ -491,9 +491,7 @@ export const SuperAdminLeadList = () => {
       sortable: true,
       render: (row) => {
         const currentStatus = row.status || 'New Lead';
-        const options = leadStatuses.includes(currentStatus)
-          ? leadStatuses
-          : [...leadStatuses, currentStatus];
+        const options = getLeadStatusOptions(row, leadStages);
         return (
           <Select
             value={currentStatus}
@@ -553,7 +551,7 @@ export const SuperAdminLeadList = () => {
     { id: 'source', label: 'Source', sortable: true },
   ];
 
-  const leadStatuses = Array.from(new Set([...leadStages.map(s => s.name), 'No Show']));
+  const leadStatuses = Array.from(new Set([...leadStages.map(s => s.name), ...SWORN_TRANSLATION_STATUSES, 'No Show']));
 
   return (
     <Box>

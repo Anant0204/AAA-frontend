@@ -191,6 +191,10 @@ export const dbService = {
     const res = await apiClient.get('/payments');
     return res.data;
   },
+  getRevenueAnalytics: async () => {
+    const res = await apiClient.get('/payments/revenue-analytics');
+    return res.data;
+  },
   generatePaymentLink: async (payment) => {
     const res = await apiClient.post('/payments/generate-link', payment);
     return res.data;
@@ -207,8 +211,8 @@ export const dbService = {
     const res = await apiClient.post('/payments/create-checkout-session', { packageId, amount, discount, paymentMethod, clientId, couponCode });
     return res.data;
   },
-  verifyCheckoutSession: async (sessionId, paymentId) => {
-    const res = await apiClient.post('/payments/verify-checkout-session', { sessionId, paymentId });
+  verifyCheckoutSession: async (sessionId, paymentId, leadId) => {
+    const res = await apiClient.post('/payments/verify-checkout-session', { sessionId, paymentId, leadId });
     return res.data;
   },
   getCommissionHistory: async (agentId) => {

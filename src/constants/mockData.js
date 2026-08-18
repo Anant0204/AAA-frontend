@@ -9,6 +9,42 @@ export const SERVICES = [
   { id: 'sworn_translation', name: 'Sworn Translation', category: 'Translation', basePrice: 150 },
 ];
 
+export const SWORN_TRANSLATION_STATUSES = [
+  'Payment Not Completed',
+  'Payment Completed',
+  'Under Process',
+  'Completed',
+  'Closed'
+];
+
+export const isSwornTranslationService = (serviceTypeOrId = '') => {
+  if (!serviceTypeOrId) return false;
+  const s = String(serviceTypeOrId).toLowerCase();
+  return s.includes('translation') || s.includes('sworn') || s.includes('traducci');
+};
+
+export const getLeadStatusOptions = (leadOrRow, leadStages = []) => {
+  const service = leadOrRow?.serviceType || leadOrRow?.serviceId || leadOrRow?.service?.name || leadOrRow?.service || '';
+  const currentStatus = leadOrRow?.status;
+  
+  const isTranslation = isSwornTranslationService(service) || 
+    Boolean(leadOrRow?.wordCount) || 
+    Boolean(leadOrRow?.sourceLanguage) || 
+    Boolean(leadOrRow?.targetLanguage);
+
+  if (isTranslation) {
+    return Array.from(new Set([
+      ...SWORN_TRANSLATION_STATUSES,
+      ...(currentStatus ? [currentStatus] : [])
+    ]));
+  }
+  
+  const standardList = Array.from(new Set([...leadStages.map(s => s.name || s), 'No Show']));
+  return currentStatus && !standardList.includes(currentStatus)
+    ? [...standardList, currentStatus]
+    : standardList;
+};
+
 export const RELOCATION_SERVICES = [
   { id: 'nie', name: 'NIE Assistance & Guidance' },
   { id: 'tie', name: 'TIE & Fingerprint Appointment' },

@@ -18,6 +18,7 @@ import Stack from '@mui/material/Stack';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
+import Chip from '@mui/material/Chip';
 
 // Icons
 import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
@@ -27,6 +28,8 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import ChatIcon from '@mui/icons-material/Chat';
 import QuickreplyIcon from '@mui/icons-material/Quickreply';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import DownloadIcon from '@mui/icons-material/Download';
 
 // Components & Services
 import { dbService } from '../../services/dbService';
@@ -37,7 +40,7 @@ import Timeline from '../../components/Timeline';
 import AppModal from '../../components/AppModal';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
-import { SERVICES, PACKAGES } from '../../constants/mockData';
+import { SERVICES, PACKAGES, getLeadStatusOptions } from '../../constants/mockData';
 
 export const LeadDetails = () => {
   const { id } = useParams();
@@ -142,6 +145,8 @@ export const LeadDetails = () => {
   const { data: consultants = [] } = useQuery({
     queryKey: ['consultants'],
     queryFn: dbService.getConsultants });
+
+  const isSwornTranslationLead = (lead?.serviceType || lead?.serviceId || '').toLowerCase().includes('translation') || (lead?.serviceType || lead?.serviceId || '').toLowerCase().includes('sworn');
 
   // Mutations
   const updateStatusMutation = useMutation({
@@ -397,7 +402,7 @@ export const LeadDetails = () => {
     queryKey: ['lead-stages'],
     queryFn: dbService.getLeadStages });
 
-  const leadStatuses = Array.from(new Set([...leadStages.map(s => s.name), 'No Show']));
+  const leadStatuses = getLeadStatusOptions(lead, leadStages);
 
   return (
     <Box>
@@ -492,14 +497,16 @@ export const LeadDetails = () => {
                     {serviceObj ? serviceObj.name : lead.serviceId}
                   </Typography>
                 </Box>
-                <Box>
-                  <Typography variant="caption" color="text.secondary" display="block">
-                    Source
-                  </Typography>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    {lead.source}
-                  </Typography>
-                </Box>
+                {!isSwornTranslationLead && (
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Source
+                    </Typography>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                      {lead.source || '—'}
+                    </Typography>
+                  </Box>
+                )}
               </Box>
             </Box>
           </Paper>
@@ -514,19 +521,258 @@ export const LeadDetails = () => {
               scrollButtons="auto"
               sx={{ px: 2.5, pt: 0.5, borderBottom: '1px solid', borderColor: 'divider' }}
             >
-              <Tab value={0} label="Overview" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
-              <Tab value={1} label="Meetings / Consultations" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
-              <Tab value={2} label="Payments & Invoices" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
-              <Tab value={3} label="Documents" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
-              <Tab value={4} label="Timeline" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
+              <Tab value={0} label={isSwornTranslationLead ? "Documents & Lead Info" : "Overview"} sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
+              {!isSwornTranslationLead && <Tab value={1} label="Meetings / Consultations" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />}
+              {!isSwornTranslationLead && <Tab value={2} label="Payments & Invoices" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />}
+              {!isSwornTranslationLead && <Tab value={3} label="Documents" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />}
+              {!isSwornTranslationLead && <Tab value={4} label="Timeline" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />}
               <Tab value={5} icon={<WhatsAppIcon fontSize="small" />} iconPosition="start" label="Comms & Chat" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
-              <Tab value={6} label="Zoom Recordings" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />
+              {!isSwornTranslationLead && <Tab value={6} label="Zoom Recordings" sx={{ fontWeight: 600, fontSize: '0.85rem' }} />}
             </Tabs>
 
             <Box sx={{ p: 2.5, flex: 1 }}>
               {/* TAB 0: Overview & Qualifications */}
               {activeTab === 0 && (
                 <Box className="grid grid-cols-12 gap-4">
+                  {/* Sworn Translation Payment & Notification Tracking Card */}
+                  {isSwornTranslationLead && (() => {
+                    const isPaid = lead.status === 'Payment Completed' || lead.qualificationData?.paymentStatus === 'Paid' || lead.payment?.status === 'Paid';
+                    const totalPaidAmount = lead.qualificationData?.totalPaid || lead.payment?.totalPaid || lead.qualificationData?.estimatedPrice || '0.00';
+                    const paidDateStr = lead.qualificationData?.paidAt || lead.payment?.paidAt;
+                    const paymentRef = lead.qualificationData?.paymentReference || lead.payment?.invoiceNumber || (lead.qualificationData?.stripeSessionId ? `TRN-${lead.qualificationData.stripeSessionId.slice(-8).toUpperCase()}` : '—');
+
+                    const comms = Array.isArray(lead.communications) ? lead.communications : [];
+                    const waComm = comms.find(c => c.externalProviderId?.startsWith('SWORN_TRN_PAYMENT_WA_') || (c.channel === 'WHATSAPP' && c.direction === 'OUTBOUND'));
+                    const clientEmailComm = comms.find(c => c.externalProviderId?.startsWith('SWORN_TRN_PAYMENT_EMAIL_'));
+
+                    return (
+                      <Box className="col-span-12">
+                        <Paper sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 3, border: isPaid ? '1px solid #10B981' : '1px solid #F59E0B', bgcolor: isPaid ? '#F0FDF4' : '#FFFBEB', mb: 2.5 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1, mb: 1.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography variant="h6" sx={{ fontWeight: 700, color: isPaid ? '#065F46' : '#92400E', fontSize: { xs: '1rem', sm: '1.1rem' } }}>
+                                💳 Payment & Notification Tracking
+                              </Typography>
+                              <Chip 
+                                label={isPaid ? "Payment Completed" : "Payment Pending"} 
+                                size="small" 
+                                sx={{ fontWeight: 800, bgcolor: isPaid ? '#10B981' : '#F59E0B', color: '#FFFFFF' }} 
+                              />
+                            </Box>
+                            {isPaid && (
+                              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#047857' }}>
+                                Amount Paid: €{Number(totalPaidAmount).toFixed(2)} EUR
+                              </Typography>
+                            )}
+                          </Box>
+
+                          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+                            <Grid item xs={12} sm={6} md={3}>
+                              <Box sx={{ bgcolor: '#FFFFFF', p: 1.5, borderRadius: 2, border: '1px solid #E2E8F0' }}>
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 600 }}>Payment Reference</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 700, color: '#1E293B', wordBreak: 'break-all' }}>{paymentRef}</Typography>
+                                {paidDateStr && (
+                                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                    📅 {dayjs(paidDateStr).format('DD/MM/YYYY, hh:mm A')}
+                                  </Typography>
+                                )}
+                              </Box>
+                            </Grid>
+
+                            <Grid item xs={12} sm={6} md={3}>
+                              <Box sx={{ bgcolor: '#FFFFFF', p: 1.5, borderRadius: 2, border: '1px solid #E2E8F0' }}>
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 600 }}>Client WhatsApp</Typography>
+                                <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
+                                  <Chip 
+                                    label={!isPaid ? "Pending Payment" : (waComm ? (waComm.deliveryStatus === 'SENT' ? "✓ Sent" : "Failed") : "✓ Sent")} 
+                                    size="small" 
+                                    color={!isPaid ? "default" : "success"}
+                                    sx={{ fontWeight: 700, height: 22, fontSize: '0.7rem' }} 
+                                  />
+                                </Stack>
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontStyle: 'italic' }}>
+                                  {lead.phone || 'No phone'}
+                                </Typography>
+                              </Box>
+                            </Grid>
+
+                            <Grid item xs={12} sm={6} md={3}>
+                              <Box sx={{ bgcolor: '#FFFFFF', p: 1.5, borderRadius: 2, border: '1px solid #E2E8F0' }}>
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 600 }}>Client Email Receipt</Typography>
+                                <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
+                                  <Chip 
+                                    label={!isPaid ? "Pending Payment" : (clientEmailComm ? (clientEmailComm.deliveryStatus === 'SENT' ? "✓ Sent" : "Failed") : "✓ Sent")} 
+                                    size="small" 
+                                    color={!isPaid ? "default" : "success"}
+                                    sx={{ fontWeight: 700, height: 22, fontSize: '0.7rem' }} 
+                                  />
+                                </Stack>
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontStyle: 'italic', wordBreak: 'break-all' }}>
+                                  {lead.email || 'No email'}
+                                </Typography>
+                              </Box>
+                            </Grid>
+
+                            <Grid item xs={12} sm={6} md={3}>
+                              <Box sx={{ bgcolor: '#FFFFFF', p: 1.5, borderRadius: 2, border: '1px solid #E2E8F0' }}>
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 600 }}>Super Admin Alert</Typography>
+                                <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
+                                  <Chip 
+                                    label={!isPaid ? "Pending Payment" : "✓ In-App & Email"} 
+                                    size="small" 
+                                    color={!isPaid ? "default" : "primary"}
+                                    sx={{ fontWeight: 700, height: 22, fontSize: '0.7rem' }} 
+                                  />
+                                </Stack>
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontStyle: 'italic' }}>
+                                  CRM Notification + Email
+                                </Typography>
+                              </Box>
+                            </Grid>
+                          </Grid>
+                        </Paper>
+                      </Box>
+                    );
+                  })()}
+
+                  {/* Dedicated Uploaded Sworn Translation Documents Section */}
+                  {isSwornTranslationLead && (() => {
+                    const API_BASE = (import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1').replace('/api/v1', '').replace(/\/$/, '');
+                    const rawDocs = Array.isArray(lead.qualificationData?.documents) && lead.qualificationData.documents.length > 0
+                      ? lead.qualificationData.documents
+                      : (Array.isArray(lead.documents) && lead.documents.length > 0
+                          ? lead.documents
+                          : [{
+                              name: lead.qualificationData?.documentName || 'Translation_Document.pdf',
+                              url: lead.qualificationData?.documentUrl,
+                              size: lead.qualificationData?.documentSize || '0.10 MB',
+                              category: lead.qualificationData?.category || 'General Document',
+                              documentLanguage: lead.qualificationData?.sourceLanguage || lead.sourceLanguage || 'English',
+                              targetLanguage: lead.qualificationData?.targetLanguage || lead.targetLanguage || 'Spanish',
+                              wordCount: lead.wordCount || lead.qualificationData?.wordCount || 0,
+                              subtotal: lead.qualificationData?.subtotal || 0,
+                              vat: lead.qualificationData?.vat || 0,
+                              estimatedPrice: lead.qualificationData?.estimatedPrice || '15.00'
+                            }]);
+
+                    const totalWords = Number(lead.wordCount || lead.qualificationData?.wordCount) || rawDocs.reduce((sum, d) => sum + (Number(d.wordCount) || 0), 0);
+                    const totalEstimatedPrice = lead.qualificationData?.estimatedPrice || rawDocs.reduce((sum, d) => sum + (Number(d.estimatedPrice) || 0), 0).toFixed(2);
+                    const totalSubtotal = lead.qualificationData?.subtotal || (Number(totalEstimatedPrice) / 1.05).toFixed(2);
+                    const totalVat = lead.qualificationData?.vat || (Number(totalEstimatedPrice) - Number(totalSubtotal)).toFixed(2);
+
+                    return (
+                      <Box className="col-span-12">
+                        <Paper sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 3, border: '1px solid #CBD5E1', bgcolor: '#F8FAFC', mb: 2.5 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                            <Typography variant="h6" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1, color: '#1E293B', fontSize: { xs: '1rem', sm: '1.15rem' } }}>
+                              📄 Uploaded Sworn Translation Documents ({rawDocs.length} {rawDocs.length === 1 ? 'File' : 'Files'})
+                            </Typography>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <Chip label={`📊 ${totalWords} Total Words`} size="small" sx={{ fontWeight: 700, bgcolor: '#E0F2FE', color: '#0369A1' }} />
+                              <Chip label={`💶 €${totalEstimatedPrice} Quoted Price`} size="small" sx={{ fontWeight: 700, bgcolor: '#D1FAE5', color: '#047857' }} />
+                            </Stack>
+                          </Box>
+
+                          <Stack spacing={2}>
+                            {rawDocs.map((doc, idx) => {
+                              const docRawUrl = doc.url || (idx === 0 ? lead.qualificationData?.documentUrl : null);
+                              const docFullUrl = docRawUrl ? (docRawUrl.startsWith('http') || docRawUrl.startsWith('data:') ? docRawUrl : `${API_BASE}${docRawUrl.startsWith('/') ? '' : '/'}${docRawUrl}`) : null;
+                              const docName = doc.name || `Document_${idx + 1}.pdf`;
+                              const docLang = doc.documentLanguage || doc.sourceLanguage || lead.sourceLanguage || 'English';
+                              const docTargetLang = doc.targetLanguage || lead.targetLanguage || 'Spanish';
+                              const docCategory = doc.category || 'Translation Document';
+                              const docWords = Number(doc.wordCount) || 0;
+                              const docPrice = doc.estimatedPrice ? `€${Number(doc.estimatedPrice).toFixed(2)}` : null;
+
+                              return (
+                                <Paper
+                                  key={doc.id || `doc-${idx}`}
+                                  variant="outlined"
+                                  sx={{
+                                    p: 2,
+                                    borderRadius: 2.5,
+                                    bgcolor: '#FFFFFF',
+                                    borderColor: '#E2E8F0',
+                                    display: 'flex',
+                                    flexDirection: { xs: 'column', md: 'row' },
+                                    alignItems: { xs: 'flex-start', md: 'center' },
+                                    justifyContent: 'space-between',
+                                    gap: 2
+                                  }}
+                                >
+                                  {/* Doc Info Left */}
+                                  <Box sx={{ flex: 1 }}>
+                                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.75, flexWrap: 'wrap' }}>
+                                      <Chip label={`#${idx + 1} Document ${idx + 1}`} size="small" color="primary" sx={{ fontWeight: 700, height: 22, fontSize: '0.7rem' }} />
+                                      <Chip label={docCategory} size="small" variant="outlined" sx={{ fontWeight: 600, height: 22, fontSize: '0.7rem' }} />
+                                      <Typography variant="caption" sx={{ color: '#475569', fontWeight: 600 }}>
+                                        🌐 {docLang} ➔ {docTargetLang}
+                                      </Typography>
+                                    </Stack>
+                                    
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#0F172A', wordBreak: 'break-word', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                      📑 {docName}
+                                    </Typography>
+                                    
+                                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.25, display: 'block' }}>
+                                      Size: {doc.size || '0.10 MB'} • Word Count: <strong style={{ color: '#1E293B' }}>{docWords} words</strong>
+                                      {docPrice && <> • Estimated: <strong style={{ color: '#059669' }}>{docPrice}</strong></>}
+                                    </Typography>
+                                  </Box>
+
+                                  {/* Action Buttons Right */}
+                                  <Stack direction="row" spacing={1} sx={{ alignSelf: { xs: 'stretch', md: 'center' } }}>
+                                    {docFullUrl ? (
+                                      <>
+                                        <Button
+                                          size="small"
+                                          variant="contained"
+                                          color="primary"
+                                          startIcon={<VisibilityIcon />}
+                                          href={docFullUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          sx={{ fontSize: '0.75rem', px: 1.75, py: 0.6, textTransform: 'none', fontWeight: 600 }}
+                                        >
+                                          View PDF
+                                        </Button>
+                                        <Button
+                                          size="small"
+                                          variant="outlined"
+                                          color="primary"
+                                          startIcon={<DownloadIcon />}
+                                          href={docFullUrl}
+                                          download={docName}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          sx={{ fontSize: '0.75rem', px: 1.75, py: 0.6, textTransform: 'none', fontWeight: 600 }}
+                                        >
+                                          Download PDF
+                                        </Button>
+                                      </>
+                                    ) : (
+                                      <Chip label="PDF file stored in quote session" size="small" variant="outlined" sx={{ fontSize: '0.75rem', color: '#64748B' }} />
+                                    )}
+                                  </Stack>
+                                </Paper>
+                              );
+                            })}
+                          </Stack>
+
+                          {/* Bottom Summary Bar */}
+                          <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              Official Ministry-Approved Sworn Translation (Traducción Jurada)
+                            </Typography>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1E293B' }}>
+                              Subtotal: €{totalSubtotal} + 5% VAT (€{totalVat}) = <span style={{ color: '#059669', fontSize: '1.05rem', fontWeight: 800 }}>€{totalEstimatedPrice}</span>
+                            </Typography>
+                          </Box>
+                        </Paper>
+                      </Box>
+                    );
+                  })()}
+
                   <Box className="col-span-12 md:col-span-6">
                     <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5, color: 'text.primary' }}>
                       Personal & Contact Details
@@ -561,18 +807,59 @@ export const LeadDetails = () => {
                     </Typography>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
                       {lead.qualificationData ? (
-                        Object.entries(lead.qualificationData).map(([key, value]) => (
-                          <Box key={key}>
-                            <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
-                              {key.replace(/([A-Z])/g, ' $1')}
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{value}</Typography>
-                          </Box>
-                        ))
+                        Object.entries(lead.qualificationData)
+                          .filter(([key]) => {
+                            const hiddenKeys = [
+                              'documentUrl',
+                              'documents',
+                              'documentName',
+                              'documentSize',
+                              'subtotal',
+                              'vat',
+                              'estimatedPrice',
+                              'wordCount',
+                              'sourceLanguage',
+                              'targetLanguage',
+                              'serviceType'
+                            ];
+                            if (isSwornTranslationLead && hiddenKeys.includes(key)) {
+                              return false;
+                            }
+                            return key !== 'documentUrl' && key !== 'documents';
+                          })
+                          .map(([key, value]) => {
+                            let displayValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+                            if (key === 'uploadedAt' && value) {
+                              displayValue = dayjs(value).isValid() ? dayjs(value).format('MMM DD, YYYY hh:mm A') : String(value);
+                            }
+                            return (
+                              <Box key={key} sx={{ wordBreak: 'break-word' }}>
+                                <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize', fontWeight: 600 }}>
+                                  {key.replace(/([A-Z])/g, ' $1')}
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 600, color: '#1E293B' }}>
+                                  {displayValue}
+                                </Typography>
+                              </Box>
+                            );
+                          })
                       ) : (
                         <Typography variant="body2" color="text.secondary">
-                          No initial WhatsApp qualification forms completed yet.
+                          No initial qualification forms completed yet.
                         </Typography>
+                      )}
+                      {isSwornTranslationLead && (
+                        <Box sx={{ mt: 1, p: 1.5, bgcolor: '#ECFDF5', borderRadius: 2, border: '1px solid #A7F3D0' }}>
+                          <Typography variant="caption" sx={{ fontWeight: 700, color: '#065F46', display: 'block', mb: 0.5 }}>
+                            📜 Service Summary
+                          </Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: '#047857' }}>
+                            Spanish Sworn Translation ({lead.qualificationData?.documents?.length || 1} Document{(lead.qualificationData?.documents?.length || 1) > 1 ? 's' : ''})
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: '#065F46', display: 'block', mt: 0.25 }}>
+                            Total Word Count: {lead.wordCount || lead.qualificationData?.wordCount || 0} • Status: {lead.status}
+                          </Typography>
+                        </Box>
                       )}
                     </Box>
                   </Box>
