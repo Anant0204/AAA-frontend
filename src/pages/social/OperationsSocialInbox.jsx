@@ -110,6 +110,26 @@ const displayName = (name, phone) => {
   return name;
 };
 
+const formatMessageDateTime = (rawTimestamp, fallbackTime) => {
+  const ts = rawTimestamp || fallbackTime;
+  if (!ts) return '';
+  
+  if (typeof ts === 'string' && ts.includes('/') && (ts.includes('AM') || ts.includes('PM') || ts.includes(':'))) {
+    return ts;
+  }
+  
+  const d = new Date(ts);
+  if (!isNaN(d.getTime())) {
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return `${dd}/${mm}/${yyyy} • ${timeStr}`;
+  }
+  
+  return String(fallbackTime || rawTimestamp || '');
+};
+
 export const OperationsSocialInbox = () => {
   const navigate = useNavigate();
   const theme = useTheme();
@@ -985,7 +1005,7 @@ export const OperationsSocialInbox = () => {
                               )}
                             </Paper>
                             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, mx: 1, display: 'flex', gap: 0.8, alignItems: 'center' }}>
-                              <span>{msg.timestamp}</span>
+                              <span>{formatMessageDateTime(msg.rawTimestamp, msg.timestamp)}</span>
                               {isAgent && (
                                 <Box component="span" sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#051A3B', bgcolor: '#E0E7FF', px: 1, py: 0.2, borderRadius: 1 }}>
                                   👤 Replied by: {msg.respondedBy?.name || 'Agent'} {msg.respondedBy?.role ? `(${msg.respondedBy.role})` : ''}
