@@ -173,6 +173,22 @@ export const ClientPortalChangePassword = () => {
               fullWidth
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                        aria-label="toggle password visibility"
+                        sx={{ color: '#C59B27', '&:hover': { color: '#ffffff' } }}
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }
+              }}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -206,6 +222,22 @@ export const ClientPortalChangePassword = () => {
               fullWidth
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        edge="end"
+                        aria-label="toggle confirm password visibility"
+                        sx={{ color: '#C59B27', '&:hover': { color: '#ffffff' } }}
+                      >
+                        {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }
+              }}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">

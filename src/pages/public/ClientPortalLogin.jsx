@@ -480,10 +480,31 @@ export const ClientPortalLogin = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 inputProps={{ dir: 'ltr', style: { textAlign: isRTL ? 'right' : 'left' } }}
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowPassword(!showPassword)}
+                          edge="end"
+                          aria-label="toggle password visibility"
+                          sx={{ color: '#C59B27', '&:hover': { color: '#ffffff' } }}
+                        >
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    )
+                  }
+                }}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton onClick={() => setShowPassword(!showPassword)} edge="end" sx={{ color: '#C59B27', '&:hover': { color: '#ffffff' } }}>
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                        aria-label="toggle password visibility"
+                        sx={{ color: '#C59B27', '&:hover': { color: '#ffffff' } }}
+                      >
                         {showPassword ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
                     </InputAdornment>
