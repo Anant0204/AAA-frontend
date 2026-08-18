@@ -365,7 +365,17 @@ export const SuperAdminLeadDetails = () => {
   }
 
   // Linked items
-  const leadConsultations = consultations.filter((c) => c.leadId === lead.id);
+  const rawLeadConsultations = consultations.filter((c) => c.leadId === lead.id);
+  const leadConsultations = rawLeadConsultations.length > 0 ? rawLeadConsultations : (
+    lead?.meetingPreferredDate ? [{
+      id: 'pref_' + lead.id,
+      meetingDate: lead.meetingPreferredDate,
+      meetingTime: lead.meetingPreferredTime || 'TBD',
+      status: lead.assignedToId ? 'Scheduled' : 'Pending Assignment',
+      consultantId: lead.assignedToId || null,
+      isFallback: true
+    }] : []
+  );
   const consultationsWithRecordings = leadConsultations.filter(c => c.recordingUrl);
   const leadPayments = payments.filter((p) => p.clientId === lead.id); // for leads prior to conversion
   const leadDocuments = documents.filter((d) => d.clientId === lead.id);

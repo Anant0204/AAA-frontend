@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 import { NATIONALITIES } from '../../constants/nationalities';
+import { ALL_COUNTRIES } from '../../constants/countryServices';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1';
 
@@ -261,6 +262,7 @@ const SwornTranslationForm = () => {
     email: prefilled.email || '',
     phone: prefilled.phone || '',
     nationality: prefilled.nationality || '',
+    countryOfResidence: prefilled.countryOfResidence || '',
     targetLanguage: 'Spanish'
   });
 
@@ -298,7 +300,8 @@ const SwornTranslationForm = () => {
         lastName: pf.lastName || prev.lastName,
         email: pf.email || prev.email,
         phone: pf.phone || prev.phone,
-        nationality: pf.nationality || prev.nationality
+        nationality: pf.nationality || prev.nationality,
+        countryOfResidence: pf.countryOfResidence || prev.countryOfResidence
       }));
     }
   }, [location.state]);
@@ -460,8 +463,8 @@ const SwornTranslationForm = () => {
 
   const handleUpload = async (e) => {
     e.preventDefault();
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
-      setError('Please fill in all personal details first.');
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone || !formData.nationality || !formData.countryOfResidence) {
+      setError('Please fill in all personal details first including Nationality and Country of Residence.');
       return;
     }
 
@@ -497,6 +500,7 @@ const SwornTranslationForm = () => {
         singleForm.append('email', formData.email);
         singleForm.append('phone', formData.phone);
         singleForm.append('nationality', formData.nationality);
+        singleForm.append('countryOfResidence', formData.countryOfResidence);
 
         const res = await axios.post(`${API_URL}/booking/translation/upload`, singleForm, {
           headers: { 'Content-Type': 'multipart/form-data' }
@@ -549,8 +553,8 @@ const SwornTranslationForm = () => {
   };
 
   const handleProceed = async () => {
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
-      setError('Please fill in all personal details first.');
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone || !formData.nationality || !formData.countryOfResidence) {
+      setError('Please fill in all personal details first including Nationality and Country of Residence.');
       return;
     }
     if (!quote) return;
@@ -569,6 +573,7 @@ const SwornTranslationForm = () => {
       formDataCheckout.append('email', formData.email);
       formDataCheckout.append('phone', formData.phone);
       formDataCheckout.append('nationality', formData.nationality);
+      formDataCheckout.append('countryOfResidence', formData.countryOfResidence);
       formDataCheckout.append('targetLanguage', formData.targetLanguage);
       formDataCheckout.append('wordCount', quote.totalWordCount || quote.wordCount || 0);
       formDataCheckout.append('estimatedPrice', quote.estimatedPrice || 0);
@@ -764,8 +769,8 @@ const SwornTranslationForm = () => {
               </div>
             </div>
 
-            {/* Grid: Nationality & Target Language */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+            {/* Grid: Nationality, Country of Residence & Target Language */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
               <div>
                 <SearchableCountrySelect
                   label="Nationality *"
@@ -783,20 +788,37 @@ const SwornTranslationForm = () => {
                 />
               </div>
               <div>
-                <label style={labelStyle}>Target Language</label>
-                <input
-                  type="text"
-                  readOnly
-                  value="Spanish (Español) 🇪🇸"
-                  style={{
-                    ...inputStyle,
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    color: 'rgba(255, 255, 255, 0.5)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    cursor: 'not-allowed'
-                  }}
+                <SearchableCountrySelect
+                  label="Country of Residence *"
+                  value={formData.countryOfResidence}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, countryOfResidence: val }))}
+                  options={
+                    formData.countryOfResidence && !ALL_COUNTRIES.includes(formData.countryOfResidence)
+                      ? [formData.countryOfResidence, ...ALL_COUNTRIES]
+                      : ALL_COUNTRIES
+                  }
+                  placeholder="Select Country"
+                  disabled={false}
+                  labelStyle={labelStyle}
+                  inputStyle={inputStyle}
                 />
               </div>
+            </div>
+
+            <div style={{ marginBottom: '14px' }}>
+              <label style={labelStyle}>Target Language</label>
+              <input
+                type="text"
+                readOnly
+                value="Spanish (Español) 🇪🇸"
+                style={{
+                  ...inputStyle,
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  color: 'rgba(255, 255, 255, 0.5)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  cursor: 'not-allowed'
+                }}
+              />
             </div>
 
             {/* Documents Section Header */}

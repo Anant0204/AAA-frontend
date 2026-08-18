@@ -19,6 +19,7 @@ import FormHelperText from '@mui/material/FormHelperText';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { NATIONALITIES } from '../../constants/nationalities';
+import { ALL_COUNTRIES } from '../../constants/countryServices';
 import { LANGUAGES } from '../../constants/languages';
 import { parsePhone } from '../../constants/countryCodes';
 import SearchableDropdown from '../../components/SearchableDropdown';
@@ -96,6 +97,7 @@ const leadSchema = yup.object().shape({
   email: yup.string().email('Invalid email').required('Email is required'),
   phone: yup.string().required('Phone is required'),
   nationality: yup.string().required('Nationality is required'),
+  countryOfResidence: yup.string().required('Country of Residence is required'),
   preferredLanguage: yup.string().required('Preferred language is required'),
   serviceId: yup.string().required('Visa service is required'),
   applicantsCount: yup.number().typeError('Must be a number').min(1, 'At least 1 applicant').required(),
@@ -906,7 +908,7 @@ export const SuperAdminLeadList = () => {
                       error={!!errors.countryOfResidence}
                       helperText={errors.countryOfResidence?.message}
                       label="Country of Residence"
-                      options={NATIONALITIES}
+                      options={ALL_COUNTRIES}
                       sx={{ flex: 1 }}
                     />
                   )}

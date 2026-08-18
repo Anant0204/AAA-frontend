@@ -927,8 +927,8 @@ export const LeadSelfFillForm = () => {
 
     if (loading) return; // Prevent double submission
 
-    if (!form.firstName || !form.lastName || !form.email || !form.phone) {
-      setError("Please fill in all required personal details (Name, Email, Phone).");
+    if (!form.firstName || !form.lastName || !form.email || !form.phone || !form.nationality || !form.countryOfResidence) {
+      setError("Please fill in all required personal details (Name, Email, Phone, Nationality, Country of Residence).");
       return;
     }
 
