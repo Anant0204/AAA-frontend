@@ -179,7 +179,7 @@ export const ClientPortalChangePassword = () => {
                     <IconButton
                       onClick={() => setShowPassword(!showPassword)}
                       edge="end"
-                      sx={{ color: 'rgba(255,255,255,0.6)' }}
+                      sx={{ color: '#C59B27', '&:hover': { color: '#ffffff' } }}
                     >
                       {showPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
@@ -211,7 +211,7 @@ export const ClientPortalChangePassword = () => {
                     <IconButton
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       edge="end"
-                      sx={{ color: 'rgba(255,255,255,0.6)' }}
+                      sx={{ color: '#C59B27', '&:hover': { color: '#ffffff' } }}
                     >
                       {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
