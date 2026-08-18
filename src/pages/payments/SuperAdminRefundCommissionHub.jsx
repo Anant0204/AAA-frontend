@@ -520,7 +520,7 @@ export const SuperAdminRefundCommissionHub = () => {
                   <TableBody>
                     {commissionReport.map((row) => (
                       <TableRow key={row.id}>
-                        <TableCell>{row.date}</TableCell>
+                        <TableCell sx={{ whiteSpace: 'nowrap', fontWeight: 600 }}>{formatDateDDMMYYYY(row.date)}</TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>{row.paymentId}</TableCell>
                         <TableCell>{row.clientName}</TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>{row.agentName}</TableCell>
@@ -824,7 +824,7 @@ export const SuperAdminRefundCommissionHub = () => {
                               By: {log.user}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
-                              Time: {new Date(log.date).toLocaleString()}
+                              Time: {new Date(log.date).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}
                             </Typography>
                           </React.Fragment>
                         }
