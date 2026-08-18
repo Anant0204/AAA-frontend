@@ -149,7 +149,7 @@ export const SuperAdminConsultationDetails = () => {
     queryFn: dbService.getLeadStages
   });
 
-  const cons = consultations.find((c) => c.id === id);
+  const cons = consultations.find((c) => c.id === id || (id && id.startsWith('pref_') && (c.leadId === id.replace('pref_', '') || c.clientId === id.replace('pref_', ''))));
 
   const { data: customizationSettings } = useQuery({
     queryKey: ['customization-settings'],

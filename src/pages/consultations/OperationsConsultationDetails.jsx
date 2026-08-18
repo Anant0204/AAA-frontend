@@ -142,7 +142,7 @@ export const OperationsConsultationDetails = () => {
     queryFn: dbService.getConsultants
   });
 
-  const cons = consultations.find((c) => c.id === id);
+  const cons = consultations.find((c) => c.id === id || (id && id.startsWith('pref_') && (c.leadId === id.replace('pref_', '') || c.clientId === id.replace('pref_', ''))));
 
   // Mutations
   const updateStatusMutation = useMutation({
