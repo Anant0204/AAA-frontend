@@ -377,7 +377,7 @@ export const OperationsConsultationList = () => {
         Back to Dashboard
       </Button>
       <PageHeader
-        title="Meeting / Consultation Pipeline"
+        title={cardInfo?.title || "Upcoming Meetings"}
         subtitle="Track Spain Visa assessments, eligibility consultations, and virtual meeting links."
         action={
           <Button

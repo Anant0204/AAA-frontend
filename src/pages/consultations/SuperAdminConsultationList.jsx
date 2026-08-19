@@ -445,7 +445,7 @@ export const SuperAdminConsultationList = () => {
         Back to Dashboard
       </Button>
       <PageHeader
-        title="Meeting / Consultation Pipeline"
+        title={cardInfo?.title || "Upcoming Meetings"}
         subtitle="Manage client schedules, configure auto-agent assignment switches, and confirm document portal access."
         action={
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
