@@ -1549,11 +1549,11 @@ export const ClientPortalDocs = () => {
 
   // Document categories checklist default fallback
   const DEFAULT_CHECKLISTS = {
-    dnv: { main: ['Passport (Copy)'] },
-    nlv: { main: ['Passport (Copy)'] },
-    study: { main: ['Passport (Copy)'] },
-    property: { main: ['Passport (Copy)'] },
-    family: { main: ['Passport (Copy)'] }
+    dnv: { main: ['Passport'] },
+    nlv: { main: ['Passport'] },
+    study: { main: ['Passport'] },
+    property: { main: ['Passport'] },
+    family: { main: ['Passport'] }
   };
 
   const getRequiredDocsForPerson = (person) => {
@@ -1565,7 +1565,7 @@ export const ClientPortalDocs = () => {
       if (Array.isArray(configured) && configured.length > 0) {
         return configured;
       }
-      return ['Passport (Copy)'];
+      return ['Passport'];
     }
 
     // Parse dependent name
@@ -1623,9 +1623,11 @@ export const ClientPortalDocs = () => {
 
   // Mandatory Passport Gatekeeper Validation for All Applicants
   const missingPassports = applicantsList.filter(person => {
-    // 1. Check if Passport is already uploaded in DB
+    // 1. Check if Passport is already uploaded in DB (and NOT rejected)
     const hasUploadedPassport = documents.some(d => {
       if (d.clientId !== client?.id) return false;
+      const isRejected = (d.status || d.verificationStatus || '').toLowerCase().includes('reject') || d.rejected === true;
+      if (isRejected) return false;
       const docPerson = d.belongsTo || 'Main Applicant';
       const isPersonMatch = docPerson === person || (person === 'Main Applicant' && (docPerson === 'Main Applicant' || !d.belongsTo));
       const isPassport = (d.category || '').toLowerCase().includes('passport') || (d.name || '').toLowerCase().includes('passport');
@@ -2208,6 +2210,8 @@ export const ClientPortalDocs = () => {
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2, pl: isRTL ? 0 : 2, pr: isRTL ? 2 : 0 }}>
                               {allDisplayDocs.map((cat, idx) => {
                                 const isUploaded = personDocs.some(d => {
+                                  const isRejected = (d.status || d.verificationStatus || '').toLowerCase().includes('reject') || d.rejected === true;
+                                  if (isRejected) return false;
                                   const catLower = (cat || '').toLowerCase();
                                   const docCatLower = (d.category || '').toLowerCase();
                                   const docNameLower = (d.name || '').toLowerCase();

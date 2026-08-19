@@ -21,6 +21,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
+import Autocomplete from '@mui/material/Autocomplete';
 import TextField from '@mui/material/TextField';
 import Chip from '@mui/material/Chip';
 import Card from '@mui/material/Card';
@@ -1017,21 +1018,50 @@ export const SuperAdminRefundCommissionHub = () => {
         title="Generate Refund Request"
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}>
-          <FormControl fullWidth size="small">
-            <InputLabel id="client-refund-select-label">Select Client</InputLabel>
-            <Select
-              labelId="client-refund-select-label"
-              value={selectedClientId}
-              onChange={(e) => setSelectedClientId(e.target.value)}
-              label="Select Client"
-            >
-              {clients.map((c) => (
-                <MenuItem key={c.id} value={c.id}>
-                  {c.firstName} {c.lastName} ({c.id})
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Autocomplete
+            size="small"
+            fullWidth
+            options={clients}
+            getOptionLabel={(c) => {
+              if (!c) return '';
+              const formattedId = c.clientId || c.clientCode || (c.id && c.id.length > 8 ? `CL-${c.id.substring(0, 6).toUpperCase()}` : c.id);
+              return `${c.firstName || ''} ${c.lastName || ''} (${formattedId})`.trim();
+            }}
+            value={clients.find(c => c.id === selectedClientId) || null}
+            onChange={(e, newValue) => {
+              setSelectedClientId(newValue ? newValue.id : '');
+            }}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            renderOption={(props, option) => {
+              const formattedId = option.clientId || option.clientCode || (option.id && option.id.length > 8 ? `CL-${option.id.substring(0, 6).toUpperCase()}` : option.id);
+              return (
+                <Box component="li" {...props} key={option.id} sx={{ fontSize: '0.85rem', py: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 700, mr: 1 }}>
+                    {option.firstName} {option.lastName}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    ({formattedId})
+                  </Typography>
+                </Box>
+              );
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Select Client *"
+                placeholder="Type to search client..."
+              />
+            )}
+            componentsProps={{
+              paper: {
+                sx: {
+                  maxHeight: 250,
+                  borderRadius: 2,
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.15)'
+                }
+              }
+            }}
+          />
 
           <FormControl fullWidth size="small">
             <InputLabel id="category-refund-select-label">Category</InputLabel>

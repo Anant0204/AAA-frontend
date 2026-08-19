@@ -15,6 +15,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
+import Autocomplete from '@mui/material/Autocomplete';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -114,6 +115,34 @@ export const FinancePaymentDashboard = () => {
     queryKey: ['agents'],
     queryFn: dbService.getAgents
   });
+
+  const { data: dbPackages = [] } = useQuery({
+    queryKey: ['packages'],
+    queryFn: dbService.getPackages
+  });
+
+  const { data: dbServices = [] } = useQuery({
+    queryKey: ['services'],
+    queryFn: dbService.getServices
+  });
+
+  const packagesList = Array.isArray(dbPackages) && dbPackages.length > 0
+    ? dbPackages
+    : [
+        { id: 'standard', name: 'Standard Consultation', price: 150 },
+        { id: 'full_process', name: 'Full Process Service', price: 1200 },
+        { id: 'premium', name: 'Premium Process Service', price: 2500 }
+      ];
+
+  const servicesList = Array.isArray(dbServices) && dbServices.length > 0
+    ? dbServices
+    : [
+        { id: 'dnv', name: 'Digital Nomad Visa (DNV)' },
+        { id: 'nlv', name: 'Non-Lucrative Visa (NLV)' },
+        { id: 'study', name: 'Study Visa' },
+        { id: 'property', name: 'Golden Visa (Property Investment)' },
+        { id: 'family', name: 'Family Reunification' }
+      ];
 
   // Mutations
   const createInvoiceMutation = useMutation({
@@ -634,21 +663,50 @@ export const FinancePaymentDashboard = () => {
               </Typography>
 
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <FormControl fullWidth size="small">
-                  <InputLabel id="client-select-label">Select Client</InputLabel>
-                  <Select
-                    labelId="client-select-label"
-                    value={invoiceForm.clientId}
-                    onChange={(e) => setInvoiceForm({ ...invoiceForm, clientId: e.target.value })}
-                    label="Select Client"
-                  >
-                    {clients.map((c) => (
-                      <MenuItem key={c.id} value={c.id}>
-                        {c.firstName} {c.lastName} ({c.id})
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <Autocomplete
+                  size="small"
+                  fullWidth
+                  options={clients}
+                  getOptionLabel={(c) => {
+                    if (!c) return '';
+                    const formattedId = c.clientId || c.clientCode || (c.id && c.id.length > 8 ? `CL-${c.id.substring(0, 6).toUpperCase()}` : c.id);
+                    return `${c.firstName || ''} ${c.lastName || ''} (${formattedId})`.trim();
+                  }}
+                  value={clients.find(c => c.id === invoiceForm.clientId) || null}
+                  onChange={(e, newValue) => {
+                    setInvoiceForm(prev => ({ ...prev, clientId: newValue ? newValue.id : '' }));
+                  }}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                  renderOption={(props, option) => {
+                    const formattedId = option.clientId || option.clientCode || (option.id && option.id.length > 8 ? `CL-${option.id.substring(0, 6).toUpperCase()}` : option.id);
+                    return (
+                      <Box component="li" {...props} key={option.id} sx={{ fontSize: '0.85rem', py: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700, mr: 1 }}>
+                          {option.firstName} {option.lastName}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          ({formattedId})
+                        </Typography>
+                      </Box>
+                    );
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Select Client *"
+                      placeholder="Type to search client..."
+                    />
+                  )}
+                  componentsProps={{
+                    paper: {
+                      sx: {
+                        maxHeight: 250,
+                        borderRadius: 2,
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.15)'
+                      }
+                    }
+                  }}
+                />
 
                 <FormControl fullWidth size="small">
                   <InputLabel id="service-select-label">Select Service</InputLabel>
@@ -658,11 +716,11 @@ export const FinancePaymentDashboard = () => {
                     onChange={(e) => setInvoiceForm({ ...invoiceForm, serviceId: e.target.value })}
                     label="Select Service"
                   >
-                    <MenuItem value="dnv">Digital Nomad Visa (DNV)</MenuItem>
-                    <MenuItem value="nlv">Non-Lucrative Visa (NLV)</MenuItem>
-                    <MenuItem value="study">Study Visa</MenuItem>
-                    <MenuItem value="property">Golden Visa (Property Investment)</MenuItem>
-                    <MenuItem value="family">Family Reunification</MenuItem>
+                    {servicesList.map((srv) => (
+                      <MenuItem key={srv.id || srv.name} value={srv.id || srv.name}>
+                        {srv.name || srv.title || srv.label}
+                      </MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
 
@@ -671,12 +729,22 @@ export const FinancePaymentDashboard = () => {
                   <Select
                     labelId="package-select-label"
                     value={invoiceForm.packageId}
-                    onChange={(e) => setInvoiceForm({ ...invoiceForm, packageId: e.target.value })}
+                    onChange={(e) => {
+                      const selectedPkgId = e.target.value;
+                      const foundPkg = packagesList.find(p => p.id === selectedPkgId || p.name === selectedPkgId);
+                      setInvoiceForm(prev => ({
+                        ...prev,
+                        packageId: selectedPkgId,
+                        amount: foundPkg && (foundPkg.price || foundPkg.amount) ? String(foundPkg.price || foundPkg.amount) : prev.amount
+                      }));
+                    }}
                     label="Select Package"
                   >
-                    <MenuItem value="standard">Standard Consultation</MenuItem>
-                    <MenuItem value="full_process">Full Process Service</MenuItem>
-                    <MenuItem value="premium">Premium Process Service</MenuItem>
+                    {packagesList.map((pkg) => (
+                      <MenuItem key={pkg.id || pkg.name} value={pkg.id || pkg.name}>
+                        {pkg.name || pkg.title || pkg.label} {(pkg.price || pkg.amount) ? `(€${pkg.price || pkg.amount})` : ''}
+                      </MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
 

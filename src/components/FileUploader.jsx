@@ -37,10 +37,12 @@ export const FileUploader = ({
     ? baseCategories
     : [...baseCategories, 'Other (Specify Custom Document)'];
 
-  // Passport is considered "present" if it's already in DB OR staged (not yet batch-submitted)
-  const hasPassportUploaded = stagedPassport || (Array.isArray(existingDocs) && existingDocs.some(d =>
-    (d.category || d.name || '').toLowerCase().includes('passport')
-  ));
+  // Passport is considered "present" if it's already in DB (and NOT rejected) OR staged (not yet batch-submitted)
+  const hasPassportUploaded = stagedPassport || (Array.isArray(existingDocs) && existingDocs.some(d => {
+    const isRejected = (d.status || d.verificationStatus || '').toLowerCase().includes('reject') || d.rejected === true;
+    if (isRejected) return false;
+    return (d.category || d.name || '').toLowerCase().includes('passport');
+  }));
 
   const isPassportMandatoryFirst = requirePassportFirst && !hasPassportUploaded;
   const passportCat = selectCategories.find(c => c.toLowerCase().includes('passport')) || selectCategories[0];

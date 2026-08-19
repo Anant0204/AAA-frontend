@@ -24,7 +24,7 @@ import Chip from '@mui/material/Chip';
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import AddIcon from '@mui/icons-material/Add';
-import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
+
 import { useNavigate, useLocation } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 
@@ -54,22 +54,7 @@ const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { showAlert } = useAlert();
 
-  const cleanupMutation = useMutation({
-    mutationFn: dbService.resetAllConsultations,
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['consultations'] });
-      showAlert(data.message || 'Calendar reset successfully', 'success');
-    },
-    onError: (err) => {
-      showAlert(err.response?.data?.message || 'Failed to reset calendar data', 'error');
-    }
-  });
 
-  const handleCleanupTestData = () => {
-    if (window.confirm('Are you sure you want to reset the calendar and delete all consultation appointment records?')) {
-      cleanupMutation.mutate();
-    }
-  };
 
   const [cardInfo, setCardInfo] = useState(() => location.state?.cardInfo || null);
 
@@ -321,16 +306,6 @@ const navigate = useNavigate();
         action={
           !isViewOnly && (
             <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-              <Button
-                variant="outlined"
-                color="error"
-                size="small"
-                startIcon={<DeleteSweepIcon />}
-                onClick={handleCleanupTestData}
-                disabled={cleanupMutation.isPending}
-              >
-                Clear Calendar Data
-              </Button>
               <Button
                 variant="contained"
                 color="secondary"
