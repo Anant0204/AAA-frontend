@@ -121,10 +121,23 @@ export const SuperAdminConsultationList = () => {
   });
   const mockToday = dayjs().format('YYYY-MM-DD'); // Mock current date
 
+  const toUAEDateStr = (ts) => {
+    if (!ts) return '';
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return String(ts).substring(0, 10);
+    const uaeOffset = 4 * 60; // UTC+4 in minutes
+    const localMs = d.getTime() + uaeOffset * 60 * 1000;
+    const localDate = new Date(localMs);
+    const y = localDate.getUTCFullYear();
+    const m = String(localDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(localDate.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   const filterByDate = (dateStr, start, end) => {
     if (!start && !end) return true;
     if (!dateStr) return false;
-    const formatted = dateStr.substring(0, 10);
+    const formatted = toUAEDateStr(dateStr);
     if (start && !end) return formatted === start;
     return formatted >= start && formatted <= end;
   };
@@ -579,14 +592,19 @@ export const SuperAdminConsultationList = () => {
             { label: '30D', key: '30d' },
             { label: 'All', key: 'all' },
           ].map(preset => {
-            const todayStr = new Date().toISOString().split('T')[0];
-            const sevenDaysAgoStr = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-            const thirtyDaysAgoStr = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            const todayStr = toUAEDateStr(new Date());
+            const isCompletedView = filters.status === 'Completed' || cardInfo?.title === 'Completed Meetings';
+            const sevenDaysStr = isCompletedView
+              ? toUAEDateStr(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
+              : toUAEDateStr(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+            const thirtyDaysStr = isCompletedView
+              ? toUAEDateStr(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
+              : toUAEDateStr(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
 
             const isActive =
               preset.key === 'today' ? startDate === todayStr && endDate === todayStr :
-              preset.key === '7d' ? startDate === sevenDaysAgoStr && endDate === todayStr :
-              preset.key === '30d' ? startDate === thirtyDaysAgoStr && endDate === todayStr :
+              preset.key === '7d' ? (isCompletedView ? (startDate === sevenDaysStr && endDate === todayStr) : (startDate === todayStr && endDate === sevenDaysStr)) :
+              preset.key === '30d' ? (isCompletedView ? (startDate === thirtyDaysStr && endDate === todayStr) : (startDate === todayStr && endDate === thirtyDaysStr)) :
               preset.key === 'all' ? !startDate && !endDate : false;
             return (
               <Button
@@ -599,11 +617,21 @@ export const SuperAdminConsultationList = () => {
                     setStartDate(todayStr);
                     setEndDate(todayStr);
                   } else if (preset.key === '7d') {
-                    setStartDate(sevenDaysAgoStr);
-                    setEndDate(todayStr);
+                    if (isCompletedView) {
+                      setStartDate(sevenDaysStr);
+                      setEndDate(todayStr);
+                    } else {
+                      setStartDate(todayStr);
+                      setEndDate(sevenDaysStr);
+                    }
                   } else if (preset.key === '30d') {
-                    setStartDate(thirtyDaysAgoStr);
-                    setEndDate(todayStr);
+                    if (isCompletedView) {
+                      setStartDate(thirtyDaysStr);
+                      setEndDate(todayStr);
+                    } else {
+                      setStartDate(todayStr);
+                      setEndDate(thirtyDaysStr);
+                    }
                   } else {
                     setStartDate('');
                     setEndDate('');
