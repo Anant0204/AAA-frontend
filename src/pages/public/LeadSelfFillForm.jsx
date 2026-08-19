@@ -891,6 +891,11 @@ export const LeadSelfFillForm = () => {
             resLink = res.data.meetingLink || res.data.data?.meetingLink || res.data.consultation?.meetingLink;
           }
         } catch (e1) {
+          if (e1.response?.data?.message) {
+            setError(e1.response.data.message);
+            setLoading(false);
+            return;
+          }
           try {
             const resLocal = await axios.patch(`http://localhost:5000/api/v1/consultations/public/reschedule`, {
               consultationId: rescheduleConsultationId,
@@ -902,8 +907,9 @@ export const LeadSelfFillForm = () => {
               resLink = resLocal.data.meetingLink || resLocal.data.data?.meetingLink;
             }
           } catch (e2) {
-            // Local fallback simulation if offline
-            success = true;
+            setError(e2.response?.data?.message || "Failed to reschedule consultation. Please select another slot.");
+            setLoading(false);
+            return;
           }
         }
 
