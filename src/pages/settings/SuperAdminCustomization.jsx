@@ -2619,6 +2619,11 @@ export const SuperAdminCustomization = () => {
                             <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 700, color: 'primary.main', fontSize: '0.75rem' }}>
                               {tpl.contentSid}
                             </Typography>
+                            {tpl.twilioAccountSid && (
+                              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.68rem', display: 'block', mt: 0.25 }}>
+                                Account: <strong>{tpl.twilioAccountSid}</strong>
+                              </Typography>
+                            )}
                           </Box>
                           <Tooltip title="Check Live Meta/Twilio Approval Status">
                             <IconButton
@@ -2628,7 +2633,7 @@ export const SuperAdminCustomization = () => {
                                 try {
                                   const res = await dbService.checkTemplateApprovalStatus(tpl.id);
                                   queryClient.invalidateQueries({ queryKey: ['admin-templates'] });
-                                  showAlert(`Live Approval Status: ${res.approvalStatus || 'APPROVED'}`, 'info');
+                                  showAlert(`Live Approval Status: ${res.approvalStatus || 'APPROVED'} (Account: ${tpl.twilioAccountSid || 'Active Twilio Account'})`, 'info');
                                 } catch (e) {
                                   showAlert('Failed to check live approval status', 'error');
                                 }
