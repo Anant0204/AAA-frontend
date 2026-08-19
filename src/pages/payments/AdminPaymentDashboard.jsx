@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import dayjs from 'dayjs';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { jsPDF } from 'jspdf';
+import { downloadLetterheadReceiptPDF } from '../../utils/receiptPdfGenerator';
 import Box from '@mui/material/Box';
 
 import Button from '@mui/material/Button';
@@ -220,36 +221,7 @@ export const AdminPaymentDashboard = () => {
   };
 
   const handleDownloadReceiptPDF = (inv) => {
-    try {
-      const doc = new jsPDF();
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(20);
-      doc.setTextColor(15, 23, 42);
-      doc.text("AAA BUSINESS CONSULTANCY", 14, 20);
-
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(100, 116, 139);
-      doc.text("Official Payment Receipt", 14, 26);
-      doc.line(14, 32, 196, 32);
-
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-      doc.text(`Receipt Reference: #${inv.id}`, 14, 42);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.text(`Client Name: ${inv.clientName || 'Client'}`, 14, 50);
-      doc.text(`Service: ${inv.serviceId || 'Spain Relocation Legal Package'}`, 14, 56);
-      doc.text(`Payment Method: ${inv.paymentMethod || 'Stripe'}`, 14, 62);
-      doc.text(`Status: ${inv.status}`, 14, 68);
-      doc.text(`Amount Paid: €${(inv.totalPaid || inv.amount || 0).toLocaleString()}`, 14, 74);
-
-      doc.save(`Receipt-${inv.id}.pdf`);
-      showAlert("Receipt PDF downloaded successfully!", "success");
-    } catch (err) {
-      console.error(err);
-      showAlert("Failed to download PDF receipt", "error");
-    }
+    downloadLetterheadReceiptPDF(inv, showAlert);
   };
 
   const handleAWSBackup = (invoice) => {

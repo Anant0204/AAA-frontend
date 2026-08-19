@@ -4112,9 +4112,9 @@ export const ClientPortalDocs = () => {
             const addPrice = currentPkg?.isFixedPrice ? 0 : (effectiveAddCount * (currentPkg?.additionalApplicantPrice || 500));
             const grossSubTotal = isOptA ? basePrice : Math.max(0, basePrice + addPrice - assessmentCredit);
             const couponDiscount = appliedCoupon ? Math.round((grossSubTotal * (appliedCoupon.discountPercent / 100)) * 100) / 100 : 0;
-            const subTotal = Math.max(0, grossSubTotal - couponDiscount);
-            const vat5 = subTotal * 0.05;
-            const grandTotal = subTotal * 1.05;
+            const vat5 = Math.round((grossSubTotal * 0.05) * 100) / 100;
+            const subTotal = grossSubTotal;
+            const grandTotal = Math.max(0, Math.round((grossSubTotal + vat5 - couponDiscount) * 100) / 100);
 
             const invNo = `INV-2026-${(client?.id || '84920').slice(-6).toUpperCase()}`;
             const customerId = client?.clientCode || client?.clientCustomId || client?.cid || (client?.id ? `CID-${client.id.slice(-5).toUpperCase()}` : 'CLIENT-ID');
@@ -4373,14 +4373,21 @@ export const ClientPortalDocs = () => {
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
                       <Box sx={{ width: { xs: '100%', sm: '300px' }, display: 'flex', flexDirection: 'column', gap: 0.8 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                          <Typography sx={{ color: '#64748B', fontWeight: 600 }}>Subtotal (Excl. VAT)</Typography>
-                          <Typography sx={{ fontWeight: 700, color: '#1E293B' }}>€{(isOptA ? basePrice : subTotal).toFixed(2)}</Typography>
+                          <Typography sx={{ color: '#64748B', fontWeight: 600 }}>Base Package Amount</Typography>
+                          <Typography sx={{ fontWeight: 700, color: '#1E293B' }}>€{grossSubTotal.toFixed(2)}</Typography>
                         </Box>
 
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                          <Typography sx={{ color: '#64748B', fontWeight: 600 }}>UAE Standard VAT (5%)</Typography>
-                          <Typography sx={{ fontWeight: 700, color: '#1E293B' }}>€{(isOptA ? basePrice * 0.05 : vat5).toFixed(2)}</Typography>
+                          <Typography sx={{ color: '#64748B', fontWeight: 600 }}>+ UAE Standard VAT (5%)</Typography>
+                          <Typography sx={{ fontWeight: 700, color: '#1E293B' }}>+€{vat5.toFixed(2)}</Typography>
                         </Box>
+
+                        {appliedCoupon && (
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                            <Typography sx={{ color: '#16A34A', fontWeight: 600 }}>- Coupon Discount ({appliedCoupon.code} - {appliedCoupon.discountPercent}%)</Typography>
+                            <Typography sx={{ fontWeight: 700, color: '#16A34A' }}>-€{couponDiscount.toFixed(2)}</Typography>
+                          </Box>
+                        )}
 
                         <Divider sx={{ my: 0.4, borderColor: '#CBD5E1' }} />
 
@@ -4389,7 +4396,7 @@ export const ClientPortalDocs = () => {
                             {isOptA && isOptAPaid ? 'TOTAL PAID' : 'TOTAL DUE'}
                           </Typography>
                           <Typography sx={{ fontWeight: 900, fontSize: '1.15rem', color: '#FACC15' }}>
-                            €{(isOptA ? basePrice * 1.05 : grandTotal).toFixed(2)}
+                            €{grandTotal.toFixed(2)}
                           </Typography>
                         </Box>
                       </Box>
