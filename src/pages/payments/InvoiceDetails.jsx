@@ -140,7 +140,24 @@ export const InvoiceDetails = () => {
     : null;
   const itemTitle = currentPkg?.name || invoice.paymentPurpose || (invoice.packageType ? getPackageDisplayName(invoice.packageType, dbPackages) : (invoice.serviceId ? (SERVICES.find(s => s.id === invoice.serviceId)?.name || invoice.serviceId) : 'Spain Immigration & Legal Relocation Service'));
 
-  const itemDescription = currentPkg?.description || (invoice.paymentPurpose ? `Official client invoice for ${invoice.paymentPurpose}.` : 'Initial eligibility verification, document compliance review, and file assembly.');
+  const getServicesProvidedText = (rawService) => {
+    const service = String(rawService || '').trim();
+    if (!service) return 'Services Provided: Spain Visa & Relocation Service';
+
+    const s = service.toLowerCase();
+    if (s.includes('dnv') || s.includes('digital nomad')) return 'Services Provided: Digital Nomad Visa (DNV)';
+    if (s.includes('nlv') || s.includes('non-lucrative')) return 'Services Provided: Non-Lucrative Visa (NLV)';
+    if (s.includes('study') || s.includes('student')) return 'Services Provided: Spain Study Visa';
+    if (s.includes('tourist') || s.includes('schengen') || s.includes('tourism')) return 'Services Provided: Spain Tourist Visa';
+    if (s.includes('self_employed') || s.includes('business') || s.includes('self-employed')) return 'Services Provided: Spain Self-Employed / Business Visa';
+    if (s.includes('translation') || s.includes('sworn')) return 'Services Provided: Spanish Sworn Translation';
+    if (s.includes('property') || s.includes('golden')) return 'Services Provided: Property Investment Guidance';
+    if (s.includes('family') || s.includes('reunification') || s.includes('partner')) return 'Services Provided: Partner & Family Reunification';
+
+    return `Services Provided: ${service}`;
+  };
+
+  const itemDescription = getServicesProvidedText(invoice?.serviceType || client?.serviceType || invoice.paymentPurpose);
 
   const totalAmount = Number(invoice.amount) || 0;
   const discount = Number(invoice.discount) || 0;
