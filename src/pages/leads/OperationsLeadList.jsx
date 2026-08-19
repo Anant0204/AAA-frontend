@@ -392,7 +392,7 @@ export const OperationsLeadList = () => {
       const matchConsultant = filters.assignedConsultantId
         ? lead.assignedConsultantId === filters.assignedConsultantId
         : true;
-      const matchToday = filters.todayOnly ? (isTodaysConsultationsCard ? Boolean(lead.meetingPreferredDate) : lead.createdDate?.startsWith('2026-06-18')) : true;
+      const matchToday = filters.todayOnly ? (isTodaysConsultationsCard ? Boolean(lead.meetingPreferredDate || lead.createdAt || lead.createdDate) : toUAEDateStr(lead.meetingPreferredDate || lead.createdAt || lead.createdDate) === toUAEDateStr(new Date())) : true;
 
       return matchSearch && matchService && matchStatus && matchConsultant && matchToday;
     })

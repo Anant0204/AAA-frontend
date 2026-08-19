@@ -142,16 +142,31 @@ export const AdminDashboard = () => {
 
   const isViewOnly = isViewOnlyMenu(customizationSettings, 'Dashboard');
 
+  const toUAEDateStr = (ts) => {
+    if (!ts) return '';
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return String(ts).substring(0, 10);
+    const uaeOffset = 4 * 60; // UTC+4 in minutes
+    const localMs = d.getTime() + uaeOffset * 60 * 1000;
+    const localDate = new Date(localMs);
+    const y = localDate.getUTCFullYear();
+    const m = String(localDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(localDate.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   const getDateStr = (val) => {
     if (!val) return '';
-    if (typeof val === 'string') return val.split('T')[0];
-    try { return new Date(val).toISOString().split('T')[0]; } catch (e) { return ''; }
+    return toUAEDateStr(val);
   };
 
   // Compute key stats
   const totalLeads = leads.length;
-  const todayDateStr = new Date().toISOString().split('T')[0]; // Real current date
-  const todayLeadsCount = leads.filter((l) => l.createdDate?.startsWith(todayDateStr)).length;
+  const todayDateStr = toUAEDateStr(new Date());
+  const todayLeadsCount = leads.filter((l) => {
+    const dateVal = l.meetingPreferredDate || l.createdAt || l.createdDate;
+    return toUAEDateStr(dateVal) === todayDateStr;
+  }).length;
   const upcomingMeetingsCount = consultations.filter((c) => c.status === 'Scheduled' || c.status === 'Meeting Scheduled').length;
   const completedMeetingsCount = consultations.filter((c) => c.status === 'Completed' || c.status === 'Meeting Completed').length;
   const pendingPaymentsCount = payments.filter((p) => p.status === 'Pending' || p.status === 'Pending Payment').length;

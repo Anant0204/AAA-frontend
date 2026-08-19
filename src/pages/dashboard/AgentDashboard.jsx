@@ -47,11 +47,27 @@ export const AgentDashboard = () => {
   const myClients = allClients.filter((cl) => cl.assignedToId === agentId);
   const myConsultations = allConsultations.filter((c) => c.consultantId === agentId);
 
+  const toUAEDateStr = (ts) => {
+    if (!ts) return '';
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return String(ts).substring(0, 10);
+    const uaeOffset = 4 * 60; // UTC+4 in minutes
+    const localMs = d.getTime() + uaeOffset * 60 * 1000;
+    const localDate = new Date(localMs);
+    const y = localDate.getUTCFullYear();
+    const m = String(localDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(localDate.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   // Stats Calculations
   const totalConsultations = myConsultations.length;
 
-  const todayStr = '2026-06-18'; // Simulated current date
-  const todayConsultations = myConsultations.filter((c) => c.meetingDate === todayStr).length;
+  const todayStr = toUAEDateStr(new Date());
+  const todayConsultations = myConsultations.filter((c) => {
+    const dateVal = c.meetingDate || c.date || c.createdAt;
+    return toUAEDateStr(dateVal) === todayStr;
+  }).length;
 
   const upcomingConsultations = myConsultations.filter((c) => c.status === 'Scheduled').length;
 
@@ -90,7 +106,7 @@ export const AgentDashboard = () => {
   // Render stats list
   const statsList = [
     { title: 'My Total Consultations', value: totalConsultations, icon: <AssignmentIcon />, color: '#3F51B5', onClick: () => navigate('/agent/consultations', { state: { filterStatus: '', cardInfo: { title: 'My Total Consultations', value: totalConsultations, color: '#3F51B5', iconType: 'Assignment' } } }) },
-    { title: "Today's Meetings", value: todayConsultations, icon: <CalendarMonthIcon />, color: '#14B8A6', onClick: () => navigate('/agent/consultations', { state: { filterStatus: 'Scheduled', startDate: '2026-06-18', endDate: '2026-06-18', cardInfo: { title: "Today's Meetings", value: todayConsultations, color: '#14B8A6', iconType: 'CalendarMonth' } } }) },
+    { title: "Today's Meetings", value: todayConsultations, icon: <CalendarMonthIcon />, color: '#14B8A6', onClick: () => navigate('/agent/consultations', { state: { filterStatus: 'Scheduled', startDate: todayStr, endDate: todayStr, cardInfo: { title: "Today's Meetings", value: todayConsultations, color: '#14B8A6', iconType: 'CalendarMonth' } } }) },
     { title: 'Upcoming Calls', value: upcomingConsultations, icon: <CalendarMonthIcon />, color: '#2563EB', onClick: () => navigate('/agent/consultations', { state: { filterStatus: 'Scheduled', startDate: '', endDate: '', cardInfo: { title: 'Upcoming Calls', value: upcomingConsultations, color: '#2563EB', iconType: 'CalendarMonth' } } }) },
     { title: 'Completed Meetings', value: completedConsultations, icon: <CheckCircleOutlinedIcon />, color: '#10B981', onClick: () => navigate('/agent/consultations', { state: { filterStatus: 'Completed', startDate: '', endDate: '', cardInfo: { title: 'Completed Meetings', value: completedConsultations, color: '#10B981', iconType: 'CheckCircleOutlined' } } }) },
     { title: 'My Performance (%)', value: `${performancePercent}%`, icon: <TrendingUpIcon />, color: '#10B981' },

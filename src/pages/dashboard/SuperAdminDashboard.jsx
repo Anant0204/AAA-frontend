@@ -252,10 +252,22 @@ export const SuperAdminDashboard = () => {
   const { data: customizationSettings } = useQuery({ queryKey: ['customization-settings'], queryFn: dbService.getCustomizationSettings });
   const isViewOnly = isViewOnlyMenu(customizationSettings, 'Dashboard');
 
+  const toUAEDateStr = (ts) => {
+    if (!ts) return '';
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return String(ts).substring(0, 10);
+    const uaeOffset = 4 * 60; // UTC+4 in minutes
+    const localMs = d.getTime() + uaeOffset * 60 * 1000;
+    const localDate = new Date(localMs);
+    const y = localDate.getUTCFullYear();
+    const m = String(localDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(localDate.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   const getDateStr = (val) => {
     if (!val) return '';
-    if (typeof val === 'string') return val.split('T')[0];
-    try { return new Date(val).toISOString().split('T')[0]; } catch (e) { return ''; }
+    return toUAEDateStr(val);
   };
 
   // Dynamic Date Range Calculation
@@ -269,10 +281,11 @@ export const SuperAdminDashboard = () => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return `${y}-${m}-${day}`;
   };
 
-  const todayDateStr = new Date().toISOString().split('T')[0]; // Real current date
+  const todayDateStr = toUAEDateStr(new Date());
+  const yesterdayDateStr = toUAEDateStr(new Date(Date.now() - 86400000));
 
   // Processed Refunds Calculation
   const processedRefundsList = (Array.isArray(refundRequests) ? refundRequests : []).filter(
@@ -339,7 +352,7 @@ export const SuperAdminDashboard = () => {
   const filterByDate = (dateStr, start, end) => {
     if (!start && !end) return true; // All Time — show everything
     if (!dateStr) return false;
-    const formatted = dateStr.substring(0, 10);
+    const formatted = toUAEDateStr(dateStr);
     if (start && !end) return formatted === start; // single day
     return formatted >= start && formatted <= end;
   };
@@ -358,16 +371,22 @@ export const SuperAdminDashboard = () => {
   const clientsInPrevRange = period.prevStart ? clients.filter(c => filterByDate(c.onboardingDate, period.prevStart, period.prevEnd)) : [];
 
   // 2. Today's Clients
-  const clientsToday = clients.filter(c => c.onboardingDate?.startsWith(todayDateStr));
-  const clientsYesterday = clients.filter(c => c.onboardingDate?.startsWith('2026-06-17'));
+  const clientsToday = clients.filter(c => toUAEDateStr(c.onboardingDate || c.createdAt) === todayDateStr);
+  const clientsYesterday = clients.filter(c => toUAEDateStr(c.onboardingDate || c.createdAt) === yesterdayDateStr);
 
   // 3. Total Consultations (Leads)
-  const leadsInRange = leads.filter(l => filterByDate(l.createdDate, period.start, period.end));
-  const leadsInPrevRange = period.prevStart ? leads.filter(l => filterByDate(l.createdDate, period.prevStart, period.prevEnd)) : [];
+  const leadsInRange = leads.filter(l => filterByDate(l.meetingPreferredDate || l.createdAt || l.createdDate, period.start, period.end));
+  const leadsInPrevRange = period.prevStart ? leads.filter(l => filterByDate(l.meetingPreferredDate || l.createdAt || l.createdDate, period.prevStart, period.prevEnd)) : [];
 
-  // 4. Today's Consultations
-  const leadsToday = leads.filter(l => l.createdDate?.startsWith(todayDateStr));
-  const leadsYesterday = leads.filter(l => l.createdDate?.startsWith('2026-06-17'));
+  // 4. Today's Consultations (Matches Lead List filtering by meetingPreferredDate or createdAt in UAE time)
+  const leadsToday = leads.filter(l => {
+    const dateVal = l.meetingPreferredDate || l.createdAt || l.createdDate;
+    return toUAEDateStr(dateVal) === todayDateStr;
+  });
+  const leadsYesterday = leads.filter(l => {
+    const dateVal = l.meetingPreferredDate || l.createdAt || l.createdDate;
+    return toUAEDateStr(dateVal) === yesterdayDateStr;
+  });
 
   // 5. Upcoming Meetings
   const meetingsInRange = consultations.filter(c => (c.status === 'Scheduled' || c.status === 'Meeting Scheduled') && filterByDate(c.meetingDate || c.date, period.start, period.end));
