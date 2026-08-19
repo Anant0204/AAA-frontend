@@ -509,6 +509,7 @@ const SwornTranslationForm = () => {
       batchForm.append('email', formData.email);
       batchForm.append('phone', formData.phone);
       batchForm.append('nationality', formData.nationality);
+      batchForm.append('countryOfResidence', formData.countryOfResidence);
       batchForm.append('targetLanguage', formData.targetLanguage);
 
       const res = await axios.post(`${API_URL}/booking/translation/upload`, batchForm, {
