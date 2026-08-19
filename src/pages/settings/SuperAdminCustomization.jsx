@@ -306,6 +306,107 @@ export const SuperAdminCustomization = () => {
   const [editingStage, setEditingStage] = useState(null); // null means adding new
   const [stageForm, setStageForm] = useState({ name: '', emoji: '🆕', color: '#2196F3', type: 'lead' });
 
+  // WhatsApp Templates management state
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState(null);
+  const [templateForm, setTemplateForm] = useState({
+    name: '',
+    category: 'QUICK_REPLY',
+    body: '',
+    contentSid: '',
+    language: 'en',
+    active: true
+  });
+
+  const { data: adminTemplates = [] } = useQuery({
+    queryKey: ['admin-templates'],
+    queryFn: dbService.getAllTemplatesAdmin
+  });
+
+  const createTemplateMutation = useMutation({
+    mutationFn: (data) => dbService.createTemplate(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-templates'] });
+      queryClient.invalidateQueries({ queryKey: ['templates'] });
+      showAlert('Template created successfully!', 'success');
+      setTemplateDialogOpen(false);
+    },
+    onError: (err) => {
+      showAlert(err.response?.data?.message || 'Failed to create template', 'error');
+    }
+  });
+
+  const updateTemplateMutation = useMutation({
+    mutationFn: (data) => dbService.updateTemplate(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-templates'] });
+      queryClient.invalidateQueries({ queryKey: ['templates'] });
+      showAlert('Template updated successfully!', 'success');
+      setTemplateDialogOpen(false);
+    },
+    onError: (err) => {
+      showAlert(err.response?.data?.message || 'Failed to update template', 'error');
+    }
+  });
+
+  const deleteTemplateMutation = useMutation({
+    mutationFn: (id) => dbService.deleteTemplate(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-templates'] });
+      queryClient.invalidateQueries({ queryKey: ['templates'] });
+      showAlert('Template status updated successfully!', 'success');
+    },
+    onError: (err) => {
+      showAlert(err.response?.data?.message || 'Failed to update template status', 'error');
+    }
+  });
+
+  const handleOpenAddTemplate = () => {
+    setEditingTemplate(null);
+    setTemplateForm({
+      name: '',
+      category: 'QUICK_REPLY',
+      body: '',
+      contentSid: '',
+      language: 'en',
+      active: true
+    });
+    setTemplateDialogOpen(true);
+  };
+
+  const handleOpenEditTemplate = (tpl) => {
+    setEditingTemplate(tpl);
+    setTemplateForm({
+      name: tpl.name || '',
+      category: tpl.category || tpl.type || 'QUICK_REPLY',
+      body: tpl.body || '',
+      contentSid: tpl.contentSid || '',
+      language: tpl.language || 'en',
+      active: tpl.active !== undefined ? tpl.active : true
+    });
+    setTemplateDialogOpen(true);
+  };
+
+  const handleSaveTemplate = () => {
+    if (!templateForm.name.trim()) {
+      showAlert('Template name is required', 'error');
+      return;
+    }
+    if (!templateForm.body.trim()) {
+      showAlert('Message body is required', 'error');
+      return;
+    }
+
+    if (editingTemplate) {
+      updateTemplateMutation.mutate({
+        id: editingTemplate.id,
+        ...templateForm
+      });
+    } else {
+      createTemplateMutation.mutate(templateForm);
+    }
+  };
+
 
 
   // Fetch customizable stages
@@ -1375,6 +1476,7 @@ export const SuperAdminCustomization = () => {
             <Tab label="⚡ Lifecycle Stages Manager" sx={{ fontWeight: 800, px: 3, py: 2 }} />
             <Tab label="📂 Visa Document Checklists" sx={{ fontWeight: 800, px: 3, py: 2 }} />
             <Tab label="⚙️ Flow Settings" sx={{ fontWeight: 800, px: 3, py: 2 }} />
+            <Tab label="💬 WhatsApp Templates" sx={{ fontWeight: 800, px: 3, py: 2 }} />
           </Tabs>
         </Paper>
       </Box>
@@ -2423,6 +2525,227 @@ export const SuperAdminCustomization = () => {
           </Box>
         </Box>
       )}
+
+      {/* ─── TAB 4: WhatsApp Templates ─── */}
+      {topTab === 4 && (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                  💬 WhatsApp & Message Templates
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Manage static quick replies and Twilio/Meta approved templates for 1-click dispatch in WhatsApp Chat Inbox.
+                </Typography>
+              </Box>
+              <Button
+                variant="contained"
+                color="secondary"
+                startIcon={<AddIcon />}
+                onClick={handleOpenAddTemplate}
+                sx={{ fontWeight: 700, borderRadius: 2 }}
+              >
+                Add Template
+              </Button>
+            </Box>
+
+            <Divider sx={{ mb: 3 }} />
+
+            {adminTemplates.length === 0 ? (
+              <Box sx={{ p: 4, textAlign: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
+                  No templates created yet. Click "Add Template" to create your first static WhatsApp message template.
+                </Typography>
+              </Box>
+            ) : (
+              <Box className="grid grid-cols-12 gap-3">
+                {adminTemplates.map((tpl) => (
+                  <Box className="col-span-12 md:col-span-6 lg:col-span-4" key={tpl.id}>
+                    <Paper variant="outlined" sx={{ p: 2, borderRadius: 2.5, display: 'flex', flexDirection: 'column', gap: 1.5, position: 'relative', bgcolor: tpl.active ? 'background.paper' : 'action.hover' }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <Box>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+                            {tpl.name}
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1, mt: 0.5, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <Chip
+                              size="small"
+                              label={tpl.category === 'META_APPROVED' || tpl.type === 'META_APPROVED' ? 'Meta/Twilio Approved' : 'Quick Reply'}
+                              color={tpl.category === 'META_APPROVED' || tpl.type === 'META_APPROVED' ? 'primary' : 'secondary'}
+                              variant="outlined"
+                              sx={{ fontSize: '0.7rem', fontWeight: 700 }}
+                            />
+                            {(tpl.category === 'META_APPROVED' || tpl.type === 'META_APPROVED' || tpl.contentSid) && (
+                              <Chip
+                                size="small"
+                                label={
+                                  tpl.approvalStatus === 'APPROVED' ? 'Meta Approved ✅' :
+                                  tpl.approvalStatus === 'PENDING' ? 'Pending Approval ⏳' :
+                                  tpl.approvalStatus === 'REJECTED' ? 'Rejected ❌' : 'Approved ✅'
+                                }
+                                color={
+                                  tpl.approvalStatus === 'APPROVED' ? 'success' :
+                                  tpl.approvalStatus === 'PENDING' ? 'warning' :
+                                  tpl.approvalStatus === 'REJECTED' ? 'error' : 'success'
+                                }
+                                sx={{ fontSize: '0.7rem', fontWeight: 700 }}
+                              />
+                            )}
+                            <Chip
+                              size="small"
+                              label={tpl.active ? 'Active' : 'Inactive'}
+                              color={tpl.active ? 'success' : 'default'}
+                              sx={{ fontSize: '0.7rem', fontWeight: 700 }}
+                            />
+                          </Box>
+                        </Box>
+                        <Box sx={{ display: 'flex', gap: 0.5 }}>
+                          <IconButton size="small" color="primary" onClick={() => handleOpenEditTemplate(tpl)}>
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton size="small" color="error" onClick={() => deleteTemplateMutation.mutate(tpl.id)}>
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      </Box>
+
+                      {tpl.contentSid && (
+                        <Box sx={{ p: 1, bgcolor: 'neutral.light', borderRadius: 1.5, border: '1px dashed #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Box>
+                            <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'block' }}>
+                              Content SID:
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 700, color: 'primary.main', fontSize: '0.75rem' }}>
+                              {tpl.contentSid}
+                            </Typography>
+                          </Box>
+                          <Tooltip title="Check Live Meta/Twilio Approval Status">
+                            <IconButton
+                              size="small"
+                              color="secondary"
+                              onClick={async () => {
+                                try {
+                                  const res = await dbService.checkTemplateApprovalStatus(tpl.id);
+                                  queryClient.invalidateQueries({ queryKey: ['admin-templates'] });
+                                  showAlert(`Live Approval Status: ${res.approvalStatus || 'APPROVED'}`, 'info');
+                                } catch (e) {
+                                  showAlert('Failed to check live approval status', 'error');
+                                }
+                              }}
+                            >
+                              <RestartAltIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      )}
+
+                      <Box sx={{ p: 1.5, bgcolor: 'background.neutral', borderRadius: 1.5, minHeight: 60 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block', mb: 0.5 }}>
+                          Static Message Text:
+                        </Typography>
+                        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', fontSize: '0.82rem', color: 'text.primary' }}>
+                          {tpl.body}
+                        </Typography>
+                      </Box>
+                    </Paper>
+                  </Box>
+                ))}
+              </Box>
+            )}
+          </Paper>
+        </Box>
+      )}
+
+      {/* ─── Create / Edit WhatsApp Template Dialog ─── */}
+      <Dialog open={templateDialogOpen} onClose={() => setTemplateDialogOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ fontWeight: 800 }}>
+          {editingTemplate ? '✏️ Edit Template' : '➕ Create New Template'}
+        </DialogTitle>
+        <Divider />
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 3 }}>
+          <TextField
+            label="Template Name *"
+            size="small"
+            fullWidth
+            value={templateForm.name}
+            onChange={(e) => setTemplateForm(prev => ({ ...prev, name: e.target.value }))}
+            placeholder="e.g. Payment Reminder / General Greeting"
+          />
+
+          <FormControl fullWidth size="small">
+            <InputLabel>Template Type *</InputLabel>
+            <Select
+              label="Template Type *"
+              value={templateForm.category}
+              onChange={(e) => setTemplateForm(prev => ({ ...prev, category: e.target.value }))}
+            >
+              <MenuItem value="QUICK_REPLY">Quick Reply (Predefined Message)</MenuItem>
+              <MenuItem value="META_APPROVED">Meta / Twilio Approved Template</MenuItem>
+            </Select>
+          </FormControl>
+
+          {(templateForm.category === 'META_APPROVED' || templateForm.category === 'TWILIO_APPROVED') && (
+            <TextField
+              label="Twilio Content SID (HX...)"
+              size="small"
+              fullWidth
+              value={templateForm.contentSid}
+              onChange={(e) => setTemplateForm(prev => ({ ...prev, contentSid: e.target.value }))}
+              placeholder="e.g. HX02a8475f06ded5fb55382c41dcc12e03"
+              helperText="Optional: Leave blank to automatically submit to Twilio/Meta for approval and generate Content SID, or paste existing HX... SID"
+            />
+          )}
+
+          <TextField
+            label="Message Body (Static Text) *"
+            multiline
+            minRows={4}
+            maxRows={8}
+            fullWidth
+            value={templateForm.body}
+            onChange={(e) => setTemplateForm(prev => ({ ...prev, body: e.target.value }))}
+            placeholder="Type the exact static text message to send to clients..."
+            helperText="Note: Exact static text will be sent as stored in DB. No dynamic variables."
+          />
+
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={templateForm.active}
+                  onChange={(e) => setTemplateForm(prev => ({ ...prev, active: e.target.checked }))}
+                  color="secondary"
+                />
+              }
+              label={<Typography sx={{ fontWeight: 700, fontSize: '0.85rem' }}>Active Template</Typography>}
+            />
+
+            <TextField
+              label="Language"
+              size="small"
+              sx={{ width: 120 }}
+              value={templateForm.language}
+              onChange={(e) => setTemplateForm(prev => ({ ...prev, language: e.target.value }))}
+            />
+          </Box>
+        </DialogContent>
+        <Divider />
+        <DialogActions sx={{ p: 2.5, gap: 1 }}>
+          <Button onClick={() => setTemplateDialogOpen(false)} variant="outlined" color="inherit" sx={{ fontWeight: 700 }}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSaveTemplate}
+            variant="contained"
+            color="secondary"
+            sx={{ fontWeight: 700 }}
+            disabled={createTemplateMutation.isPending || updateTemplateMutation.isPending}
+          >
+            {editingTemplate ? 'Update Template' : 'Create Template'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* ─── Add / Edit Stage Dialog ─── */}
       <Dialog open={stageDialogOpen} onClose={() => setStageDialogOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>

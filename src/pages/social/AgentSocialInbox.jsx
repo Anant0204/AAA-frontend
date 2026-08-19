@@ -400,31 +400,37 @@ export const AgentSocialInbox = () => {
     }
   };
 
+  const { data: dbTemplates = [] } = useQuery({
+    queryKey: ['templates'],
+    queryFn: dbService.getTemplates
+  });
+
+  const activeTemplatesList = dbTemplates.length > 0 ? dbTemplates : QUICK_TEMPLATES.map(t => ({ id: t.id, name: t.label, body: t.text, category: 'QUICK_REPLY' }));
+
   const handleTemplateChange = (e) => {
     const val = e.target.value;
+    if (!val || !activeConv || sendSocialMessageMutation.isPending) return;
+
     setSelectedTemplate(val);
-    const template = QUICK_TEMPLATES.find(t => t.id === val);
-    if (template && activeConv) {
-      const clientName = displayName(activeConv.name, activeConv.phone);
-      let textToSend = template.text;
-      if (textToSend.includes('{{1}}')) {
-        textToSend = textToSend.replaceAll('{{1}}', clientName);
-      }
+    const template = activeTemplatesList.find(t => t.id === val || t.name === val);
+    if (template) {
+      const staticText = template.body || template.text || '';
       
       const newMsg = {
         sender: 'agent',
-        text: textToSend,
+        text: staticText,
         timestamp: new Date().toISOString()
       };
       
       sendSocialMessageMutation.mutate({
         conversationId: activeConvId,
         phone: activeConv.phone,
-        templateName: val,
+        templateId: template.id,
+        templateName: template.id,
         message: newMsg
       });
       
-      setSelectedTemplate('');
+      setTimeout(() => setSelectedTemplate(''), 500);
     }
   };
 
@@ -860,6 +866,7 @@ export const AgentSocialInbox = () => {
                           value={selectedTemplate}
                           onChange={handleTemplateChange}
                           displayEmpty
+                          disabled={sendSocialMessageMutation.isPending}
                           renderValue={() => <QuickreplyIcon fontSize="small" sx={{ color: 'white' }} />}
                           sx={{
                             bgcolor: 'secondary.main',
@@ -885,9 +892,20 @@ export const AgentSocialInbox = () => {
                             }
                           }}
                         >
-                          <MenuItem value="" sx={{ fontSize: '0.75rem' }}><em>None</em></MenuItem>
-                          {QUICK_TEMPLATES.map(t => (
-                            <MenuItem key={t.id} value={t.id} sx={{ fontSize: '0.75rem' }}>{t.label}</MenuItem>
+                          <MenuItem key="none" value="" sx={{ fontSize: '0.75rem' }}><em>None (Select Quick Template)</em></MenuItem>
+                          {activeTemplatesList.map(t => (
+                            <MenuItem key={t.id} value={t.id} sx={{ fontSize: '0.75rem', py: 1 }}>
+                              <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                <Typography sx={{ fontWeight: 700, fontSize: '0.8rem' }}>
+                                  {t.name || t.label}
+                                </Typography>
+                                {(t.body || t.text) && (
+                                  <Typography variant="caption" color="text.secondary" sx={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: 260 }}>
+                                    {t.body || t.text}
+                                  </Typography>
+                                )}
+                              </Box>
+                            </MenuItem>
                           ))}
                         </Select>
                       </FormControl>

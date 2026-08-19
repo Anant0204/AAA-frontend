@@ -140,8 +140,9 @@ export const AgentConsultationList = () => {
         };
         
         setFilters(nextFilters);
-        setStartDate(location.state.startDate !== undefined ? location.state.startDate : '');
-        setEndDate(location.state.endDate !== undefined ? location.state.endDate : '');
+        const isCompletedView = targetStatus === 'Completed';
+        setStartDate(isCompletedView ? '' : (location.state.startDate !== undefined ? location.state.startDate : ''));
+        setEndDate(isCompletedView ? '' : (location.state.endDate !== undefined ? location.state.endDate : ''));
         
         if (location.state.cardInfo) {
           setCardInfo(location.state.cardInfo);
@@ -154,7 +155,7 @@ export const AgentConsultationList = () => {
         sessionStorage.setItem('consultationList_filters', JSON.stringify(nextFilters));
       }
     }
-  }, [location.state]);
+  }, [location.key, location.state]);
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
@@ -211,15 +212,14 @@ export const AgentConsultationList = () => {
 
     const nameMatch = cons.clientName ? cons.clientName.toLowerCase().includes(searchTerm.toLowerCase()) : true;
 
-    const activeCardTitle = cardInfo?.title || location.state?.cardInfo?.title;
     let effectiveStatus = filters.status;
-
-    if (activeCardTitle === 'Upcoming Meetings' || activeCardTitle === 'Upcoming Calls') {
-      effectiveStatus = 'Scheduled';
-    } else if (activeCardTitle === 'Completed Meetings') {
-      effectiveStatus = 'Completed';
-    } else if (!effectiveStatus || effectiveStatus === '') {
-      effectiveStatus = 'Scheduled';
+    if (!effectiveStatus) {
+      const activeCardTitle = cardInfo?.title || location.state?.cardInfo?.title;
+      if (activeCardTitle === 'Completed Meetings') {
+        effectiveStatus = 'Completed';
+      } else {
+        effectiveStatus = 'Scheduled';
+      }
     }
 
     let matchStatus = true;
@@ -307,6 +307,21 @@ export const AgentConsultationList = () => {
 
   const statusOptions = ['Pending Acceptance', 'Scheduled', 'Completed', 'No Show', 'Cancelled', 'Declined'];
 
+  const getPageTitle = () => {
+    let status = filters.status;
+    if (!status && cardInfo?.title) {
+      if (cardInfo.title === 'Completed Meetings') status = 'Completed';
+      if (cardInfo.title === 'Upcoming Meetings' || cardInfo.title === 'Upcoming Calls') status = 'Scheduled';
+    }
+    if (status === 'Completed') return 'Completed Meetings';
+    if (status === 'Scheduled') return 'Upcoming Meetings';
+    if (status === 'Cancelled') return 'Cancelled Meetings';
+    if (status === 'No Show' || status === 'NO_SHOW') return 'No Show Meetings';
+    if (status === 'ALL') return 'All Meetings';
+    if (cardInfo?.title) return cardInfo.title;
+    return 'Upcoming Meetings';
+  };
+
   return (
     <Box>
       <Button
@@ -317,7 +332,7 @@ export const AgentConsultationList = () => {
         Back to Dashboard
       </Button>
       <PageHeader
-        title={cardInfo?.title || "Upcoming Meetings"}
+        title={getPageTitle()}
         subtitle="Track Spain Visa assessments, eligibility consultations, and virtual meeting links."
         action={
           <Button

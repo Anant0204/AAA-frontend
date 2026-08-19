@@ -291,6 +291,32 @@ export const dbService = {
     return res.data;
   },
 
+  // TEMPLATES MANAGEMENT
+  getTemplates: async () => {
+    const res = await apiClient.get('/templates');
+    return res.data;
+  },
+  getAllTemplatesAdmin: async () => {
+    const res = await apiClient.get('/templates/all');
+    return res.data;
+  },
+  createTemplate: async (data) => {
+    const res = await apiClient.post('/templates', data);
+    return res.data;
+  },
+  updateTemplate: async ({ id, ...data }) => {
+    const res = await apiClient.put(`/templates/${id}`, data);
+    return res.data;
+  },
+  deleteTemplate: async (id) => {
+    const res = await apiClient.delete(`/templates/${id}`);
+    return res.data;
+  },
+  checkTemplateApprovalStatus: async (id) => {
+    const res = await apiClient.get(`/templates/check-status/${id}`);
+    return res.data;
+  },
+
   // SETTINGS & CUSTOMIZATION
   getCustomizationSettings: async () => {
     try {

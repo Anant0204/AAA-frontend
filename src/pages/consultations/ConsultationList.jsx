@@ -163,10 +163,25 @@ export const ConsultationList = () => {
 
   const statusOptions = ['Scheduled', 'Completed', 'No Show', 'Cancelled'];
 
+  const getPageTitle = () => {
+    let status = filters.status;
+    if (!status && cardInfo?.title) {
+      if (cardInfo.title === 'Completed Meetings') status = 'Completed';
+      if (cardInfo.title === 'Upcoming Meetings' || cardInfo.title === 'Upcoming Calls') status = 'Scheduled';
+    }
+    if (status === 'Completed') return 'Completed Meetings';
+    if (status === 'Scheduled') return 'Upcoming Meetings';
+    if (status === 'Cancelled') return 'Cancelled Meetings';
+    if (status === 'No Show' || status === 'NO_SHOW') return 'No Show Meetings';
+    if (status === 'ALL') return 'All Meetings';
+    if (cardInfo?.title) return cardInfo.title;
+    return 'Upcoming Meetings';
+  };
+
   return (
     <Box>
       <PageHeader
-        title={cardInfo?.title || "Upcoming Meetings"}
+        title={getPageTitle()}
         subtitle="Track Spain Visa assessments, eligibility consultations, and virtual meeting links."
         action={
           <Button
