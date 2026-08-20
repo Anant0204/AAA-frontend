@@ -1,13 +1,41 @@
 export const SERVICES = [
+  { id: 'visa', name: 'Spain Visa & Residency Services', category: 'Residency', basePrice: 2000 },
+  { id: 'property', name: 'Property Investment Guidance Service', category: 'Investment', basePrice: 3000 },
+  { id: 'sworn_translation', name: 'Spanish Sworn Translation Service', category: 'Translation', basePrice: 150 },
   { id: 'dnv', name: 'Digital Nomad Visa (DNV)', category: 'Residency', basePrice: 2000 },
   { id: 'nlv', name: 'Non-Lucrative Visa (NLV)', category: 'Residency', basePrice: 1800 },
   { id: 'self_employed', name: 'Self-Employed / Business Residency', category: 'Residency', basePrice: 2500 },
   { id: 'study', name: 'Study Visa', category: 'Study', basePrice: 1200 },
   { id: 'family', name: 'Partner & Family Reunification', category: 'Residency', basePrice: 1500 },
   { id: 'tourism', name: 'Tourism Visa & Schengen Guidance', category: 'Schengen', basePrice: 400 },
-  { id: 'property', name: 'Property Investment Guidance', category: 'Investment', basePrice: 3000 },
-  { id: 'sworn_translation', name: 'Sworn Translation', category: 'Translation', basePrice: 150 },
 ];
+
+export const MAIN_SERVICES = [
+  { id: 'visa', name: 'Spain Visa & Residency Services' },
+  { id: 'property', name: 'Property Investment Guidance Service' },
+  { id: 'sworn_translation', name: 'Spanish Sworn Translation Service' }
+];
+
+export const matchesServiceCategory = (item, targetServiceId) => {
+  if (!targetServiceId) return true;
+  const service = String(item?.serviceId || item?.serviceType || item?.service?.name || item?.service || '').toLowerCase();
+
+  if (targetServiceId === 'sworn_translation') {
+    return isSwornTranslationService(service) || Boolean(item?.wordCount) || Boolean(item?.sourceLanguage);
+  }
+
+  if (targetServiceId === 'property') {
+    return service.includes('property') || service.includes('investment') || service.includes('land');
+  }
+
+  if (targetServiceId === 'visa') {
+    const isTranslation = isSwornTranslationService(service) || Boolean(item?.wordCount) || Boolean(item?.sourceLanguage);
+    const isProperty = service.includes('property') || service.includes('investment') || service.includes('land');
+    return !isTranslation && !isProperty;
+  }
+
+  return service.includes(targetServiceId.toLowerCase());
+};
 
 export const SWORN_TRANSLATION_STATUSES = [
   'Payment Not Completed',

@@ -41,7 +41,7 @@ import AppModal from '../../components/AppModal';
 import StatCard from '../../components/StatCard';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
-import { SERVICES, PACKAGES } from '../../constants/mockData';
+import { SERVICES, PACKAGES, matchesServiceCategory } from '../../constants/mockData';
 import { getPackageDisplayName } from '../../utils/packageHelper';
 
 const clientSchema = yup.object().shape({
@@ -354,7 +354,7 @@ export const SuperAdminClientList = () => {
         (client.visaStatus && client.visaStatus.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (client.serviceId && client.serviceId.toLowerCase().includes(searchTerm.toLowerCase()));
 
-      const matchService = filters.serviceId ? client.serviceId === filters.serviceId : true;
+      const matchService = matchesServiceCategory(client, filters.serviceId);
       const matchStatus = filters.status ? client.status === filters.status : true;
       const matchConsultant = filters.assignedConsultantId
         ? client.assignedConsultantId === filters.assignedConsultantId

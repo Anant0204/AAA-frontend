@@ -1612,6 +1612,14 @@ export const ClientPortalDocs = () => {
   const totalDependents = totalCount - 1;
   const savedDeps = client.dependentsDetails || [];
 
+  const savedDependents = Array.isArray(client?.dependentsDetails) ? client.dependentsDetails : [];
+  const totalRequiredDeps = Math.max(totalDependents, addApplicants, wizardDeps.length);
+  const isFamilyProfilesSaved = Boolean(
+    savedDependents.length > 0 &&
+    savedDependents.length >= totalRequiredDeps &&
+    savedDependents.every(d => Boolean(d.firstName?.trim() && d.lastName?.trim() && d.nationality?.trim()))
+  );
+
   for (let i = 1; i < totalCount; i++) {
     const depData = savedDeps[i - 1];
     if (depData && depData.firstName) {
@@ -1970,11 +1978,22 @@ export const ClientPortalDocs = () => {
                         boxShadow: '0 8px 30px rgba(5, 26, 59, 0.03)'
                       }}
                     >
-                      <Typography variant="h6" sx={{ fontWeight: 900, color: '#051A3B', mb: 1, fontFamily: 'Outfit, sans-serif', fontSize: { xs: '1.1rem', md: '1.25rem' } }}>
-                        👨‍👩‍👧‍👦 Complete Your Family Profiles
-                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexWrap: 'wrap', gap: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 900, color: '#051A3B', fontFamily: 'Outfit, sans-serif', fontSize: { xs: '1.1rem', md: '1.25rem' } }}>
+                          👨‍👩‍👧‍👦 Complete Your Family Profiles
+                        </Typography>
+                        {isFamilyProfilesSaved && (
+                          <Chip
+                            icon={<LockIcon sx={{ fontSize: '1rem !important' }} />}
+                            label="Profiles Saved & Locked"
+                            size="small"
+                            color="success"
+                            sx={{ fontWeight: 800, fontSize: '0.75rem' }}
+                          />
+                        )}
+                      </Box>
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 3, fontWeight: 500, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
-                        You have registered <strong>{Math.max(totalDependents, addApplicants, wizardDeps.length)} co-applicant(s)</strong>. Please fill out their profiles to generate their checklists and unlock their document upload folders.
+                        You have registered <strong>{totalRequiredDeps} co-applicant(s)</strong>. Please fill out their profiles to generate their checklists and unlock their document upload folders.
                       </Typography>
 
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
@@ -2025,15 +2044,21 @@ export const ClientPortalDocs = () => {
 
                         {/* Co-Applicants Cards */}
                         {wizardDeps.map((dep, idx) => (
-                          <Paper key={idx} sx={{ p: { xs: 2, sm: 2.5, md: 3 }, borderRadius: 3, border: '1px solid rgba(0,0,0,0.08)', bgcolor: 'background.paper' }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#051A3B', mb: 2, fontFamily: 'Outfit, sans-serif' }}>
-                              Co-Applicant {idx + 1} Details
-                            </Typography>
+                          <Paper key={idx} sx={{ p: { xs: 2, sm: 2.5, md: 3 }, borderRadius: 3, border: '1px solid rgba(0,0,0,0.08)', bgcolor: isFamilyProfilesSaved ? 'rgba(248, 250, 252, 0.7)' : 'background.paper' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#051A3B', fontFamily: 'Outfit, sans-serif' }}>
+                                Co-Applicant {idx + 1} Details
+                              </Typography>
+                              {isFamilyProfilesSaved && (
+                                <Chip label="Locked" size="small" variant="outlined" sx={{ fontWeight: 700, fontSize: '0.7rem', color: 'text.secondary' }} />
+                              )}
+                            </Box>
                             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                               <TextField
                                 label="First Name"
                                 size="small"
                                 fullWidth
+                                disabled={isFamilyProfilesSaved}
                                 value={dep.firstName}
                                 onChange={(e) => {
                                   const newDeps = [...wizardDeps];
@@ -2045,6 +2070,7 @@ export const ClientPortalDocs = () => {
                                 label="Last Name"
                                 size="small"
                                 fullWidth
+                                disabled={isFamilyProfilesSaved}
                                 value={dep.lastName}
                                 onChange={(e) => {
                                   const newDeps = [...wizardDeps];
@@ -2052,11 +2078,12 @@ export const ClientPortalDocs = () => {
                                   setWizardDeps(newDeps);
                                 }}
                               />
-                              <FormControl fullWidth size="small">
+                              <FormControl fullWidth size="small" disabled={isFamilyProfilesSaved}>
                                 <InputLabel id={`rel-select-label-${idx}`}>Relationship</InputLabel>
                                 <Select
                                   labelId={`rel-select-label-${idx}`}
                                   label="Relationship"
+                                  disabled={isFamilyProfilesSaved}
                                   value={dep.relation || 'Spouse'}
                                   onChange={(e) => {
                                     const newDeps = [...wizardDeps];
@@ -2077,6 +2104,7 @@ export const ClientPortalDocs = () => {
                                 fullWidth
                                 freeSolo
                                 autoHighlight
+                                disabled={isFamilyProfilesSaved}
                                 clearOnBlur={false}
                                 options={ALL_COUNTRIES}
                                 value={dep.nationality || ''}
@@ -2101,6 +2129,7 @@ export const ClientPortalDocs = () => {
                                     label="Nationality"
                                     size="small"
                                     fullWidth
+                                    disabled={isFamilyProfilesSaved}
                                     placeholder="Select or enter country"
                                     InputLabelProps={{ ...params.InputLabelProps, shrink: true }}
                                     inputProps={{
@@ -2117,6 +2146,7 @@ export const ClientPortalDocs = () => {
                                   <TextField
                                     fullWidth
                                     size="small"
+                                    disabled={isFamilyProfilesSaved}
                                     label="Specify Relationship *"
                                     placeholder="e.g. Brother, Sister, Cousin, Relative, Guardian..."
                                     value={dep.customRelation || ''}
@@ -2142,26 +2172,32 @@ export const ClientPortalDocs = () => {
                         ))}
 
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end', width: '100%', mt: 1 }}>
-                          <Button
-                            variant="contained"
-                            onClick={handleSaveWizardDeps}
-                            disabled={saveDependentsMutation.isPending}
-                            sx={{
-                              px: 4,
-                              py: 1.2,
-                              height: 42,
-                              borderRadius: 2.5,
-                              fontWeight: 800,
-                              bgcolor: '#051A3B',
-                              color: 'white',
-                              fontFamily: 'Outfit, sans-serif',
-                              textTransform: 'none',
-                              boxShadow: '0 4px 14px rgba(5, 26, 59, 0.2)',
-                              '&:hover': { bgcolor: '#C59B27', boxShadow: '0 4px 14px rgba(197, 155, 39, 0.3)' }
-                            }}
-                          >
-                            {saveDependentsMutation.isPending ? 'Saving Profiles...' : 'Save Family Profiles'}
-                          </Button>
+                          {isFamilyProfilesSaved ? (
+                            <Alert severity="info" icon={<LockIcon />} sx={{ width: '100%', borderRadius: 2.5, fontWeight: 600 }}>
+                              Family member profiles are saved and locked for document verification. If you need to make corrections, please contact your case manager.
+                            </Alert>
+                          ) : (
+                            <Button
+                              variant="contained"
+                              onClick={handleSaveWizardDeps}
+                              disabled={saveDependentsMutation.isPending}
+                              sx={{
+                                px: 4,
+                                py: 1.2,
+                                height: 42,
+                                borderRadius: 2.5,
+                                fontWeight: 800,
+                                bgcolor: '#051A3B',
+                                color: 'white',
+                                fontFamily: 'Outfit, sans-serif',
+                                textTransform: 'none',
+                                boxShadow: '0 4px 14px rgba(5, 26, 59, 0.2)',
+                                '&:hover': { bgcolor: '#C59B27', boxShadow: '0 4px 14px rgba(197, 155, 39, 0.3)' }
+                              }}
+                            >
+                              {saveDependentsMutation.isPending ? 'Saving Profiles...' : 'Save Family Profiles'}
+                            </Button>
+                          )}
                         </Box>
                       </Box>
                     </Paper>

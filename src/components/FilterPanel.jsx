@@ -7,7 +7,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
-import { SERVICES } from '../constants/mockData';
+import { SERVICES, MAIN_SERVICES } from '../constants/mockData';
 import { useQuery } from '@tanstack/react-query';
 import { dbService } from '../services/dbService';
 
@@ -65,13 +65,13 @@ export const FilterPanel = ({
                 if (!selected) {
                   return <Box component="span" sx={{ color: 'text.secondary', fontSize: { xs: '0.72rem', sm: '0.875rem' } }}>Service</Box>;
                 }
-                const name = SERVICES.find((s) => s.id === selected)?.name || selected;
-                return <Box component="span" sx={{ fontSize: { xs: '0.72rem', sm: '0.875rem' } }}>{name}</Box>;
+                const found = MAIN_SERVICES.find((s) => s.id === selected) || SERVICES.find((s) => s.id === selected);
+                return <Box component="span" sx={{ fontSize: { xs: '0.72rem', sm: '0.875rem' } }}>{found?.name || selected}</Box>;
               }}
               sx={{ fontSize: { xs: '0.72rem', sm: '0.875rem' } }}
             >
               <MenuItem value="">All Services</MenuItem>
-              {SERVICES.map((s) => (
+              {MAIN_SERVICES.map((s) => (
                 <MenuItem key={s.id} value={s.id}>
                   {s.name}
                 </MenuItem>

@@ -57,7 +57,7 @@ import AppModal from '../../components/AppModal';
 import StatCard from '../../components/StatCard';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
-import { SERVICES, getLeadStatusOptions, SWORN_TRANSLATION_STATUSES } from '../../constants/mockData';
+import { SERVICES, getLeadStatusOptions, SWORN_TRANSLATION_STATUSES, matchesServiceCategory } from '../../constants/mockData';
 
 const FollowUpDatePickerInput = ({ value, onChange, isDue, style = {} }) => {
   const displayStr = value ? dayjs(value).format('DD/MM/YYYY') : 'dd/mm/yyyy';
@@ -445,7 +445,7 @@ export const SuperAdminLeadList = () => {
         if (!isTranslation) return false;
       }
 
-      const matchService = filters.serviceId ? lead.serviceId === filters.serviceId : true;
+      const matchService = matchesServiceCategory(lead, filters.serviceId);
       const matchStatus = filters.status ? lead.status === filters.status : true;
       const matchConsultant = filters.assignedConsultantId
         ? lead.assignedConsultantId === filters.assignedConsultantId

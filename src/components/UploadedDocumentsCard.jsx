@@ -75,8 +75,9 @@ export const UploadedDocumentsCard = ({
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {documents.map((doc, idx) => {
           const docUrl = doc.url?.startsWith('http') ? doc.url : `${API_BASE}${doc.url}`;
-          const isVerified = doc.status === 'VERIFIED';
-          const isRejected = doc.status === 'REJECTED';
+          const docStatusUpper = (doc.status || '').toUpperCase();
+          const isVerified = docStatusUpper === 'VERIFIED' || docStatusUpper === 'APPROVED';
+          const isRejected = docStatusUpper === 'REJECTED';
 
           return (
             <Paper

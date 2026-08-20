@@ -25,7 +25,7 @@ import DialogActions from '@mui/material/DialogActions';
 import PageHeader from '../../components/PageHeader';
 import FilterPanel from '../../components/FilterPanel';
 import { useAlert } from '../../contexts/AlertContext';
-import { SERVICES } from '../../constants/mockData';
+import { SERVICES, matchesServiceCategory } from '../../constants/mockData';
 import { useAuth } from '../../hooks/useAuth';
 import CredentialsModal from '../../components/CredentialsModal';
 
@@ -380,7 +380,7 @@ export const DocumentVerificationDashboard = () => {
                       );
                       if (!matchSearch) return false;
                     }
-                    if (tableFilters.serviceId && c.serviceId !== tableFilters.serviceId) return false;
+                    if (tableFilters.serviceId && !matchesServiceCategory(c, tableFilters.serviceId)) return false;
                     if (tableFilters.status && (c.status || 'Under Process') !== tableFilters.status) return false;
                     if (tableFilters.assignedConsultantId && c.assignedConsultantId !== tableFilters.assignedConsultantId) return false;
                     return true;
@@ -408,7 +408,7 @@ export const DocumentVerificationDashboard = () => {
                           {c.firstName} {c.lastName}
                         </td>
                         <td style={{ padding: '9px 12px', borderBottom: '1px solid rgba(63,81,181,0.1)', whiteSpace: 'nowrap', color: '#475569', fontSize: '0.78rem' }}>
-                          {SERVICES.find(s => s.id === c.serviceId)?.name || `Spain ${c.serviceId?.toUpperCase() || 'VISA'}`}
+                          {SERVICES.find(s => s.id === c.serviceId)?.name || c.serviceType || c.serviceId || 'Spanish Sworn Translation'}
                         </td>
                         <td style={{ padding: '9px 12px', borderBottom: '1px solid rgba(63,81,181,0.1)' }}>
                           <span style={{

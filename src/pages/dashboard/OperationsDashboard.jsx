@@ -137,8 +137,11 @@ export const OperationsDashboard = () => {
   const { data: payments = [] } = useQuery({ queryKey: ['payments'], queryFn: dbService.getPayments });
   const { data: notifications = [] } = useQuery({ queryKey: ['notifications'], queryFn: dbService.getNotifications });
   const { data: refundRequests = [] } = useQuery({ queryKey: ['refundRequests'], queryFn: dbService.getRefundRequests });
+  const { data: agents = [] } = useQuery({ queryKey: ['agents'], queryFn: dbService.getAgents });
   const { data: customizationSettings } = useQuery({ queryKey: ['customization-settings'], queryFn: dbService.getCustomizationSettings });
   const isViewOnly = isViewOnlyMenu(customizationSettings, 'Dashboard');
+
+  const agentsList = Array.isArray(agents) ? agents : [];
 
   const toUAEDateStr = (ts) => {
     if (!ts) return '';

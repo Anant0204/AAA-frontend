@@ -112,7 +112,7 @@ export const OperationsActiveCases = () => {
   });
 
   // Operations & Admin handlers
-  const handlers = agentsList.filter((a) => a && a.role === 'operations');
+  const handlers = agentsList.filter((a) => a && (a.role === 'operations' || a.role === 'admin' || a.role === 'super_admin'));
   // Consultant agents
   const consultants = agentsList.filter((a) => a && (a.role === 'consultant' || a.role === 'agent'));
 
@@ -127,14 +127,14 @@ export const OperationsActiveCases = () => {
     default: ['Passport (Copy)', 'Application Form EX-01', 'Proof of Sufficient Funds'] };
 
   const handleAssignHandler = (client, handlerId) => {
-    const matchedHandler = handlers.find((h) => h.id === handlerId);
+    const matchedHandler = agentsList.find((h) => h.id === handlerId);
     updateClientMutation.mutate({
-      ...client,
-      assignedHandlerId: handlerId,
+      id: client.id,
+      assignedHandlerId: handlerId || '',
       assignedHandlerName: matchedHandler ? matchedHandler.name : ''
     }, {
       onSuccess: () => {
-        showAlert(`Case handler assigned to ${matchedHandler ? matchedHandler.name : 'Staff'}.`, 'success');
+        showAlert(`Operations handler assigned to ${matchedHandler ? matchedHandler.name : 'Unassigned'}.`, 'success');
       }
     });
   };
