@@ -313,35 +313,27 @@ export const dbService = {
   // SETTINGS & CUSTOMIZATION
   getCustomizationSettings: async () => {
     try {
-      const res = await apiClient.get('/settings/customization');
-      const localDataStr = localStorage.getItem('crm_customization_settings');
-      if (localDataStr) {
-        try {
-          const localData = JSON.parse(localDataStr);
-          // We prefer localData over backend during development to prevent data loss on nodemon restarts
-          // For rolesDefinition, we must ensure it replaces the default rather than just merging if it's longer
-          return { ...res.data, ...localData, rolesDefinition: localData.rolesDefinition || res.data.rolesDefinition };
-        } catch (e) {
-          console.error('Error parsing local settings', e);
-        }
+      if (typeof window !== 'undefined' && localStorage.getItem('crm_customization_settings')) {
+        localStorage.removeItem('crm_customization_settings');
       }
+      const res = await apiClient.get('/settings/customization');
       return res.data;
     } catch (error) {
-      const localDataStr = localStorage.getItem('crm_customization_settings');
-      if (localDataStr) {
-        return JSON.parse(localDataStr);
-      }
+      console.error('[dbService] getCustomizationSettings error:', error);
       throw error;
     }
   },
   saveCustomizationSettings: async (settings) => {
     try {
-      localStorage.setItem('crm_customization_settings', JSON.stringify(settings));
-    } catch (e) {
-      console.error('Error saving settings to local storage', e);
+      if (typeof window !== 'undefined' && localStorage.getItem('crm_customization_settings')) {
+        localStorage.removeItem('crm_customization_settings');
+      }
+      const res = await apiClient.put('/settings/customization', { settings });
+      return res.data;
+    } catch (error) {
+      console.error('[dbService] saveCustomizationSettings error:', error);
+      throw error;
     }
-    const res = await apiClient.put('/settings/customization', { settings });
-    return res.data;
   },
   getCompanySettings: async () => {
     const res = await apiClient.get('/settings/company');
