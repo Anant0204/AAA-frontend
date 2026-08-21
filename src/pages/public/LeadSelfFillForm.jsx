@@ -880,37 +880,14 @@ export const LeadSelfFillForm = () => {
 
         let resLink = null;
 
-        try {
-          const res = await axios.patch(`${API_URL}/consultations/public/reschedule`, {
-            consultationId: rescheduleConsultationId,
-            date: form.meetingPreferredDate,
-            timeSlot: form.meetingPreferredTime
-          });
-          if (res.data.success) {
-            success = true;
-            resLink = res.data.meetingLink || res.data.data?.meetingLink || res.data.consultation?.meetingLink;
-          }
-        } catch (e1) {
-          if (e1.response?.data?.message) {
-            setError(e1.response.data.message);
-            setLoading(false);
-            return;
-          }
-          try {
-            const resLocal = await axios.patch(`http://localhost:5000/api/v1/consultations/public/reschedule`, {
-              consultationId: rescheduleConsultationId,
-              date: form.meetingPreferredDate,
-              timeSlot: form.meetingPreferredTime
-            });
-            if (resLocal.data.success) {
-              success = true;
-              resLink = resLocal.data.meetingLink || resLocal.data.data?.meetingLink;
-            }
-          } catch (e2) {
-            setError(e2.response?.data?.message || "Failed to reschedule consultation. Please select another slot.");
-            setLoading(false);
-            return;
-          }
+        const res = await axios.patch(`${API_URL}/consultations/public/reschedule`, {
+          consultationId: rescheduleConsultationId,
+          date: form.meetingPreferredDate,
+          timeSlot: form.meetingPreferredTime
+        });
+        if (res.data.success) {
+          success = true;
+          resLink = res.data.meetingLink || res.data.data?.meetingLink || res.data.consultation?.meetingLink;
         }
 
         if (success) {
@@ -1029,37 +1006,15 @@ export const LeadSelfFillForm = () => {
       let resData = null;
       let success = false;
 
-      // Submit lead to primary API endpoint with automatic local fallback
-      try {
-        if (isExistingLead && form.id) {
-          const res = await axios.patch(`${API_URL}/leads/${form.id}/meeting-preference`, payload);
-          resData = res.data;
-        } else {
-          const res = await axios.post(`${API_URL}/leads`, payload);
-          resData = res.data;
-        }
-        success = true;
-      } catch (primaryErr) {
-        console.warn("[PRIMARY API ERROR]:", primaryErr.response?.data || primaryErr.message);
-        // If primary API failed with network/server error (and not business code), try local backend API as fallback
-        if (!primaryErr.response?.data?.code && API_URL.includes('railway')) {
-          try {
-            const fallbackUrl = "http://localhost:5000/api/v1";
-            if (isExistingLead && form.id) {
-              const resLoc = await axios.patch(`${fallbackUrl}/leads/${form.id}/meeting-preference`, payload);
-              resData = resLoc.data;
-            } else {
-              const resLoc = await axios.post(`${fallbackUrl}/leads`, payload);
-              resData = resLoc.data;
-            }
-            success = true;
-          } catch (localErr) {
-            throw primaryErr; // rethrow primary error if local fallback also fails
-          }
-        } else {
-          throw primaryErr;
-        }
+      // Submit lead to primary API endpoint
+      if (isExistingLead && form.id) {
+        const res = await axios.patch(`${API_URL}/leads/${form.id}/meeting-preference`, payload);
+        resData = res.data;
+      } else {
+        const res = await axios.post(`${API_URL}/leads`, payload);
+        resData = res.data;
       }
+      success = true;
 
       if (success) {
         const mLink = resData?.meetingLink || resData?.consultation?.meetingLink || resData?.data?.consultation?.meetingLink;
