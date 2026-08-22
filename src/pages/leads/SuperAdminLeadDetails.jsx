@@ -50,6 +50,7 @@ import { SERVICES, PACKAGES, getLeadStatusOptions } from '../../constants/mockDa
 import { CommunicationHistoryTab } from '../../components/CommunicationHistoryTab';
 import UploadedDocumentsCard from '../../components/UploadedDocumentsCard';
 import CaseHistoryTimelineCard from '../../components/CaseHistoryTimelineCard';
+import LeadCommentsSection from '../../components/LeadCommentsSection';
 
 const FollowUpDatePickerInput = ({ value, onChange, style = {} }) => {
   const displayStr = value ? dayjs(value).format('DD/MM/YYYY') : 'dd/mm/yyyy';
@@ -234,14 +235,7 @@ export const SuperAdminLeadDetails = () => {
     }
   });
 
-  const addNoteMutation = useMutation({
-    mutationFn: (leadData) => dbService.updateLead(leadData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lead', id] });
-      showAlert('Note added successfully', 'success');
-      setNoteText('');
-    }
-  });
+
 
   const updateFollowUpMutation = useMutation({
     mutationFn: (nextFollowUpDate) => dbService.updateLead({ id: lead.id, nextFollowUpDate }),
@@ -382,18 +376,7 @@ export const SuperAdminLeadDetails = () => {
   const consultantObj = consultants.find((c) => c.id === lead.assignedConsultantId);
   const serviceObj = SERVICES.find((s) => s.id === lead.serviceId);
 
-  const handleAddNote = () => {
-    if (!noteText.trim()) return;
-    const updatedLead = {
-      ...lead,
-      notes: lead.notes ? `${lead.notes}\n\n[${currentUser.name} - ${dayjs().format('DD/MM/YYYY HH:mm')}]: ${noteText}` : `[${currentUser.name} - ${dayjs().format('DD/MM/YYYY HH:mm')}]: ${noteText}`,
-      timeline: [
-        { date: new Date().toISOString(), event: 'Added a note to case file', user: currentUser.name },
-        ...lead.timeline,
-      ]
-    };
-    addNoteMutation.mutate(updatedLead);
-  };
+
 
   const handleOpenStatusModal = () => {
     setSelectedStatus(lead.status);
@@ -1101,37 +1084,7 @@ export const SuperAdminLeadDetails = () => {
 
                   <Box className="col-span-12">
                     <Divider sx={{ my: 2 }} />
-                    <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
-                      Case Notes File
-                    </Typography>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        minHeight: 100,
-                        maxHeight: 250,
-                        overflowY: 'auto',
-                        backgroundColor: 'background.neutral',
-                        mb: 2,
-                        whiteSpace: 'pre-wrap',
-                        fontSize: '0.875rem'
-                      }}
-                    >
-                      {lead.notes || 'No notes logged on file yet.'}
-                    </Paper>
-
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <TextField
-                        value={noteText}
-                        onChange={(e) => setNoteText(e.target.value)}
-                        placeholder="Log new case comment or details..."
-                        variant="outlined"
-                        fullWidth
-                        size="small"
-                      />
-                      <Button variant="contained" onClick={handleAddNote} endIcon={<SendIcon />} sx={{ px: 3 }}>
-                        Comment
-                      </Button>
-                    </Box>
+                    <LeadCommentsSection lead={lead} currentUser={currentUser} />
 
                     <Box sx={{ mt: 4 }}>
                       <CaseActivityTimeline leadId={lead.id} clientId={lead.clientId} />

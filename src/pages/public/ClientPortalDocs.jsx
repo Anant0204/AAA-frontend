@@ -734,6 +734,7 @@ export const ClientPortalDocs = () => {
   };
 
   const [wizardDeps, setWizardDeps] = useState([]);
+  const [mainApplicantPassportNumber, setMainApplicantPassportNumber] = useState('');
 
   const handleApplicantsCountChange = (newCount) => {
     const validCount = Math.max(0, newCount);
@@ -815,6 +816,7 @@ export const ClientPortalDocs = () => {
       setPreferredLang(client.preferredLanguage || 'English');
       setNationality(client.nationality || '');
       setCountryOfResidence(client.countryOfResidence || '');
+      setMainApplicantPassportNumber(client.passportNumber || '');
       if (client.preferredLanguage) {
         setPortalLang(client.preferredLanguage);
         localStorage.setItem('client-portal-lang', client.preferredLanguage);
@@ -1356,14 +1358,14 @@ export const ClientPortalDocs = () => {
   });
 
   const saveDependentsMutation = useMutation({
-    mutationFn: (deps) => dbService.updateClientDependents(client.id, deps),
+    mutationFn: (payload) => dbService.updateClientDependents(client.id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clientProfile'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
-      showAlert('Family member profiles saved successfully!', 'success');
+      showAlert('Family member profiles saved and locked successfully!', 'success');
     },
     onError: (err) => {
-      showAlert(err?.message || 'Failed to save family profiles', 'error');
+      showAlert(err?.response?.data?.message || err?.message || 'Failed to save family profiles', 'error');
     }
   });
 
@@ -1389,7 +1391,11 @@ export const ClientPortalDocs = () => {
         nationality: dep.nationality.trim()
       };
     });
-    saveDependentsMutation.mutate(formattedDeps);
+    saveDependentsMutation.mutate({
+      dependents: formattedDeps,
+      mainPassportNumber: (mainApplicantPassportNumber || '').trim(),
+      passportNumber: (mainApplicantPassportNumber || '').trim()
+    });
   };
 
   const bookMeetingMutation = useMutation({
@@ -1413,7 +1419,8 @@ export const ClientPortalDocs = () => {
       
       const metadata = stagedList.map(item => ({
         category: item.category,
-        belongsTo: item.belongsTo
+        belongsTo: item.belongsTo,
+        passportNumber: item.passportNumber || undefined
       }));
       formData.append('metadata', JSON.stringify(metadata));
 
@@ -1447,7 +1454,8 @@ export const ClientPortalDocs = () => {
         category: docData.category,
         belongsTo: belongsTo,
         fileName: docData.fileName,
-        fileSize: docData.fileSize
+        fileSize: docData.fileSize,
+        passportNumber: docData.passportNumber || undefined
       }
     }));
     showAlert(`Attached "${docData.fileName}" for ${belongsTo} (${docData.category}). Scroll down & click "Submit Complete Document Package" when all applicant passports are attached!`, 'info');
@@ -2039,6 +2047,21 @@ export const ClientPortalDocs = () => {
                               sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}
                               inputProps={{ style: { fontWeight: 600 } }}
                             />
+                            <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 2' } }}>
+                              <TextField
+                                label="Passport Number"
+                                size="small"
+                                fullWidth
+                                disabled={isFamilyProfilesSaved}
+                                value={mainApplicantPassportNumber}
+                                onChange={(e) => setMainApplicantPassportNumber(e.target.value.toUpperCase())}
+                                placeholder="e.g. A12345678"
+                                helperText="Official passport number of the primary applicant."
+                                InputLabelProps={{ shrink: true }}
+                                inputProps={{ style: { fontWeight: 700, letterSpacing: '0.8px' } }}
+                                sx={{ bgcolor: isFamilyProfilesSaved ? 'rgba(0,0,0,0.02)' : '#FFFDF7' }}
+                              />
+                            </Box>
                           </Box>
                         </Paper>
 
@@ -2139,6 +2162,26 @@ export const ClientPortalDocs = () => {
                                   />
                                 )}
                               />
+
+                              <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 2' } }}>
+                                <TextField
+                                  label="Passport Number"
+                                  size="small"
+                                  fullWidth
+                                  disabled={isFamilyProfilesSaved}
+                                  value={dep.passportNumber || ''}
+                                  onChange={(e) => {
+                                    const newDeps = [...wizardDeps];
+                                    newDeps[idx].passportNumber = e.target.value.toUpperCase();
+                                    setWizardDeps(newDeps);
+                                  }}
+                                  placeholder="e.g. A12345678"
+                                  helperText="Official passport number of this co-applicant."
+                                  InputLabelProps={{ shrink: true }}
+                                  inputProps={{ style: { fontWeight: 700, letterSpacing: '0.8px' } }}
+                                  sx={{ bgcolor: isFamilyProfilesSaved ? 'rgba(0,0,0,0.02)' : '#FFFDF7' }}
+                                />
+                              </Box>
 
                               {/* Custom Relationship Input when 'Other' is selected */}
                               {dep.relation === 'Other' && (
@@ -2500,6 +2543,25 @@ export const ClientPortalDocs = () => {
                           (item.category || '').toLowerCase().includes('passport') ||
                           (item.fileName || '').toLowerCase().includes('passport')
                         );
+
+                        let initialPassportNumber = '';
+                        if (person === 'Main Applicant') {
+                          initialPassportNumber = client?.passportNumber || mainApplicantPassportNumber || '';
+                        } else {
+                          const matchDep = (wizardDeps || []).find(d => {
+                            const fn = (d.firstName || '').trim().toLowerCase();
+                            const p = person.toLowerCase();
+                            return fn && (p.includes(fn) || p.startsWith(fn));
+                          }) || (client?.dependentsDetails || []).find(d => {
+                            const fn = (d.firstName || '').trim().toLowerCase();
+                            const p = person.toLowerCase();
+                            return fn && (p.includes(fn) || p.startsWith(fn));
+                          });
+                          if (matchDep && matchDep.passportNumber) {
+                            initialPassportNumber = matchDep.passportNumber;
+                          }
+                        }
+
                         return (
                           <Accordion
                             key={person}
@@ -2532,6 +2594,7 @@ export const ClientPortalDocs = () => {
                                 existingDocs={personDocs}
                                 requirePassportFirst={true}
                                 stagedPassport={hasStagedPassportForPerson}
+                                initialPassportNumber={initialPassportNumber}
                                 isLoading={uploadBatchDocMutation.isPending}
                               />
 

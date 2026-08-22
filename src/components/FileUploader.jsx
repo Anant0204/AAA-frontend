@@ -30,6 +30,7 @@ export const FileUploader = ({
   existingDocs = [],
   requirePassportFirst = false,
   stagedPassport = false,
+  initialPassportNumber = '',
   isLoading = false 
 }) => {
   const baseCategories = Array.isArray(categories) && categories.length > 0 ? categories : CATEGORIES;
@@ -50,7 +51,14 @@ export const FileUploader = ({
   const [file, setFile] = useState(null);
   const [category, setCategory] = useState(isPassportMandatoryFirst ? passportCat : (selectCategories[0] || 'Passport'));
   const [customCategory, setCustomCategory] = useState('');
+  const [passportNumber, setPassportNumber] = useState(initialPassportNumber || '');
   const { showAlert } = useAlert();
+
+  React.useEffect(() => {
+    if (initialPassportNumber) {
+      setPassportNumber(initialPassportNumber);
+    }
+  }, [initialPassportNumber]);
 
   const isCustom = category === 'Other (Specify Custom Document)' || category === 'Others' || category === 'Other';
 
@@ -128,6 +136,11 @@ export const FileUploader = ({
       return;
     }
 
+    if (category.toLowerCase().includes('passport') && !passportNumber.trim()) {
+      showAlert('Please enter the official Passport Number before attaching the passport.', 'warning');
+      return;
+    }
+
     const finalCategory = isCustom ? (customCategory.trim() || 'Other Custom Document') : category;
 
     const docData = {
@@ -137,6 +150,7 @@ export const FileUploader = ({
       category: finalCategory,
       fileName: file.name,
       fileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+      passportNumber: category.toLowerCase().includes('passport') ? passportNumber.trim() : undefined
     };
 
     onUpload(docData);
@@ -192,6 +206,27 @@ export const FileUploader = ({
           })}
         </Select>
       </FormControl>
+
+      {category.toLowerCase().includes('passport') && (
+        <TextField
+          fullWidth
+          size="small"
+          label="Passport Number *"
+          placeholder="e.g. A12345678"
+          value={passportNumber}
+          onChange={(e) => setPassportNumber(e.target.value.toUpperCase())}
+          helperText="Enter the official passport number as printed on the applicant's photo page."
+          InputLabelProps={{ shrink: true }}
+          inputProps={{ style: { fontWeight: 700, letterSpacing: '0.8px' } }}
+          disabled={isLoading}
+          sx={{
+            bgcolor: '#FFFDF7',
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2
+            }
+          }}
+        />
+      )}
 
       {isCustom && (
         <TextField

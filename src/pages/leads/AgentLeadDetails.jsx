@@ -43,6 +43,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
 import { SERVICES, PACKAGES, getLeadStatusOptions } from '../../constants/mockData';
 import { CommunicationHistoryTab } from '../../components/CommunicationHistoryTab';
+import LeadCommentsSection from '../../components/LeadCommentsSection';
 
 export const AgentLeadDetails = () => {
   const { id } = useParams();
@@ -164,13 +165,7 @@ export const AgentLeadDetails = () => {
       setStatusModalOpen(false);
     } });
 
-  const addNoteMutation = useMutation({
-    mutationFn: (leadData) => dbService.updateLead(leadData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lead', id] });
-      showAlert('Note added successfully', 'success');
-      setNoteText('');
-    } });
+
 
   const reassignConsultantMutation = useMutation({
     mutationFn: (consultantId) => dbService.assignConsultant(lead.id, consultantId),
@@ -303,17 +298,7 @@ export const AgentLeadDetails = () => {
     return '***@***.***';
   };
 
-  const handleAddNote = () => {
-    if (!noteText.trim()) return;
-    const updatedLead = {
-      ...lead,
-      notes: lead.notes ? `${lead.notes}\n\n[${currentUser.name} - ${dayjs().format('DD/MM/YYYY HH:mm')}]: ${noteText}` : `[${currentUser.name} - ${dayjs().format('DD/MM/YYYY HH:mm')}]: ${noteText}`,
-      timeline: [
-        { date: new Date().toISOString(), event: 'Added a note to case file', user: currentUser.name },
-        ...lead.timeline,
-      ] };
-    addNoteMutation.mutate(updatedLead);
-  };
+
 
   const handleOpenStatusModal = () => {
     setSelectedStatus(lead.status);
@@ -927,36 +912,7 @@ export const AgentLeadDetails = () => {
 
                   <Box className="col-span-12">
                     <Divider sx={{ my: 1.5 }} />
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
-                      Case Notes File
-                    </Typography>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        minHeight: 100,
-                        maxHeight: 250,
-                        overflowY: 'auto',
-                        backgroundColor: 'background.neutral',
-                        mb: 1.5,
-                        whiteSpace: 'pre-wrap',
-                        fontSize: '0.85rem' }}
-                    >
-                      {lead.notes || 'No notes logged on file yet.'}
-                    </Paper>
-
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <TextField
-                        value={noteText}
-                        onChange={(e) => setNoteText(e.target.value)}
-                        placeholder="Log new case comment or details..."
-                        variant="outlined"
-                        fullWidth
-                        size="small"
-                      />
-                      <Button variant="contained" onClick={handleAddNote} endIcon={<SendIcon />} sx={{ px: 3 }}>
-                        Comment
-                      </Button>
-                    </Box>
+                    <LeadCommentsSection lead={lead} currentUser={currentUser} />
                   </Box>
                 </Box>
               )}

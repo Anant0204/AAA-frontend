@@ -111,8 +111,9 @@ export const dbService = {
     const res = await apiClient.delete(`/clients/${clientId}`);
     return res.data;
   },
-  updateClientDependents: async (clientId, dependents) => {
-    const res = await apiClient.patch(`/clients/${clientId}/dependents`, { dependents });
+  updateClientDependents: async (clientId, payload) => {
+    const body = Array.isArray(payload) ? { dependents: payload } : (payload || {});
+    const res = await apiClient.patch(`/clients/${clientId}/dependents`, body);
     return res.data;
   },
   generateClientCredentials: async (clientId, forceReset = false) => {
