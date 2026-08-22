@@ -46,6 +46,7 @@ import CaseHistoryTimelineCard from '../../components/CaseHistoryTimelineCard';
 import ChecklistManagementModal from '../../components/ChecklistManagementModal';
 import UploadedDocumentsCard from '../../components/UploadedDocumentsCard';
 import ClientCommentsSection from '../../components/ClientCommentsSection';
+import SwornTranslationClientDocumentsCard from '../../components/SwornTranslationClientDocumentsCard';
 
 export const AdminClientDetails = () => {
   const { id } = useParams();
@@ -95,6 +96,12 @@ export const AdminClientDetails = () => {
   });
 
   const client = clients.find((c) => c.id === id);
+  const isTranslationClient = client && (
+    (client.serviceType || '').toLowerCase().includes('translation') ||
+    (client.serviceType || '').toLowerCase().includes('sworn') ||
+    (client.serviceId || '').toLowerCase().includes('translation') ||
+    (client.serviceId || '').toLowerCase().includes('sworn')
+  );
 
   const { data: payments = [] } = useQuery({
     queryKey: ['payments'],
@@ -634,24 +641,30 @@ export const AdminClientDetails = () => {
 
               {activeTab === 1 && (
                 <Box>
-                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
-                    Upload Checklist Documents
-                  </Typography>
-                  <FileUploader
-                    onUpload={handleDocUploaded}
-                    clientId={client.id}
-                    clientName={`${client.firstName} ${client.lastName}`}
-                    isLoading={uploadDocMutation.isPending}
-                  />
+                  {isTranslationClient ? (
+                    <SwornTranslationClientDocumentsCard client={client} documents={clientDocuments} />
+                  ) : (
+                    <>
+                      <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
+                        Upload Checklist Documents
+                      </Typography>
+                      <FileUploader
+                        onUpload={handleDocUploaded}
+                        clientId={client.id}
+                        clientName={`${client.firstName} ${client.lastName}`}
+                        isLoading={uploadDocMutation.isPending}
+                      />
 
-                  <Divider sx={{ my: 3 }} />
+                      <Divider sx={{ my: 3 }} />
 
-                  <UploadedDocumentsCard
-                    documents={clientDocuments}
-                    title="Uploaded Documents & Operations Review"
-                    onReviewDoc={(docId, data) => reviewDocMutation.mutateAsync({ documentId: docId, data })}
-                    canReview={clientsActions.canVerifyDocs}
-                  />
+                      <UploadedDocumentsCard
+                        documents={clientDocuments}
+                        title="Uploaded Documents & Operations Review"
+                        onReviewDoc={(docId, data) => reviewDocMutation.mutateAsync({ documentId: docId, data })}
+                        canReview={clientsActions.canVerifyDocs}
+                      />
+                    </>
+                  )}
                 </Box>
               )}
 

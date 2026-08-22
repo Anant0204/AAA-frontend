@@ -40,6 +40,7 @@ import { SERVICES, PACKAGES } from '../../constants/mockData';
 import { getPackageDisplayName } from '../../utils/packageHelper';
 import CredentialsModal from '../../components/CredentialsModal';
 import ClientCommentsSection from '../../components/ClientCommentsSection';
+import SwornTranslationClientDocumentsCard from '../../components/SwornTranslationClientDocumentsCard';
 
 export const OperationsClientDetails = () => {
   const { id } = useParams();
@@ -105,6 +106,12 @@ export const OperationsClientDetails = () => {
     queryFn: dbService.getClients });
 
   const client = clients.find((c) => c.id === id);
+  const isTranslationClient = client && (
+    (client.serviceType || '').toLowerCase().includes('translation') ||
+    (client.serviceType || '').toLowerCase().includes('sworn') ||
+    (client.serviceId || '').toLowerCase().includes('translation') ||
+    (client.serviceId || '').toLowerCase().includes('sworn')
+  );
 
   // Fetch payments, documents, consultations
   const { data: payments = [] } = useQuery({
@@ -467,70 +474,76 @@ export const OperationsClientDetails = () => {
 
               {activeTab === 1 && (
                 <Box>
-                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
-                    Upload Checklist Documents
-                  </Typography>
-                  <FileUploader
-                    onUpload={handleDocUploaded}
-                    clientId={client.id}
-                    clientName={`${client.firstName} ${client.lastName}`}
-                    isLoading={uploadDocMutation.isPending}
-                  />
-
-                  <Divider sx={{ my: 3 }} />
-
-                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
-                    Uploaded Documents List
-                  </Typography>
-
-                  {clientDocuments.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 3 }}>
-                      No documents uploaded yet.
-                    </Typography>
+                  {isTranslationClient ? (
+                    <SwornTranslationClientDocumentsCard client={client} documents={clientDocuments} />
                   ) : (
-                    <List disablePadding>
-                      {clientDocuments.map((doc) => (
-                        <Paper
-                          key={doc.id}
-                          sx={{
-                            p: 2,
-                            mb: 2,
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            boxShadow: 'none',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center' }}
-                        >
-                          <Box sx={{ flexGrow: 1, minWidth: 0, mr: 2 }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                              {doc.name || doc.fileName}
-                            </Typography>
-                             <Typography variant="caption" color="text.secondary" display="block">
-                              Category: {doc.category} | Size: {doc.size || doc.fileSize || '1.5 MB'} | Owner: {doc.belongsTo || 'Main Applicant'}
-                            </Typography>
-                            {doc.comment && (
-                              <Box sx={{ mt: 1, p: 1, borderRadius: 1.5, bgcolor: doc.status === 'Approved' ? '#ECFDF5' : '#FEF2F2', borderLeft: '3px solid', borderColor: doc.status === 'Approved' ? '#10B981' : '#EF4444' }}>
-                                <Typography variant="caption" sx={{ fontStyle: 'italic', display: 'block', color: doc.status === 'Approved' ? '#065F46' : '#991B1B' }}>
-                                  Note: {doc.comment}
-                                </Typography>
-                              </Box>
-                            )}
-                          </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
-                            <StatusBadge status={doc.status} />
-                            <Button
-                              size="small"
-                              startIcon={<VisibilityIcon />}
-                              onClick={() => navigate('/documents/verify')}
-                              sx={{ textTransform: 'none' }}
+                    <>
+                      <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
+                        Upload Checklist Documents
+                      </Typography>
+                      <FileUploader
+                        onUpload={handleDocUploaded}
+                        clientId={client.id}
+                        clientName={`${client.firstName} ${client.lastName}`}
+                        isLoading={uploadDocMutation.isPending}
+                      />
+
+                      <Divider sx={{ my: 3 }} />
+
+                      <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
+                        Uploaded Documents List
+                      </Typography>
+
+                      {clientDocuments.length === 0 ? (
+                        <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 3 }}>
+                          No documents uploaded yet.
+                        </Typography>
+                      ) : (
+                        <List disablePadding>
+                          {clientDocuments.map((doc) => (
+                            <Paper
+                              key={doc.id}
+                              sx={{
+                                p: 2,
+                                mb: 2,
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                boxShadow: 'none',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center' }}
                             >
-                              Review
-                            </Button>
-                          </Box>
-                        </Paper>
-                      ))}
-                    </List>
+                              <Box sx={{ flexGrow: 1, minWidth: 0, mr: 2 }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                                  {doc.name || doc.fileName}
+                                </Typography>
+                                 <Typography variant="caption" color="text.secondary" display="block">
+                                  Category: {doc.category} | Size: {doc.size || doc.fileSize || '1.5 MB'} | Owner: {doc.belongsTo || 'Main Applicant'}
+                                </Typography>
+                                {doc.comment && (
+                                  <Box sx={{ mt: 1, p: 1, borderRadius: 1.5, bgcolor: doc.status === 'Approved' ? '#ECFDF5' : '#FEF2F2', borderLeft: '3px solid', borderColor: doc.status === 'Approved' ? '#10B981' : '#EF4444' }}>
+                                    <Typography variant="caption" sx={{ fontStyle: 'italic', display: 'block', color: doc.status === 'Approved' ? '#065F46' : '#991B1B' }}>
+                                      Note: {doc.comment}
+                                    </Typography>
+                                  </Box>
+                                )}
+                              </Box>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
+                                <StatusBadge status={doc.status} />
+                                <Button
+                                  size="small"
+                                  startIcon={<VisibilityIcon />}
+                                  onClick={() => navigate('/documents/verify')}
+                                  sx={{ textTransform: 'none' }}
+                                >
+                                  Review
+                                </Button>
+                              </Box>
+                            </Paper>
+                          ))}
+                        </List>
+                      )}
+                    </>
                   )}
                 </Box>
               )}

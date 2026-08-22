@@ -992,11 +992,20 @@ export const ClientPortalDocs = () => {
     paidAssessment
   );
 
+  const isTranslationPaid = Boolean(
+    translationPaid ||
+    hasAnyPaidPayment ||
+    isFullyPaidStatus ||
+    client?.billingStatus === 'Payment Completed' ||
+    client?.status === 'Payment Completed' ||
+    client?.status === 'Paid'
+  );
+
   useEffect(() => {
-    if (!isClientPaid && !isProfileLoading && !isClientsLoading) {
+    if (!isTranslationClient && !isClientPaid && !isProfileLoading && !isClientsLoading) {
       setTabValue(1);
     }
-  }, [isClientPaid, isProfileLoading, isClientsLoading]);
+  }, [isTranslationClient, isClientPaid, isProfileLoading, isClientsLoading]);
 
   useEffect(() => {
     if (isOptAPaid && isOptionAPackage(selectedPackage)) {
@@ -1550,7 +1559,7 @@ export const ClientPortalDocs = () => {
 
   // Client specific details
   const clientDocuments = documents.filter((d) => d.clientId === client.id);
-  const translatedDocs = clientDocuments.filter(d => d.translatedUrl);
+  const translatedDocs = clientDocuments.filter(d => Boolean(d.translatedUrl) || d.status === 'Translated');
   const clientConsultations = consultations.filter((c) => c.leadId === client.id || c.lead?.clientId === client.id);
   const activeConsultation = clientConsultations.find(c => c.status === 'Scheduled' || c.status === 'Pending Assignment');
   const assignedAgent = agents.find(a => a.id === client.assignedConsultantId);
@@ -2720,8 +2729,8 @@ export const ClientPortalDocs = () => {
           </Box>
         )}
 
-        {/* Tab 1: Sworn Translation Calculator */}
-        {tabValue === 1 && (client.serviceId === 'sworn_translation' || client.serviceId === 'translation' || client.serviceId === 'sworn' || client.serviceType === 'Spanish Sworn Translation') && (
+        {/* Sworn Translation Portal View */}
+        {isTranslationClient && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <Paper
               sx={{
@@ -2748,7 +2757,7 @@ export const ClientPortalDocs = () => {
                         value={sourceLang}
                         onChange={(e) => setSourceLang(e.target.value)}
                         label={t('select_source_lang')}
-                        disabled={translationPaid}
+                        disabled={isTranslationPaid}
                         sx={{ borderRadius: 2.5 }}
                       >
                         {['English', 'Arabic', 'Urdu'].map((name) => (
@@ -2766,7 +2775,7 @@ export const ClientPortalDocs = () => {
                         value={targetLang}
                         onChange={(e) => setTargetLang(e.target.value)}
                         label={t('select_target_lang')}
-                        disabled={translationPaid}
+                        disabled={isTranslationPaid}
                         sx={{ borderRadius: 2.5 }}
                       >
                         <MenuItem value="Spanish">Spanish (Español) 🇪🇸</MenuItem>
@@ -2792,13 +2801,13 @@ export const ClientPortalDocs = () => {
                       }}
                       placeholder="e.g. 500"
                       fullWidth
-                      disabled={translationPaid}
+                      disabled={isTranslationPaid}
                       error={wordCount !== '' && wordCount <= 0}
-                      helperText={wordCount !== '' && wordCount <= 0 ? "Word count must be greater than 0" : (translationPaid ? "Paid Order Configuration (Locked)" : "Please count the words in your target documents manually or upload a PDF for automatic word analysis.")}
+                      helperText={wordCount !== '' && wordCount <= 0 ? "Word count must be greater than 0" : (isTranslationPaid ? "Paid Order Configuration (Locked)" : "Please count the words in your target documents manually or upload a PDF for automatic word analysis.")}
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5 } }}
                     />
 
-                    {!translationPaid && (
+                    {!isTranslationPaid && (
                       <Box
                         sx={{
                           p: 2.5,
@@ -2833,7 +2842,7 @@ export const ClientPortalDocs = () => {
                       </Box>
                     )}
 
-                    {!translationPaid && (
+                    {!isTranslationPaid && (
                       <Button
                         variant="contained"
                         size="large"
@@ -2864,65 +2873,104 @@ export const ClientPortalDocs = () => {
 
                   {/* Documents list & Addon panel */}
                   {(() => {
-                    const translationInputDocs = (documents || []).filter((d) => d && d.clientId === client?.id);
+                    const translationInputDocs = (documents || []).filter((d) => d && (d.clientId === client?.id || d.clientId === clientId));
                     return (
                       <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
                         {/* 1. Paid Documents List */}
                         <Box>
                           <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#051A3B', mb: 1.5, fontFamily: 'Outfit, sans-serif' }}>
-                            📄 Documents Uploaded for Translation:
+                            📄 Documents in this Translation Order:
                           </Typography>
                           {translationInputDocs.length === 0 ? (
-                            <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', display: 'block', py: 1 }}>
-                              No documents uploaded yet.
-                            </Typography>
+                            <Paper sx={{ p: 2.5, borderRadius: 2, bgcolor: '#FFFDF7', border: '1px dashed rgba(197,155,39,0.3)', textAlign: 'center' }}>
+                              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                                Document registered. Our translation team is processing your order.
+                              </Typography>
+                            </Paper>
                           ) : (
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                              {translationInputDocs.map((doc) => (
-                                <Paper
-                                  key={doc.id}
-                                  sx={{
-                                    p: 1.8,
-                                    border: '1px solid rgba(0,0,0,0.06)',
-                                    borderRadius: 2.5,
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    bgcolor: 'background.paper',
-                                    boxShadow: 'none'
-                                  }}
-                                  className="flex-col sm:flex-row gap-3"
-                                >
-                                  <Box>
-                                    <Typography variant="body2" sx={{ fontWeight: 700, color: '#051A3B', fontSize: '0.85rem' }}>
-                                      {doc.name}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500, display: 'block', mt: 0.2 }}>
-                                      Category: {doc.category} | Size: {doc.size || 'N/A'}
-                                    </Typography>
-                                  </Box>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                    <Chip
-                                      label={doc.status}
-                                      size="small"
-                                      sx={{
-                                        fontWeight: 800,
-                                        height: 20,
-                                        fontSize: '0.65rem',
-                                        bgcolor: doc.status === 'Translated' || doc.status === 'Approved' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                                        color: doc.status === 'Translated' || doc.status === 'Approved' ? '#10B981' : '#F59E0B',
-                                        border: `1px solid ${doc.status === 'Translated' || doc.status === 'Approved' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`
-                                      }}
-                                    />
-                                  </Box>
-                                </Paper>
-                              ))}
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              {translationInputDocs.map((doc) => {
+                                const hasTranslation = Boolean(doc.translatedUrl);
+                                return (
+                                  <Paper
+                                    key={doc.id}
+                                    sx={{
+                                      p: 2.5,
+                                      border: '1.5px solid',
+                                      borderColor: hasTranslation ? 'rgba(16, 185, 129, 0.3)' : 'rgba(197, 155, 39, 0.25)',
+                                      borderRadius: 3,
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      gap: 1.5,
+                                      bgcolor: hasTranslation ? '#F0FDF4' : '#FFFDF7',
+                                      boxShadow: 'none'
+                                    }}
+                                  >
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+                                      <Box>
+                                        <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B', fontSize: '0.9rem' }}>
+                                          📄 {doc.name}
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500, display: 'block', mt: 0.2 }}>
+                                          Category: {doc.category || 'Sworn Translation'} {doc.size ? `| Size: ${doc.size}` : ''}
+                                        </Typography>
+                                      </Box>
+                                      <Chip
+                                        label={hasTranslation ? '✅ Translated & Certified' : '⏳ In Translation'}
+                                        size="small"
+                                        color={hasTranslation ? 'success' : 'warning'}
+                                        sx={{ fontWeight: 800, fontSize: '0.7rem' }}
+                                      />
+                                    </Box>
+
+                                    {/* Action row */}
+                                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', pt: 1, borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                                      {doc.fileUrl && (
+                                        <Button
+                                          size="small"
+                                          variant="outlined"
+                                          href={doc.fileUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 1.5, fontSize: '0.75rem' }}
+                                        >
+                                          👁️ View Original
+                                        </Button>
+                                      )}
+
+                                      {hasTranslation ? (
+                                        <Button
+                                          size="small"
+                                          variant="contained"
+                                          color="success"
+                                          href={doc.translatedUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          sx={{
+                                            textTransform: 'none',
+                                            fontWeight: 800,
+                                            borderRadius: 1.5,
+                                            fontSize: '0.8rem',
+                                            boxShadow: '0 2px 8px rgba(16, 185, 129, 0.25)'
+                                          }}
+                                        >
+                                          📥 Download Certified Translation PDF 🇪🇸
+                                        </Button>
+                                      ) : (
+                                        <Typography variant="caption" sx={{ color: '#92400E', fontWeight: 600, fontStyle: 'italic' }}>
+                                          ⏳ Official sworn translation is currently in progress. Download button will activate once certified.
+                                        </Typography>
+                                      )}
+                                    </Box>
+                                  </Paper>
+                                );
+                              })}
                             </Box>
                           )}
                         </Box>
 
                         {/* 2. Add-on Upload Panel */}
-                        {translationPaid && (
+                        {isTranslationPaid && (
                           <Paper sx={{ p: 3, border: '1px dashed rgba(197, 155, 39, 0.3)', bgcolor: 'rgba(250, 246, 237, 0.25)', borderRadius: 3.5, boxShadow: 'none' }}>
                             <Typography variant="subtitle2" sx={{ fontWeight: 900, color: '#051A3B', mb: 0.5, fontFamily: 'Outfit, sans-serif' }}>
                               ➕ Order Additional Translations
@@ -3142,7 +3190,7 @@ export const ClientPortalDocs = () => {
 
                       <Divider sx={{ my: 1.5, borderColor: 'rgba(197, 155, 39, 0.15)' }} />
 
-                      {translationPaid ? (
+                      {isTranslationPaid ? (
                         <Box sx={{ mb: 2 }}>
                           <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 1 }}>
                             Payments History
@@ -3180,22 +3228,22 @@ export const ClientPortalDocs = () => {
                           <Typography variant="body2" sx={{ fontWeight: 600, color: isCalculated ? 'text.primary' : 'text.disabled' }}>1. Price Quoted & Verified</Typography>
                         </Box>
                         <Box sx={{ display: 'flex', gap: 1.5, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
-                          <CheckCircleIcon color={translationPaid ? 'success' : 'disabled'} sx={{ fontSize: '1.25rem' }} />
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: translationPaid ? 'text.primary' : 'text.disabled' }}>2. Payment Processed</Typography>
+                          <CheckCircleIcon color={isTranslationPaid ? 'success' : 'disabled'} sx={{ fontSize: '1.25rem' }} />
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: isTranslationPaid ? 'text.primary' : 'text.disabled' }}>2. Payment Processed</Typography>
                         </Box>
                         <Box sx={{ display: 'flex', gap: 1.5, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
-                          <CheckCircleIcon color={translationStatus === 'processing' || translationStatus === 'completed' || translationStatus === 'delivered' ? 'success' : 'disabled'} sx={{ fontSize: '1.25rem' }} />
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: (translationStatus === 'processing' || translationStatus === 'completed' || translationStatus === 'delivered') ? 'text.primary' : 'text.disabled' }}>3. In Process (Sworn Translators Assigned)</Typography>
+                          <CheckCircleIcon color={translationStatus === 'processing' || translationStatus === 'completed' || translationStatus === 'delivered' || translatedDocs.length > 0 ? 'success' : 'disabled'} sx={{ fontSize: '1.25rem' }} />
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: (translationStatus === 'processing' || translationStatus === 'completed' || translationStatus === 'delivered' || translatedDocs.length > 0) ? 'text.primary' : 'text.disabled' }}>3. In Process (Sworn Translators Assigned)</Typography>
                         </Box>
                         <Box sx={{ display: 'flex', gap: 1.5, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
-                          <CheckCircleIcon color={translationStatus === 'delivered' ? 'success' : 'disabled'} sx={{ fontSize: '1.25rem' }} />
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: translationStatus === 'delivered' ? 'text.primary' : 'text.disabled' }}>4. Certified PDF Sworn File Delivered</Typography>
+                          <CheckCircleIcon color={translationStatus === 'delivered' || translatedDocs.length > 0 ? 'success' : 'disabled'} sx={{ fontSize: '1.25rem' }} />
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: (translationStatus === 'delivered' || translatedDocs.length > 0) ? 'text.primary' : 'text.disabled' }}>4. Certified PDF Sworn File Delivered</Typography>
                         </Box>
                       </Box>
                     </Box>
 
                     <Box sx={{ mt: 3 }}>
-                      {translationPaid ? (
+                      {isTranslationPaid ? (
                         <Box>
                           <Chip label="Payment Verified" color="success" sx={{ py: 1.25, fontSize: '0.975rem', fontWeight: 800, mb: 1.5, width: '100%', borderRadius: 2.5 }} />
                           <Button
