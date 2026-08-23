@@ -42,6 +42,7 @@ import AppModal from '../../components/AppModal';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../hooks/useAuth';
 import { SERVICES, PACKAGES, getLeadStatusOptions } from '../../constants/mockData';
+import LeadCommentsSection from '../../components/LeadCommentsSection';
 
 export const LeadDetails = () => {
   const { id } = useParams();
@@ -867,36 +868,7 @@ export const LeadDetails = () => {
 
                   <Box className="col-span-12">
                     <Divider sx={{ my: 1.5 }} />
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
-                      Case Notes File
-                    </Typography>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        minHeight: 100,
-                        maxHeight: 250,
-                        overflowY: 'auto',
-                        backgroundColor: 'background.neutral',
-                        mb: 1.5,
-                        whiteSpace: 'pre-wrap',
-                        fontSize: '0.85rem' }}
-                    >
-                      {lead.notes || 'No notes logged on file yet.'}
-                    </Paper>
-
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <TextField
-                        value={noteText}
-                        onChange={(e) => setNoteText(e.target.value)}
-                        placeholder="Log new case comment or details..."
-                        variant="outlined"
-                        fullWidth
-                        size="small"
-                      />
-                      <Button variant="contained" onClick={handleAddNote} endIcon={<SendIcon />} sx={{ px: 3 }}>
-                        Comment
-                      </Button>
-                    </Box>
+                    <LeadCommentsSection lead={lead} currentUser={currentUser} />
                   </Box>
                 </Box>
               )}

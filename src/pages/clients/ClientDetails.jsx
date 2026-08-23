@@ -38,6 +38,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { SERVICES, PACKAGES } from '../../constants/mockData';
 import { getPackageDisplayName } from '../../utils/packageHelper';
 import { maskIBAN, formatIBAN } from '../../utils/ibanValidator';
+import ClientCommentsSection from '../../components/ClientCommentsSection';
+import SwornTranslationClientDocumentsCard from '../../components/SwornTranslationClientDocumentsCard';
 
 export const ClientDetails = () => {
   const { id } = useParams();
@@ -45,7 +47,7 @@ export const ClientDetails = () => {
   const location = useLocation();
   const queryClient = useQueryClient();
   const { showAlert } = useAlert();
-  const { isAdmin, isOperations } = useAuth();
+  const { isAdmin, isOperations, currentUser } = useAuth();
 
   const queryParams = new URLSearchParams(location.search);
   const tabParam = queryParams.get('tab');
@@ -69,6 +71,12 @@ export const ClientDetails = () => {
     queryFn: dbService.getClients });
 
   const client = clients.find((c) => c.id === id);
+  const isTranslationClient = client && (
+    (client.serviceType || '').toLowerCase().includes('translation') ||
+    (client.serviceType || '').toLowerCase().includes('sworn') ||
+    (client.serviceId || '').toLowerCase().includes('translation') ||
+    (client.serviceId || '').toLowerCase().includes('sworn')
+  );
 
   // Fetch payments, documents, consultations
   const { data: payments = [] } = useQuery({
@@ -326,56 +334,7 @@ export const ClientDetails = () => {
                     </Typography>
                   </Box>
 
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="h5" sx={{ fontWeight: 600, mb: 1.5 }}>
-                      Case Comments
-                    </Typography>
-                    <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, boxShadow: 'none' }}>
-                      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-                        <TextField 
-                          fullWidth 
-                          placeholder="Write a comment... (e.g. Documents sent to lawyer)" 
-                          size="small"
-                          id="comment-input"
-                        />
-                        <Button 
-                          variant="contained" 
-                          color="secondary"
-                          onClick={() => {
-                            const input = document.getElementById('comment-input');
-                            if (!input.value) return;
-                            const newComment = {
-                              text: input.value,
-                              author: 'Staff',
-                              date: new Date().toLocaleDateString(),
-                              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                            };
-                            const updatedComments = [...(client.comments || []), newComment];
-                            // In real app, call mutation
-                            client.comments = updatedComments; // mock local update
-                            input.value = '';
-                            showAlert('Comment added successfully!', 'success');
-                          }}
-                        >
-                          Add Comment
-                        </Button>
-                      </Box>
-                      <List disablePadding>
-                        {(client.comments || []).map((c, idx) => (
-                          <Paper key={idx} sx={{ p: 1.5, mb: 1.5, bgcolor: 'background.neutral', boxShadow: 'none' }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{c.author}</Typography>
-                              <Typography variant="caption" color="text.secondary">{c.date} at {c.time}</Typography>
-                            </Box>
-                            <Typography variant="body2">{c.text}</Typography>
-                          </Paper>
-                        ))}
-                        {(!client.comments || client.comments.length === 0) && (
-                          <Typography variant="body2" color="text.secondary">No comments yet.</Typography>
-                        )}
-                      </List>
-                    </Paper>
-                  </Box>
+                  <ClientCommentsSection client={client} currentUser={currentUser} />
 
                   <Box sx={{ mt: 2 }}>
                     <Typography variant="h5" sx={{ fontWeight: 600, mb: 1.5 }}>
@@ -452,62 +411,68 @@ export const ClientDetails = () => {
               {/* TAB 1: Documents & Dropzone */}
               {activeTab === 1 && (
                 <Box>
-                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
-                    Upload Checklist Documents
-                  </Typography>
-                  <FileUploader
-                    onUpload={handleDocUploaded}
-                    clientId={client.id}
-                    clientName={`${client.firstName} ${client.lastName}`}
-                    isLoading={uploadDocMutation.isPending}
-                  />
-
-                  <Divider sx={{ my: 3 }} />
-
-                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
-                    Uploaded Documents List
-                  </Typography>
-
-                  {clientDocuments.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 3 }}>
-                      No documents uploaded yet.
-                    </Typography>
+                  {isTranslationClient ? (
+                    <SwornTranslationClientDocumentsCard client={client} documents={clientDocuments} />
                   ) : (
-                    <List disablePadding>
-                      {clientDocuments.map((doc) => (
-                        <Paper
-                          key={doc.id}
-                          sx={{
-                            p: 2,
-                            mb: 2,
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            boxShadow: 'none',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center' }}
-                        >
-                          <Box>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                              {doc.fileName}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              Category: {doc.category} | Size: {doc.fileSize}
-                            </Typography>
-                          </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                            <StatusBadge status={doc.status} />
-                            <Button
-                              size="small"
-                              startIcon={<VisibilityIcon />}
-                              onClick={() => navigate('/documents/review')}
+                    <>
+                      <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
+                        Upload Checklist Documents
+                      </Typography>
+                      <FileUploader
+                        onUpload={handleDocUploaded}
+                        clientId={client.id}
+                        clientName={`${client.firstName} ${client.lastName}`}
+                        isLoading={uploadDocMutation.isPending}
+                      />
+
+                      <Divider sx={{ my: 3 }} />
+
+                      <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
+                        Uploaded Documents List
+                      </Typography>
+
+                      {clientDocuments.length === 0 ? (
+                        <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 3 }}>
+                          No documents uploaded yet.
+                        </Typography>
+                      ) : (
+                        <List disablePadding>
+                          {clientDocuments.map((doc) => (
+                            <Paper
+                              key={doc.id}
+                              sx={{
+                                p: 2,
+                                mb: 2,
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                boxShadow: 'none',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center' }}
                             >
-                              Review
-                            </Button>
-                          </Box>
-                        </Paper>
-                      ))}
-                    </List>
+                              <Box>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                                  {doc.fileName}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  Category: {doc.category} | Size: {doc.fileSize}
+                                </Typography>
+                              </Box>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                <StatusBadge status={doc.status} />
+                                <Button
+                                  size="small"
+                                  startIcon={<VisibilityIcon />}
+                                  onClick={() => navigate('/documents/review')}
+                                >
+                                  Review
+                                </Button>
+                              </Box>
+                            </Paper>
+                          ))}
+                        </List>
+                      )}
+                    </>
                   )}
                 </Box>
               )}

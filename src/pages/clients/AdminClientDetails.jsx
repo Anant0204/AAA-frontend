@@ -45,6 +45,8 @@ import CredentialsModal from '../../components/CredentialsModal';
 import CaseHistoryTimelineCard from '../../components/CaseHistoryTimelineCard';
 import ChecklistManagementModal from '../../components/ChecklistManagementModal';
 import UploadedDocumentsCard from '../../components/UploadedDocumentsCard';
+import ClientCommentsSection from '../../components/ClientCommentsSection';
+import SwornTranslationClientDocumentsCard from '../../components/SwornTranslationClientDocumentsCard';
 
 export const AdminClientDetails = () => {
   const { id } = useParams();
@@ -94,6 +96,12 @@ export const AdminClientDetails = () => {
   });
 
   const client = clients.find((c) => c.id === id);
+  const isTranslationClient = client && (
+    (client.serviceType || '').toLowerCase().includes('translation') ||
+    (client.serviceType || '').toLowerCase().includes('sworn') ||
+    (client.serviceId || '').toLowerCase().includes('translation') ||
+    (client.serviceId || '').toLowerCase().includes('sworn')
+  );
 
   const { data: payments = [] } = useQuery({
     queryKey: ['payments'],
@@ -576,57 +584,7 @@ export const AdminClientDetails = () => {
                     />
                   </Box>
 
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="h5" sx={{ fontWeight: 600, mb: 1.5 }}>
-                      Case Comments
-                    </Typography>
-                    <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, boxShadow: 'none' }}>
-                      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-                        <TextField 
-                          fullWidth 
-                          placeholder="Write a comment... (e.g. Documents sent to lawyer)" 
-                          size="small"
-                          id="comment-input"
-                        />
-                        <Button 
-                          variant="contained" 
-                          color="secondary"
-                          onClick={() => {
-                            const input = document.getElementById('comment-input');
-                            if (!input.value) return;
-                            const newComment = {
-                              text: input.value,
-                              author: 'Admin',
-                              date: new Date().toLocaleDateString(),
-                              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                            };
-                            const updatedComments = [...(client.comments || []), newComment];
-                            // In real app, call mutation
-                            // dbService.updateClient({ ...client, comments: updatedComments });
-                            client.comments = updatedComments; // mock local update
-                            input.value = '';
-                            showAlert('Comment added successfully!', 'success');
-                          }}
-                        >
-                          Add Comment
-                        </Button>
-                      </Box>
-                      <List disablePadding>
-                        {(client.comments || []).map((c, idx) => (
-                          <Paper key={idx} sx={{ p: 1.5, mb: 1.5, bgcolor: 'background.neutral', boxShadow: 'none' }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{c.author}</Typography>
-                              <Typography variant="caption" color="text.secondary">{c.date} at {c.time}</Typography>
-                            </Box>
-                            <Typography variant="body2">{c.text}</Typography>
-                          </Paper>
-                        ))}
-                        {(!client.comments || client.comments.length === 0) && (
-                          <Typography variant="body2" color="text.secondary">No comments yet.</Typography>
-                        )}
-                      </List>
-                    </Paper>
-                  </Box>
+                  <ClientCommentsSection client={client} currentUser={currentUser} />
 
                   <Box sx={{ mt: 2 }}>
                     <CaseHistoryTimelineCard
@@ -683,24 +641,30 @@ export const AdminClientDetails = () => {
 
               {activeTab === 1 && (
                 <Box>
-                  <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
-                    Upload Checklist Documents
-                  </Typography>
-                  <FileUploader
-                    onUpload={handleDocUploaded}
-                    clientId={client.id}
-                    clientName={`${client.firstName} ${client.lastName}`}
-                    isLoading={uploadDocMutation.isPending}
-                  />
+                  {isTranslationClient ? (
+                    <SwornTranslationClientDocumentsCard client={client} documents={clientDocuments} />
+                  ) : (
+                    <>
+                      <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
+                        Upload Checklist Documents
+                      </Typography>
+                      <FileUploader
+                        onUpload={handleDocUploaded}
+                        clientId={client.id}
+                        clientName={`${client.firstName} ${client.lastName}`}
+                        isLoading={uploadDocMutation.isPending}
+                      />
 
-                  <Divider sx={{ my: 3 }} />
+                      <Divider sx={{ my: 3 }} />
 
-                  <UploadedDocumentsCard
-                    documents={clientDocuments}
-                    title="Uploaded Documents & Operations Review"
-                    onReviewDoc={(docId, data) => reviewDocMutation.mutateAsync({ documentId: docId, data })}
-                    canReview={clientsActions.canVerifyDocs}
-                  />
+                      <UploadedDocumentsCard
+                        documents={clientDocuments}
+                        title="Uploaded Documents & Operations Review"
+                        onReviewDoc={(docId, data) => reviewDocMutation.mutateAsync({ documentId: docId, data })}
+                        canReview={clientsActions.canVerifyDocs}
+                      />
+                    </>
+                  )}
                 </Box>
               )}
 

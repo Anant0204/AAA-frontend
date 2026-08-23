@@ -39,6 +39,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { SERVICES, PACKAGES } from '../../constants/mockData';
 import { getPackageDisplayName } from '../../utils/packageHelper';
 import CredentialsModal from '../../components/CredentialsModal';
+import ClientCommentsSection from '../../components/ClientCommentsSection';
 
 export const AgentClientDetails = () => {
   const { id } = useParams();
@@ -390,56 +391,7 @@ export const AgentClientDetails = () => {
                     </Typography>
                   </Box>
 
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="h5" sx={{ fontWeight: 600, mb: 1.5 }}>
-                      Case Comments
-                    </Typography>
-                    <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, boxShadow: 'none' }}>
-                      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-                        <TextField 
-                          fullWidth 
-                          placeholder="Write a comment... (e.g. Documents sent to lawyer)" 
-                          size="small"
-                          id="comment-input"
-                        />
-                        <Button 
-                          variant="contained" 
-                          color="secondary"
-                          onClick={() => {
-                            const input = document.getElementById('comment-input');
-                            if (!input.value) return;
-                            const newComment = {
-                              text: input.value,
-                              author: 'Agent',
-                              date: new Date().toLocaleDateString(),
-                              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                            };
-                            const updatedComments = [...(client.comments || []), newComment];
-                            // In real app, call mutation
-                            client.comments = updatedComments; // mock local update
-                            input.value = '';
-                            showAlert('Comment added successfully!', 'success');
-                          }}
-                        >
-                          Add Comment
-                        </Button>
-                      </Box>
-                      <List disablePadding>
-                        {(client.comments || []).map((c, idx) => (
-                          <Paper key={idx} sx={{ p: 1.5, mb: 1.5, bgcolor: 'background.neutral', boxShadow: 'none' }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{c.author}</Typography>
-                              <Typography variant="caption" color="text.secondary">{c.date} at {c.time}</Typography>
-                            </Box>
-                            <Typography variant="body2">{c.text}</Typography>
-                          </Paper>
-                        ))}
-                        {(!client.comments || client.comments.length === 0) && (
-                          <Typography variant="body2" color="text.secondary">No comments yet.</Typography>
-                        )}
-                      </List>
-                    </Paper>
-                  </Box>
+                  <ClientCommentsSection client={client} currentUser={currentUser} />
 
                   <Box sx={{ mt: 2 }}>
                     <Typography variant="h5" sx={{ fontWeight: 600, mb: 1.5 }}>
