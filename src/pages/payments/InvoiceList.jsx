@@ -151,14 +151,14 @@ export const InvoiceList = () => {
 
   const getDateStr = (val) => {
     if (!val) return '';
-    if (typeof val === 'string') return val.split('T')[0];
-    try { return new Date(val).toISOString().split('T')[0]; } catch (e) { return ''; }
+    const d = dayjs(val);
+    return d.isValid() ? d.format('YYYY-MM-DD') : '';
   };
 
   const filteredInvoices = payments.filter((p) => {
     const rawDate = (p.status === 'Paid' || p.status === 'Completed') 
-      ? (p.paidAt || p.paymentDate || p.billingDate || p.dueDate || p.createdAt) 
-      : (p.dueDate || p.billingDate || p.createdAt);
+      ? (p.paidAt || p.paymentDate || p.billingDate || p.createdAt) 
+      : (p.billingDate || p.createdAt || p.dueDate);
     const dateToCheck = getDateStr(rawDate);
     if (!filterByDate(dateToCheck, startDate, endDate)) return false;
 
@@ -326,9 +326,9 @@ export const InvoiceList = () => {
               { label: '30D', key: '30d' },
               { label: 'All', key: 'all' },
             ].map(preset => {
-              const todayStr = new Date().toISOString().split('T')[0];
-              const sevenDaysAgoStr = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-              const thirtyDaysAgoStr = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+              const todayStr = dayjs().format('YYYY-MM-DD');
+              const sevenDaysAgoStr = dayjs().subtract(7, 'day').format('YYYY-MM-DD');
+              const thirtyDaysAgoStr = dayjs().subtract(30, 'day').format('YYYY-MM-DD');
 
               const isActive =
                 preset.key === 'today' ? startDate === todayStr && endDate === todayStr :

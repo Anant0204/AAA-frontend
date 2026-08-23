@@ -13,7 +13,7 @@ export const downloadLetterheadReceiptPDF = (inv, showAlert) => {
       : dayjs().format('DD/MM/YYYY');
     
     const clientName = inv.clientName || 'Valued Client';
-    const customerId = inv.clientCode || (inv.clientId ? `CID-${inv.clientId.replace(/-/g, '').slice(-5).toUpperCase()}` : 'CLIENT-ID');
+    const customerId = inv.clientCode || inv.client?.clientCode || 'N/A';
     const serviceName = inv.serviceId ? String(inv.serviceId).toUpperCase() : 'SPAIN RELOCATION LEGAL PACKAGE';
     const paymentMethod = inv.paymentMethod || 'Stripe';
     const transactionRef = inv.transactionId || `TXN-${Date.now()}`;

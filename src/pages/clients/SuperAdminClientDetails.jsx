@@ -1119,7 +1119,7 @@ export const SuperAdminClientDetails = () => {
               )}
 
               {activeTab === 6 && (
-                <CommunicationHistoryTab clientId={client.id} leadId={client.leadId} hideLogForm={true} />
+                <CommunicationHistoryTab clientId={client.id} leadId={client.leadId} />
               )}
             </Box>
           </AppCard>

@@ -1160,7 +1160,7 @@ export const ClientPortalDocs = () => {
       doc.setFont("helvetica", "bold");
       doc.text("Client Information:", 14, 60);
       doc.setFont("helvetica", "normal");
-      const receiptCustomerId = client?.clientCode || (client?.id ? `CID-${client.id.slice(-5).toUpperCase()}` : 'N/A');
+      const receiptCustomerId = client?.clientCode || client?.clientCustomId || client?.cid || 'N/A';
       doc.text(`Name: ${client.firstName} ${client.lastName}`, 14, 65);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(5, 26, 59);
@@ -4191,7 +4191,7 @@ export const ClientPortalDocs = () => {
             const grandTotal = Math.max(0, Math.round((grossSubTotal + vat5 - couponDiscount) * 100) / 100);
 
             const invNo = `INV-2026-${(client?.id || '84920').slice(-6).toUpperCase()}`;
-            const customerId = client?.clientCode || client?.clientCustomId || client?.cid || (client?.id ? `CID-${client.id.slice(-5).toUpperCase()}` : 'CLIENT-ID');
+            const customerId = client?.clientCode || client?.clientCustomId || client?.cid || 'N/A';
 
             return (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>

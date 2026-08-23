@@ -397,8 +397,8 @@ export const SuperAdminDashboard = () => {
   const completedMeetingsInPrevRange = period.prevStart ? consultations.filter(c => (c.status === 'Completed' || c.status === 'Meeting Completed') && filterByDate(c.meetingDate || c.date, period.prevStart, period.prevEnd)) : [];
 
   // 6. Pending Payments
-  const pendingPaymentsInRange = payments.filter(p => p.status === 'Pending' && filterByDate(p.dueDate, period.start, period.end));
-  const pendingPaymentsInPrevRange = period.prevStart ? payments.filter(p => p.status === 'Pending' && filterByDate(p.dueDate, period.prevStart, period.prevEnd)) : [];
+  const pendingPaymentsInRange = payments.filter(p => p.status === 'Pending' && filterByDate(getDateStr(p.billingDate || p.createdAt || p.dueDate), period.start, period.end));
+  const pendingPaymentsInPrevRange = period.prevStart ? payments.filter(p => p.status === 'Pending' && filterByDate(getDateStr(p.billingDate || p.createdAt || p.dueDate), period.prevStart, period.prevEnd)) : [];
 
   // 7. Total Revenue (Net after refunds)
   const paidPmtsInRange = payments.filter(p => p && (p.status === 'Paid' || p.status === 'Completed') && filterByDate(getDateStr(p.paidAt || p.paymentDate || p.billingDate || p.dueDate || p.createdAt), period.start, period.end));

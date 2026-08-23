@@ -790,9 +790,10 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                   );
                 };
 
-                const agentDocs = allDocs.filter(d => d.status !== 'Rejected' && isStaffDoc(d));
-                const customerDocs = allDocs.filter(d => d.status !== 'Rejected' && !isStaffDoc(d));
-                const rejectedDocs = allDocs.filter(d => d.status === 'Rejected');
+                const isRejectedDoc = (d) => (d.status || '').toUpperCase() === 'REJECTED';
+                const agentDocs = allDocs.filter(d => !isRejectedDoc(d) && isStaffDoc(d));
+                const customerDocs = allDocs.filter(d => !isRejectedDoc(d) && !isStaffDoc(d));
+                const rejectedDocs = allDocs.filter(d => isRejectedDoc(d));
 
                 const renderDocCard = (doc) => {
                   const sUpper = (doc.status || '').toUpperCase();
