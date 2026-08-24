@@ -3515,91 +3515,102 @@ export const ClientPortalDocs = () => {
                           >
                             📥 Download Detailed Receipt (PDF)
                           </Button>
-                          <Button
-                            variant="contained"
-                            fullWidth
-                            onClick={(e) => {
-                              if (translatedDocs.length === 0) {
-                                showAlert('Your documents are not verified yet / translation is in progress.', 'warning');
-                              } else {
-                                setDownloadMenuAnchor(e.currentTarget);
-                              }
-                            }}
-                            sx={{
-                              py: 1.5,
-                              borderRadius: 2.5,
-                              fontWeight: 800,
-                              textTransform: 'none',
-                              bgcolor: translatedDocs.length > 0 ? '#10B981' : 'rgba(16, 185, 129, 0.4)',
-                              color: 'white',
-                              fontFamily: 'Outfit, sans-serif',
-                              '&:hover': {
-                                bgcolor: translatedDocs.length > 0 ? '#059669' : 'rgba(16, 185, 129, 0.4)'
-                              }
-                            }}
-                          >
-                            Download Sworn Translation PDF
-                          </Button>
+                          {(() => {
+                            const clientAllDocs = (documents || []).filter(d => d && (d.clientId === client?.id || d.clientId === clientId));
+                            const translatedDocs = clientAllDocs.filter(d => Boolean(d.translatedUrl));
 
-                          <Menu
-                            anchorEl={downloadMenuAnchor}
-                            open={Boolean(downloadMenuAnchor)}
-                            onClose={() => setDownloadMenuAnchor(null)}
-                            sx={{
-                              '& .MuiPaper-root': {
-                                borderRadius: 2.5,
-                                mt: 1,
-                                width: downloadMenuAnchor ? downloadMenuAnchor.clientWidth : 220,
-                                maxWidth: '100%',
-                                boxShadow: '0 8px 24px rgba(5, 26, 59, 0.1)',
-                                border: '1px solid rgba(0,0,0,0.06)'
-                              }
-                            }}
-                          >
-                            {translatedDocs.map((doc) => {
-                              const fileUrl = `${(import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1').replace('/api/v1', '')}${doc.translatedUrl}`;
-                              return (
-                                <MenuItem
-                                  key={doc.id}
-                                  onClick={async () => {
-                                    setDownloadMenuAnchor(null);
-                                    try {
-                                      showAlert(`Downloading ${doc.name}...`, 'info');
-                                      const response = await fetch(fileUrl);
-                                      if (!response.ok) throw new Error('Network response was not ok');
-                                      const blob = await response.blob();
-                                      const blobUrl = window.URL.createObjectURL(blob);
-                                      const link = document.createElement('a');
-                                      link.href = blobUrl;
-                                      // Append .pdf extension if not present in the name
-                                      const cleanName = doc.name.toLowerCase().endsWith('.pdf') ? doc.name : `${doc.name}.pdf`;
-                                      link.download = `Translated_${cleanName}`;
-                                      document.body.appendChild(link);
-                                      link.click();
-                                      document.body.removeChild(link);
-                                      window.URL.revokeObjectURL(blobUrl);
-                                      showAlert('Download complete!', 'success');
-                                    } catch (error) {
-                                      console.error('Direct download failed:', error);
-                                      showAlert('Direct download failed. Opening file in new tab instead.', 'error');
-                                      window.open(fileUrl, '_blank');
+                            return (
+                              <>
+                                <Button
+                                  variant="contained"
+                                  fullWidth
+                                  onClick={(e) => {
+                                    if (translatedDocs.length === 0) {
+                                      showAlert('Your documents are in progress. Sworn translator will upload certified PDFs soon.', 'warning');
+                                    } else {
+                                      setDownloadMenuAnchor(e.currentTarget);
                                     }
                                   }}
                                   sx={{
+                                    py: 1.5,
+                                    borderRadius: 2.5,
+                                    fontWeight: 800,
+                                    textTransform: 'none',
+                                    bgcolor: translatedDocs.length > 0 ? '#10B981' : 'rgba(16, 185, 129, 0.4)',
+                                    color: 'white',
                                     fontFamily: 'Outfit, sans-serif',
-                                    fontWeight: 700,
-                                    fontSize: '0.85rem',
-                                    color: '#051A3B',
-                                    py: 1.2,
-                                    whiteSpace: 'normal',
-                                    '&:hover': { bgcolor: 'rgba(197, 155, 39, 0.08)', color: '#C59B27' }
+                                    '&:hover': {
+                                      bgcolor: translatedDocs.length > 0 ? '#059669' : 'rgba(16, 185, 129, 0.4)'
+                                    }
                                   }}
                                 >
-                                  📥 {doc.name.length > 25 ? doc.name.substring(0, 22) + '...' : doc.name} (Translated)
-                                </MenuItem>
-                              );
-                            })}
-                          </Menu>
+                                  Download Sworn Translation PDF
+                                </Button>
+
+                                <Menu
+                                  anchorEl={downloadMenuAnchor}
+                                  open={Boolean(downloadMenuAnchor)}
+                                  onClose={() => setDownloadMenuAnchor(null)}
+                                  sx={{
+                                    '& .MuiPaper-root': {
+                                      borderRadius: 2.5,
+                                      mt: 1,
+                                      width: downloadMenuAnchor ? downloadMenuAnchor.clientWidth : 220,
+                                      maxWidth: '100%',
+                                      boxShadow: '0 8px 24px rgba(5, 26, 59, 0.1)',
+                                      border: '1px solid rgba(0,0,0,0.06)'
+                                    }
+                                  }}
+                                >
+                                  {translatedDocs.map((doc) => {
+                                    const targetDocUrl = getFullDocUrl(doc.translatedUrl || doc.url || doc.fileUrl);
+                                    return (
+                                      <MenuItem
+                                        key={doc.id}
+                                        onClick={async () => {
+                                          setDownloadMenuAnchor(null);
+                                          if (!targetDocUrl) {
+                                            showAlert('Document file URL is missing.', 'warning');
+                                            return;
+                                          }
+                                          try {
+                                            showAlert(`Downloading ${doc.name}...`, 'info');
+                                            const response = await fetch(targetDocUrl);
+                                            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                                            const blob = await response.blob();
+                                            const blobUrl = window.URL.createObjectURL(blob);
+                                            const link = document.createElement('a');
+                                            link.href = blobUrl;
+                                            const cleanName = doc.name.toLowerCase().endsWith('.pdf') ? doc.name : `${doc.name}.pdf`;
+                                            link.download = `Certified_${cleanName}`;
+                                            document.body.appendChild(link);
+                                            link.click();
+                                            document.body.removeChild(link);
+                                            window.URL.revokeObjectURL(blobUrl);
+                                            showAlert('Download complete!', 'success');
+                                          } catch (error) {
+                                            console.warn('Direct blob fetch failed, opening target URL:', error);
+                                            showAlert('Opening file in browser...', 'info');
+                                            window.open(targetDocUrl, '_blank');
+                                          }
+                                        }}
+                                        sx={{
+                                          fontFamily: 'Outfit, sans-serif',
+                                          fontWeight: 700,
+                                          fontSize: '0.85rem',
+                                          color: '#051A3B',
+                                          py: 1.25,
+                                          '&:hover': { bgcolor: 'rgba(197, 155, 39, 0.1)', color: '#C59B27' }
+                                        }}
+                                      >
+                                        📄 {doc.name} (Certified PDF)
+                                      </MenuItem>
+                                    );
+                                  })}
+                                </Menu>
+                              </>
+                            );
+                          })()}
                         </Box>
                       ) : (
                         <Button
