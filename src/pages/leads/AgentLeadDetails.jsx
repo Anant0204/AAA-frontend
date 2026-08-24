@@ -78,8 +78,7 @@ export const AgentLeadDetails = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['conversations'] }) });
 
   const sendSocialMessageMutation = useMutation({
-    mutationFn: ({ conversationId, message }) => 
-      dbService.sendSocialMessage(conversationId, message),
+    mutationFn: (payload) => dbService.sendSocialMessage(payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['conversations'] }) });
 
   const [activeTab, setActiveTab] = useState(0);
@@ -102,32 +101,28 @@ export const AgentLeadDetails = () => {
   const [templateMessage, setTemplateMessage] = useState('');
   const [sentMessages, setSentMessages] = useState([]);
 
-  const WA_TEMPLATES = [
-    {
-      id: 'greeting',
-      label: 'Initial Greeting',
-      body: (lead) => `Hello ${lead?.firstName} 👋, I'm from AAA Business Consultancy. We received your inquiry regarding Spain ${lead?.serviceId || 'visa'} services. May we schedule a quick consultation call to understand your goals?` },
-    {
-      id: 'qualification_q1',
-      label: 'Q1 - Income Qualification',
-      body: (lead) => `Hi ${lead?.firstName} 👋! To assess your eligibility, could you share:\n• Your current monthly income (after tax)?\n• Is your income from remote work, business, or passive investments?\n• Your current country of residence?` },
-    {
-      id: 'qualification_q2',
-      label: 'Q2 - Family & Dependents',
-      body: (lead) => `Thank you ${lead?.firstName}! One more question:\n• Will you be applying with family members (spouse/children)?\n• How many total applicants?\n• Do you have an existing Spanish connection or assets?` },
-    {
-      id: 'booking_link',
-      label: 'Book Consultation Link',
-      body: (lead) => `Hi ${lead?.firstName}! You can book your FREE initial consultation directly here:\n👉 https://calendly.com/aaaconsultancy/assessment\n\nOur team is ready to guide your Spain residency journey. 🇪🇸` },
-    {
-      id: 'docs_reminder',
-      label: 'Documents Checklist Reminder',
-      body: (lead) => `Dear ${lead?.firstName}, this is a friendly reminder to prepare the following documents:\n📄 Valid Passport (6+ months validity)\n💰 3-Month Bank Statements\n📋 Employment / Income Proof\n🏠 Proof of Address\nPlease upload them through our secure portal as soon as possible.` },
-    {
-      id: 'follow_up',
-      label: 'Follow-Up Nudge',
-      body: (lead) => `Hi ${lead?.firstName} 👋! We wanted to follow up on your Spain visa inquiry. Our team has an opening this week for a consultation. Would you like to schedule a quick call to discuss your options?` },
-  ];
+  const { data: dbTemplates = [] } = useQuery({
+    queryKey: ['templates'],
+    queryFn: dbService.getTemplates
+  });
+
+  const formatTemplateText = (bodyText, leadObj) => {
+    if (!bodyText) return '';
+    let text = typeof bodyText === 'function' ? bodyText(leadObj) : String(bodyText);
+    const firstName = leadObj?.firstName || leadObj?.name?.split(' ')[0] || '';
+    const lastName = leadObj?.lastName || leadObj?.name?.split(' ')[1] || '';
+    const fullName = `${firstName} ${lastName}`.trim() || leadObj?.name || '';
+    const service = leadObj?.serviceType || leadObj?.serviceId || 'Visa Services';
+
+    text = text.replace(/\{\{\s*name\s*\}\}/gi, fullName);
+    text = text.replace(/\{\{\s*firstName\s*\}\}/gi, firstName);
+    text = text.replace(/\{\{\s*lastName\s*\}\}/gi, lastName);
+    text = text.replace(/\{\{\s*service\s*\}\}/gi, service);
+    text = text.replace(/\{\{\s*serviceType\s*\}\}/gi, service);
+    text = text.replace(/\{\{\s*phone\s*\}\}/gi, leadObj?.phone || '');
+    text = text.replace(/\{\{\s*email\s*\}\}/gi, leadObj?.email || '');
+    return text;
+  };
 
   // Fetch Lead details
   const { data: lead, isLoading } = useQuery({
@@ -165,7 +160,14 @@ export const AgentLeadDetails = () => {
       setStatusModalOpen(false);
     } });
 
-
+  const addNoteMutation = useMutation({
+    mutationFn: (leadData) => dbService.updateLead(leadData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lead', id] });
+      queryClient.invalidateQueries({ queryKey: ['caseTimeline'] });
+      showAlert('Note added successfully', 'success');
+      setNoteText('');
+    } });
 
   const reassignConsultantMutation = useMutation({
     mutationFn: (consultantId) => dbService.assignConsultant(lead.id, consultantId),
@@ -298,7 +300,17 @@ export const AgentLeadDetails = () => {
     return '***@***.***';
   };
 
-
+  const handleAddNote = () => {
+    if (!noteText.trim()) return;
+    const updatedLead = {
+      ...lead,
+      notes: lead.notes ? `${lead.notes}\n\n[${currentUser.name} - ${dayjs().format('DD/MM/YYYY HH:mm')}]: ${noteText}` : `[${currentUser.name} - ${dayjs().format('DD/MM/YYYY HH:mm')}]: ${noteText}`,
+      timeline: [
+        { date: new Date().toISOString(), event: 'Added a note to case file', user: currentUser.name },
+        ...(Array.isArray(lead.timeline) ? lead.timeline : []),
+      ] };
+    addNoteMutation.mutate(updatedLead);
+  };
 
   const handleOpenStatusModal = () => {
     setSelectedStatus(lead.status);
@@ -413,7 +425,11 @@ export const AgentLeadDetails = () => {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    sendSocialMessageMutation.mutate({ conversationId, message: storeMsg });
+    sendSocialMessageMutation.mutate({
+      conversationId,
+      phone: lead.phone,
+      message: liveReplyText
+    });
     setLiveReplyText('');
     showAlert('Message sent via WhatsApp!', 'success');
   };
@@ -1046,6 +1062,9 @@ export const AgentLeadDetails = () => {
               {activeTab === 5 && (() => {
                 const existingConv = conversations.find(c => c.leadId === lead.id);
                 const messagesList = existingConv ? existingConv.messages : [];
+                const isWindowOpen = existingConv ? Boolean(existingConv.isWindowOpen) : false;
+                const remainingMinutes = existingConv ? (existingConv.remainingMinutes || 0) : 0;
+                const windowExpiresAt = existingConv ? existingConv.windowExpiresAt : null;
 
                 return (
                   <Box>
@@ -1064,13 +1083,14 @@ export const AgentLeadDetails = () => {
                               value={selectedTemplate}
                               label="Select Template"
                               onChange={(e) => {
-                                const tmpl = WA_TEMPLATES.find(t => t.id === e.target.value);
-                                setSelectedTemplate(e.target.value);
-                                setTemplateMessage(tmpl ? tmpl.body(lead) : '');
+                                const tmplId = e.target.value;
+                                setSelectedTemplate(tmplId);
+                                const tmpl = dbTemplates.find(t => t.id === tmplId || t.name === tmplId);
+                                setTemplateMessage(tmpl ? formatTemplateText(tmpl.body, lead) : '');
                               }}
                             >
-                              {WA_TEMPLATES.map((t) => (
-                                <MenuItem key={t.id} value={t.id}>{t.label}</MenuItem>
+                              {dbTemplates.map((t) => (
+                                <MenuItem key={t.id || t.name} value={t.id || t.name}>{t.name || t.label}</MenuItem>
                               ))}
                             </Select>
                           </FormControl>
@@ -1128,7 +1148,11 @@ export const AgentLeadDetails = () => {
                                   timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                                 };
 
-                                sendSocialMessageMutation.mutate({ conversationId, message: storeMsg });
+                                sendSocialMessageMutation.mutate({
+                                  conversationId,
+                                  phone: lead.phone,
+                                  message: templateMessage
+                                });
                                 setTemplateMessage('');
                                 setSelectedTemplate('');
                                 showAlert('WhatsApp message dispatched successfully!', 'success');
@@ -1178,26 +1202,26 @@ export const AgentLeadDetails = () => {
                               </Box>
                             </Box>
 
-                            <Box sx={{ display: 'flex', gap: 1 }}>
-                              <Button
-                                size="small"
-                                variant={aiResponderActive ? "contained" : "outlined"}
-                                color={aiResponderActive ? "secondary" : "inherit"}
-                                startIcon={<QuickreplyIcon fontSize="inherit" />}
-                                onClick={toggleAiResponder}
-                                sx={{ textTransform: 'none', fontSize: '0.7rem', fontWeight: 'bold' }}
-                              >
-                                {aiResponderActive ? "AI Active" : "AI Inactive"}
-                              </Button>
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                color="success"
-                                onClick={handleSimulateClientMsg}
-                                sx={{ textTransform: 'none', fontSize: '0.7rem', fontWeight: 'bold' }}
-                              >
-                                Simulate Client Msg
-                              </Button>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              {isWindowOpen ? (
+                                <Tooltip title={`24-Hour Customer WhatsApp Session Active. Window closes at ${windowExpiresAt ? new Date(windowExpiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '24h'}`}>
+                                  <Chip
+                                    label={`🟢 24h Window Active (${Math.floor(remainingMinutes / 60)}h ${remainingMinutes % 60}m)`}
+                                    color="success"
+                                    size="small"
+                                    sx={{ fontWeight: 'bold', fontSize: '0.7rem' }}
+                                  />
+                                </Tooltip>
+                              ) : (
+                                <Tooltip title="Customer has not messaged in 24 hours. Plain text messages will not deliver to customer phone. Please send an approved Template message.">
+                                  <Chip
+                                    label="🔴 24h Window Closed (>24h)"
+                                    color="error"
+                                    size="small"
+                                    sx={{ fontWeight: 'bold', fontSize: '0.7rem' }}
+                                  />
+                                </Tooltip>
+                              )}
                             </Box>
                           </Box>
 
@@ -1208,7 +1232,7 @@ export const AgentLeadDetails = () => {
                                 <ForumIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
                                 <Typography variant="body2">No active live chat logs found.</Typography>
                                 <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
-                                  Send a template or click "Simulate Client Msg" to initialize the dialogue.
+                                  Send a template message to initialize the dialogue.
                                 </Typography>
                               </Box>
                             ) : (
