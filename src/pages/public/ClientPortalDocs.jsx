@@ -1201,60 +1201,106 @@ export const ClientPortalDocs = () => {
   const handleDownloadReceipt = () => {
     try {
       const doc = new jsPDF();
+      const invoiceId = `REC-ST-${client.id.substring(0, 8).toUpperCase()}`;
+      const paymentDate = new Date().toLocaleDateString('en-GB');
 
-      // Company Header
-      doc.setFontSize(18);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(5, 26, 59);
-      doc.text("AAA BUSINESS CONSULTANCY", 14, 20);
+      // 1. BRAND LETTERHEAD HEADER
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(20);
+      doc.setTextColor(12, 35, 64); // Deep Navy (#0C2340)
+      doc.text('AAA BUSINESS CONSULTANCY L.L.C', 14, 20);
 
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(100, 100, 100);
-      doc.text("Spanish Sworn Translation Services", 14, 26);
-      doc.text("Email: client@aaabusinessconsultancy.com | Website: www.aaabusinessconsultancy.com", 14, 31);
+      // Tagline
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(197, 155, 39); // Gold (#C59B27)
+      doc.text('ADVISE  *  ASSIST  *  ACHIEVE', 14, 26);
 
-      doc.setDrawColor(197, 155, 39); // Gold separator line
+      // Address & Contact Information
+      doc.setFontSize(8.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139); // Slate Gray (#64748B)
+      doc.text('Business Village B, Office F-09, Port Saeed, Deira, Dubai, UAE', 14, 32);
+      doc.text('Email: client@aaabusinessconsultancy.com | Tel: +971 50 955 4142', 14, 37);
+
+      // Top Gold Accent Line
+      doc.setDrawColor(197, 155, 39); // Gold (#C59B27)
+      doc.setLineWidth(1.2);
+      doc.line(14, 42, 196, 42);
+
+      // Second Navy Sub-Line
+      doc.setDrawColor(12, 35, 64);
+      doc.setLineWidth(0.4);
+      doc.line(14, 44, 196, 44);
+
+      // 2. DOCUMENT TITLE & RECEIPT META
+      doc.setFontSize(15);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(12, 35, 64);
+      doc.text('OFFICIAL PAYMENT RECEIPT', 14, 55);
+
+      // Status Badge (PAID)
+      doc.setFillColor(22, 163, 74); // Success Green (#16A34A)
+      doc.roundedRect(165, 49, 31, 8, 2, 2, 'F');
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.text('PAID', 175.5, 54.5);
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(71, 85, 105);
+      doc.text(`Receipt ID: #${invoiceId}`, 14, 63);
+      doc.text(`Receipt Date: ${paymentDate}`, 14, 69);
+      doc.text(`Payment Gateway: Online Checkout (Stripe)`, 115, 63);
+
+      // 3. CLIENT INFORMATION BOX
+      doc.setFillColor(248, 250, 252); // Light Gray/Blue (#F8FAFC)
+      doc.setDrawColor(226, 232, 240); // Border (#E2E8F0)
       doc.setLineWidth(0.5);
-      doc.line(14, 35, 196, 35);
+      doc.roundedRect(14, 75, 182, 30, 3, 3, 'FD');
 
-      // Metadata
-      doc.text(`Receipt Date: ${new Date().toLocaleDateString('en-US')}`, 130, 45);
-      doc.text(`Receipt No: REC-ST-${client.id.substring(0, 8).toUpperCase()}`, 130, 50);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(197, 155, 39);
+      doc.text('RECEIPT ISSUED TO:', 19, 82);
 
-      // Client Details
-      doc.setFont("helvetica", "bold");
-      doc.text("Client Information:", 14, 60);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(50, 50, 50);
-      doc.text(`Name: ${client.firstName} ${client.lastName}`, 14, 65);
-      doc.text(`Email: ${client.email}`, 14, 75);
-      doc.text(`Phone: ${client.phone || 'N/A'}`, 14, 80);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(15, 23, 42);
+      doc.text(`${client.firstName} ${client.lastName}`, 19, 89);
 
-      // Translation Settings (Selected Languages without rate per word)
-      doc.setFont("helvetica", "bold");
-      doc.text("Translation Details:", 110, 60);
-      doc.setFont("helvetica", "normal");
+      const receiptCustomerId = client?.clientCode || (client?.id ? `CID-${client.id.slice(-5).toUpperCase()}` : 'N/A');
       const cleanSourceLangs = client?.sourceLanguage || sourceLang || 'English';
-      doc.text(`Source Language: ${cleanSourceLangs}`, 110, 67);
-      doc.text(`Target Language: Spanish`, 110, 73);
-      doc.text(`Service Name: Spanish Sworn Translation`, 110, 79);
 
-      doc.line(14, 87, 196, 87);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Customer ID: ${receiptCustomerId}`, 19, 95);
+      doc.text(`Email: ${client.email}`, 19, 100);
 
-      // Table Header (Documents & Wordcounts)
-      doc.setFillColor(248, 245, 237);
-      doc.rect(14, 93, 182, 8, "F");
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(5, 26, 59);
-      doc.text("DOCUMENT FILENAME", 16, 98);
-      doc.text("CATEGORY", 95, 98);
-      doc.text("STATUS", 140, 98);
-      doc.text("WORDS", 175, 98);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(15, 23, 42);
+      doc.text(`Service Name: Spanish Sworn Translation`, 115, 89);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Source Language: ${cleanSourceLangs}`, 115, 95);
+      doc.text(`Target Language: Spanish (Español)`, 115, 100);
 
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(80, 80, 80);
-      let currentY = 107;
+      // 4. ITEMIZATION TABLE (DOCUMENTS FILENAME, CATEGORY, STATUS, WORDS)
+      let currentY = 114;
+      doc.setFillColor(12, 35, 64); // Navy Header Bar
+      doc.rect(14, currentY, 182, 8, 'F');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(255, 255, 255);
+      doc.text('DOCUMENT FILENAME', 19, currentY + 5.5);
+      doc.text('CATEGORY', 95, currentY + 5.5);
+      doc.text('STATUS', 140, currentY + 5.5);
+      doc.text('WORDS', 175, currentY + 5.5);
+
+      currentY += 14;
 
       // Filter only client's original uploaded documents that were paid for
       let translationDocs = (documents || []).filter(
@@ -1266,19 +1312,21 @@ export const ClientPortalDocs = () => {
         d.status !== 'Rejected'
       );
 
-      // Fallback if empty
       if (translationDocs.length === 0) {
         translationDocs = (documents || []).filter((d) => d && (d.clientId === client?.id || d.clientId === clientId) && d.status !== 'Rejected');
       }
 
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(30, 41, 59);
+
       translationDocs.forEach((d) => {
         const displayName = d.name.length > 35 ? d.name.substring(0, 32) + '...' : d.name;
         const docWords = Number(d.wordCount) || (translationDocs.length === 1 ? (client.wordCount || 0) : 0);
-        doc.text(displayName, 16, currentY);
+        doc.text(displayName, 19, currentY);
         doc.text(d.category || 'Sworn Document', 95, currentY);
         doc.text("Verified & Paid", 140, currentY);
         doc.text(String(docWords), 175, currentY);
-        currentY += 8;
       });
 
       doc.line(14, currentY, 196, currentY);
