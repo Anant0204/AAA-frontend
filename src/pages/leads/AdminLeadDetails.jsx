@@ -843,8 +843,8 @@ export const AdminLeadDetails = () => {
                           })
                           .map(([key, value]) => {
                             let displayValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
-                            if (key === 'uploadedAt' && value) {
-                              displayValue = dayjs(value).isValid() ? dayjs(value).format('MMM DD, YYYY hh:mm A') : String(value);
+                            if ((key === 'paidAt' || key === 'uploadedAt' || key === 'createdAt' || key.endsWith('At') || key.endsWith('Date')) && value) {
+                              displayValue = dayjs(value).isValid() ? dayjs(value).format('DD/MM/YYYY  hh:mm A') : String(value);
                             }
                             return (
                               <Box key={key} sx={{ wordBreak: 'break-word' }}>
