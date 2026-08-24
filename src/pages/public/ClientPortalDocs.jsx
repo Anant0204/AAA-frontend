@@ -2855,132 +2855,140 @@ export const ClientPortalDocs = () => {
                 bgcolor: 'background.paper'
               }}
             >
-              <Typography variant="h5" sx={{ fontWeight: 900, mb: 1, color: '#051A3B', fontFamily: 'Outfit, sans-serif' }}>{t('calculator_title')}</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 4, fontWeight: 500 }}>
-                {t('calculator_desc')}
-              </Typography>
+              {!isTranslationPaid && (
+                <>
+                  <Typography variant="h5" sx={{ fontWeight: 900, mb: 1, color: '#051A3B', fontFamily: 'Outfit, sans-serif' }}>{t('calculator_title')}</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 4, fontWeight: 500 }}>
+                    {t('calculator_desc')}
+                  </Typography>
+                </>
+              )}
 
               <Grid container spacing={3} sx={{ flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                 {/* Inputs Panel */}
                 <Grid item xs={12} md={7}>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    <FormControl fullWidth>
-                      <InputLabel id="source-lang-select-label">{t('select_source_lang')}</InputLabel>
-                      <Select
-                        labelId="source-lang-select-label"
-                        value={sourceLang}
-                        onChange={(e) => setSourceLang(e.target.value)}
-                        label={t('select_source_lang')}
-                        disabled={isTranslationPaid}
-                        sx={{ borderRadius: 2.5 }}
-                      >
-                        {['English', 'Arabic', 'Urdu'].map((name) => (
-                          <MenuItem key={name} value={name}>
-                            {name} (€{getRateForLang(name).toFixed(2)} / word)
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-
-                    <FormControl fullWidth>
-                      <InputLabel id="target-lang-select-label">{t('select_target_lang')}</InputLabel>
-                      <Select
-                        labelId="target-lang-select-label"
-                        value={targetLang}
-                        onChange={(e) => setTargetLang(e.target.value)}
-                        label={t('select_target_lang')}
-                        disabled={isTranslationPaid}
-                        sx={{ borderRadius: 2.5 }}
-                      >
-                        <MenuItem value="Spanish">Spanish (Español) 🇪🇸</MenuItem>
-                      </Select>
-                    </FormControl>
-
-                    <TextField
-                      label={t('word_count')}
-                      type="number"
-                      value={wordCount}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value, 10);
-                        if (isNaN(val)) {
-                          setWordCount('');
-                        } else {
-                          setWordCount(val);
-                        }
-                      }}
-                      placeholder="e.g. 500"
-                      fullWidth
-                      disabled={isTranslationPaid}
-                      error={wordCount !== '' && wordCount <= 0}
-                      helperText={wordCount !== '' && wordCount <= 0 ? "Word count must be greater than 0" : (isTranslationPaid ? "Paid Order Configuration (Locked)" : "Please count the words in your target documents manually or upload a PDF for automatic word analysis.")}
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5 } }}
-                    />
-
                     {!isTranslationPaid && (
-                      <Box
-                        sx={{
-                          p: 2.5,
-                          bgcolor: '#FAF6ED',
-                          borderRadius: 3.5,
-                          border: '1px dashed rgba(197, 155, 39, 0.3)',
-                          textAlign: isRTL ? 'right' : 'left'
-                        }}
-                      >
-                        <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 1, color: '#051A3B', fontFamily: 'Outfit, sans-serif' }}>{t('upload_targets')}</Typography>
-                        <FileUploader
-                          onUpload={(file) => {
-                            setTranslationFiles(prev => [...prev, file]);
-                            showAlert('File uploaded successfully for sworn translation analysis!', 'success');
+                      <>
+                        <FormControl fullWidth>
+                          <InputLabel id="source-lang-select-label">{t('select_source_lang')}</InputLabel>
+                          <Select
+                            labelId="source-lang-select-label"
+                            value={sourceLang}
+                            onChange={(e) => setSourceLang(e.target.value)}
+                            label={t('select_source_lang')}
+                            disabled={isTranslationPaid}
+                            sx={{ borderRadius: 2.5 }}
+                          >
+                            {['English', 'Arabic', 'Urdu'].map((name) => (
+                              <MenuItem key={name} value={name}>
+                                {name} (€{getRateForLang(name).toFixed(2)} / word)
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+
+                        <FormControl fullWidth>
+                          <InputLabel id="target-lang-select-label">{t('select_target_lang')}</InputLabel>
+                          <Select
+                            labelId="target-lang-select-label"
+                            value={targetLang}
+                            onChange={(e) => setTargetLang(e.target.value)}
+                            label={t('select_target_lang')}
+                            disabled={isTranslationPaid}
+                            sx={{ borderRadius: 2.5 }}
+                          >
+                            <MenuItem value="Spanish">Spanish (Español) 🇪🇸</MenuItem>
+                          </Select>
+                        </FormControl>
+
+                        <TextField
+                          label={t('word_count')}
+                          type="number"
+                          value={wordCount}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10);
+                            if (isNaN(val)) {
+                              setWordCount('');
+                            } else {
+                              setWordCount(val);
+                            }
                           }}
-                          clientId={client.id}
-                          clientName={`${client.firstName} ${client.lastName}`}
+                          placeholder="e.g. 500"
+                          fullWidth
+                          disabled={isTranslationPaid}
+                          error={wordCount !== '' && wordCount <= 0}
+                          helperText={wordCount !== '' && wordCount <= 0 ? "Word count must be greater than 0" : (isTranslationPaid ? "Paid Order Configuration (Locked)" : "Please count the words in your target documents manually or upload a PDF for automatic word analysis.")}
+                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2.5 } }}
                         />
-                        {translationFiles.length > 0 && (
-                          <Box sx={{ mt: 2 }}>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>UPLOADED FILES:</Typography>
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 0.5 }}>
-                              {translationFiles.map((file, idx) => (
-                                <Paper key={idx} sx={{ p: 1, px: 2, bgcolor: 'background.paper', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexDirection: isRTL ? 'row-reverse' : 'row', borderRadius: 2 }}>
-                                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#051A3B' }}>{file.name || `document_${idx + 1}.pdf`}</Typography>
-                                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>{file.size ? `${(file.size / 1024).toFixed(1)} KB` : '182 KB'}</Typography>
-                                </Paper>
-                              ))}
+                      </>
+                    )}
+
+                      {!isTranslationPaid && (
+                        <Box
+                          sx={{
+                            p: 2.5,
+                            bgcolor: '#FAF6ED',
+                            borderRadius: 3.5,
+                            border: '1px dashed rgba(197, 155, 39, 0.3)',
+                            textAlign: isRTL ? 'right' : 'left'
+                          }}
+                        >
+                          <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 1, color: '#051A3B', fontFamily: 'Outfit, sans-serif' }}>{t('upload_targets')}</Typography>
+                          <FileUploader
+                            onUpload={(file) => {
+                              setTranslationFiles(prev => [...prev, file]);
+                              showAlert('File uploaded successfully for sworn translation analysis!', 'success');
+                            }}
+                            clientId={client.id}
+                            clientName={`${client.firstName} ${client.lastName}`}
+                          />
+                          {translationFiles.length > 0 && (
+                            <Box sx={{ mt: 2 }}>
+                              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>UPLOADED FILES:</Typography>
+                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 0.5 }}>
+                                {translationFiles.map((file, idx) => (
+                                  <Paper key={idx} sx={{ p: 1, px: 2, bgcolor: 'background.paper', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexDirection: isRTL ? 'row-reverse' : 'row', borderRadius: 2 }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 700, color: '#051A3B' }}>{file.name || `document_${idx + 1}.pdf`}</Typography>
+                                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>{file.size ? `${(file.size / 1024).toFixed(1)} KB` : '182 KB'}</Typography>
+                                  </Paper>
+                                ))}
+                              </Box>
                             </Box>
-                          </Box>
-                        )}
-                      </Box>
-                    )}
+                          )}
+                        </Box>
+                      )}
 
-                    {!isTranslationPaid && (
-                      <Button
-                        variant="contained"
-                        size="large"
-                        onClick={() => {
-                          const total = wordCount * wordRate;
-                          setCalcPrice(parseFloat(total.toFixed(2)));
-                          setIsCalculated(true);
-                          setTranslationStatus('word_calculated');
-                          showAlert('Price calculated successfully!', 'success');
-                        }}
-                        disabled={!wordCount || wordCount <= 0}
-                        sx={{
-                          py: 1.5,
-                          borderRadius: 2.5,
-                          fontWeight: 800,
-                          textTransform: 'none',
-                          bgcolor: '#051A3B',
-                          color: 'white',
-                          fontFamily: 'Outfit, sans-serif',
-                          boxShadow: '0 4px 14px rgba(5, 26, 59, 0.2)',
-                          '&:hover': { bgcolor: '#C59B27', boxShadow: '0 4px 14px rgba(197, 155, 39, 0.3)' }
-                        }}
-                      >
-                        {t('calculate_price')}
-                      </Button>
-                    )}
-                  </Box>
+                      {!isTranslationPaid && (
+                        <Button
+                          variant="contained"
+                          size="large"
+                          onClick={() => {
+                            const total = wordCount * wordRate;
+                            setCalcPrice(parseFloat(total.toFixed(2)));
+                            setIsCalculated(true);
+                            setTranslationStatus('word_calculated');
+                            showAlert('Price calculated successfully!', 'success');
+                          }}
+                          disabled={!wordCount || wordCount <= 0}
+                          sx={{
+                            py: 1.5,
+                            borderRadius: 2.5,
+                            fontWeight: 800,
+                            textTransform: 'none',
+                            bgcolor: '#051A3B',
+                            color: 'white',
+                            fontFamily: 'Outfit, sans-serif',
+                            boxShadow: '0 4px 14px rgba(5, 26, 59, 0.2)',
+                            '&:hover': { bgcolor: '#C59B27', boxShadow: '0 4px 14px rgba(197, 155, 39, 0.3)' }
+                          }}
+                        >
+                          {t('calculate_price')}
+                        </Button>
+                      )}
+                    </Box>
 
-                  {/* Documents list & Addon panel */}
+            {/* Documents list & Addon panel */}
                   {(() => {
                     let translationInputDocs = (documents || []).filter((d) => d && (d.clientId === client?.id || d.clientId === clientId || d.leadId === client?.leadId));
                     if (translationInputDocs.length === 0) {
