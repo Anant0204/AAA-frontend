@@ -231,13 +231,27 @@ export const dbService = {
     return res.data;
   },
   uploadDocument: async (doc) => {
-    const formData = new FormData();
-    formData.append('file', doc.file);
-    formData.append('clientId', doc.clientId);
-    formData.append('category', doc.category || 'General');
-    if (doc.belongsTo) formData.append('belongsTo', doc.belongsTo);
-    if (doc.status) formData.append('status', doc.status);
-    if (doc.uploadedByRole) formData.append('uploadedByRole', doc.uploadedByRole);
+    let formData;
+    if (doc instanceof FormData) {
+      formData = doc;
+      if (!formData.has('file') && formData.has('document')) {
+        const fileObj = formData.get('document');
+        formData.delete('document');
+        formData.append('file', fileObj);
+      }
+    } else {
+      formData = new FormData();
+      const fileObj = (doc instanceof File || doc instanceof Blob) ? doc : (doc?.file || doc?.document);
+      if (fileObj) {
+        formData.append('file', fileObj);
+      }
+      if (doc?.clientId) formData.append('clientId', doc.clientId);
+      if (doc?.category) formData.append('category', doc.category || 'General');
+      if (doc?.belongsTo) formData.append('belongsTo', doc.belongsTo);
+      if (doc?.status) formData.append('status', doc.status);
+      if (doc?.uploadedByRole) formData.append('uploadedByRole', doc.uploadedByRole);
+      if (doc?.name) formData.append('name', doc.name);
+    }
 
     const res = await apiClient.post('/documents/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }

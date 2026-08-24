@@ -774,13 +774,9 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                 const allDocs = documents.filter(d => d && (d.clientId === selectedClient?.id || (selectedClient?.email && d.clientEmail === selectedClient.email)));
 
                 const isStaffDoc = (d) => {
-                  const cat = (d.category || '').toLowerCase();
                   const belongs = (d.belongsTo || '').toLowerCase();
                   const role = (d.uploadedByRole || d.uploadedBy || '').toLowerCase();
                   return (
-                    cat.includes('sworn') ||
-                    cat.includes('official') ||
-                    cat.includes('translation') ||
                     belongs.includes('staff') ||
                     role === 'agent' ||
                     role === 'staff' ||
@@ -790,15 +786,22 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                   );
                 };
 
-                const agentDocs = allDocs.filter(d => d.status !== 'Rejected' && isStaffDoc(d));
                 const customerDocs = allDocs.filter(d => d.status !== 'Rejected' && !isStaffDoc(d));
+                const agentDocs = allDocs.filter(d => d.status !== 'Rejected' && (isStaffDoc(d) || Boolean(d.translatedUrl)));
                 const rejectedDocs = allDocs.filter(d => d.status === 'Rejected');
 
-                const renderDocCard = (doc) => {
+                const renderDocCard = (doc, isAgentCard = false) => {
                   const sUpper = (doc.status || '').toUpperCase();
                   const isApproved = sUpper === 'APPROVED' || sUpper === 'VERIFIED';
                   const isRejected = sUpper === 'REJECTED';
-                  const docName = doc.name || doc.fileName || 'Uploaded Document';
+                  const isTranslated = Boolean(isAgentCard && doc.translatedUrl);
+                  const docName = isTranslated ? `[Official Translation] ${doc.name || doc.fileName || 'Document.pdf'}` : (doc.name || doc.fileName || 'Uploaded Document');
+                  const targetUrl = isTranslated ? doc.translatedUrl : (doc.url || doc.fileUrl);
+                  const resolvedUrl = targetUrl
+                    ? (targetUrl.startsWith('http://') || targetUrl.startsWith('https://') || targetUrl.startsWith('data:')
+                        ? targetUrl
+                        : `${(import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1').replace('/api/v1', '')}${targetUrl.startsWith('/') ? '' : '/'}${targetUrl}`)
+                    : null;
 
                   return (
                     <Card
@@ -807,8 +810,8 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                       sx={{
                         borderRadius: 2,
                         mb: 1.2,
-                        borderColor: isApproved ? 'success.main' : isRejected ? 'error.main' : 'divider',
-                        bgcolor: isApproved ? '#F0FDF4' : isRejected ? '#FEF2F2' : '#FFFFFF',
+                        borderColor: isApproved || isTranslated ? 'success.main' : isRejected ? 'error.main' : 'divider',
+                        bgcolor: isApproved || isTranslated ? '#F0FDF4' : isRejected ? '#FEF2F2' : '#FFFFFF',
                         boxShadow: 'none',
                         transition: 'all 0.2s',
                         '&:hover': { boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }
@@ -818,7 +821,7 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                         {/* Top Line: File Icon + Truncated Name + Status Chip */}
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.8 }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, minWidth: 0, flex: 1 }}>
-                            <InsertDriveFileIcon sx={{ fontSize: 18, color: isApproved ? '#16A34A' : isRejected ? '#DC2626' : '#64748B', flexShrink: 0 }} />
+                            <InsertDriveFileIcon sx={{ fontSize: 18, color: isApproved || isTranslated ? '#16A34A' : isRejected ? '#DC2626' : '#64748B', flexShrink: 0 }} />
                             <Typography
                               variant="subtitle2"
                               title={docName}
@@ -836,8 +839,8 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                             </Typography>
                           </Box>
                           <Chip
-                            label={doc.status || 'Pending'}
-                            color={isApproved ? 'success' : isRejected ? 'error' : 'warning'}
+                            label={isTranslated ? 'Translated' : (doc.status || 'Pending')}
+                            color={isApproved || isTranslated ? 'success' : isRejected ? 'error' : 'warning'}
                             size="small"
                             sx={{ fontWeight: 800, height: 18, fontSize: '0.6rem', px: 0.5, flexShrink: 0 }}
                           />
@@ -846,10 +849,10 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                         {/* Category & Size Sub-line */}
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, px: 0.2 }}>
                           <Typography variant="caption" sx={{ fontSize: '0.68rem', color: '#64748B' }}>
-                            Cat: <strong style={{ color: '#334155' }}>{doc.category || doc.docType || 'General'}</strong>
+                            Cat: <strong style={{ color: '#334155' }}>{isTranslated ? 'Certified Sworn Translation' : (doc.category || doc.docType || 'General')}</strong>
                           </Typography>
                           <Typography variant="caption" sx={{ fontSize: '0.68rem', color: '#64748B' }}>
-                            Size: <strong style={{ color: '#334155' }}>{doc.fileSize || '1.5 MB'}</strong>
+                            Size: <strong style={{ color: '#334155' }}>{doc.size || doc.fileSize || '1.5 MB'}</strong>
                           </Typography>
                         </Box>
 
@@ -871,11 +874,8 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                             color="secondary"
                             size="small"
                             onClick={() => {
-                              if (doc.url || doc.fileUrl) {
-                                const fileUrl = doc.url
-                                  ? `${(import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1').replace('/api/v1', '')}${doc.url}`
-                                  : doc.fileUrl;
-                                window.open(fileUrl, '_blank');
+                              if (resolvedUrl) {
+                                window.open(resolvedUrl, '_blank');
                               } else {
                                 handleOpenMockFile(doc);
                               }
@@ -889,14 +889,11 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                             variant="outlined"
                             color="info"
                             size="small"
-                            disabled={!doc.url && !doc.fileUrl}
+                            disabled={!resolvedUrl}
                             onClick={async () => {
                               try {
                                 showAlert(`Downloading ${docName}...`, 'info');
-                                const rawUrl = doc.url
-                                  ? `${(import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1').replace('/api/v1', '')}${doc.url}`
-                                  : doc.fileUrl;
-                                const response = await fetch(rawUrl);
+                                const response = await fetch(resolvedUrl);
                                 if (!response.ok) throw new Error('Download failed');
                                 const blob = await response.blob();
                                 const blobUrl = window.URL.createObjectURL(blob);
@@ -918,7 +915,7 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                             Download
                           </Button>
 
-                          {isTranslationClient && (
+                          {isTranslationClient && !isAgentCard && (
                             <>
                               <input
                                 type="file"
@@ -955,7 +952,7 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                             variant="contained"
                             color="success"
                             size="small"
-                            disabled={isApproved || reviewDocumentMutation.isLoading || clientsActions.canVerifyDocs === false}
+                            disabled={isApproved || isTranslated || reviewDocumentMutation.isLoading || clientsActions.canVerifyDocs === false}
                             onClick={() => {
                               reviewDocumentMutation.mutate({
                                 documentId: doc.id,
@@ -1017,7 +1014,7 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                               '&::-webkit-scrollbar-thumb': { bgcolor: '#CBD5E1', borderRadius: '4px' }
                             }}
                           >
-                            {customerDocs.map(renderDocCard)}
+                            {customerDocs.map(d => renderDocCard(d, false))}
                           </Box>
                         )}
                       </Paper>
@@ -1044,7 +1041,7 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                               '&::-webkit-scrollbar-thumb': { bgcolor: '#CBD5E1', borderRadius: '4px' }
                             }}
                           >
-                            {agentDocs.map(renderDocCard)}
+                            {agentDocs.map(d => renderDocCard(d, true))}
                           </Box>
                         )}
                       </Paper>
@@ -1071,7 +1068,7 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                               '&::-webkit-scrollbar-thumb': { bgcolor: '#CBD5E1', borderRadius: '4px' }
                             }}
                           >
-                            {rejectedDocs.map(renderDocCard)}
+                            {rejectedDocs.map(d => renderDocCard(d, false))}
                           </Box>
                         )}
                       </Paper>
@@ -1101,7 +1098,7 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                               '&::-webkit-scrollbar-thumb': { bgcolor: '#CBD5E1', borderRadius: '4px' }
                             }}
                           >
-                            {customerDocs.map(renderDocCard)}
+                            {customerDocs.map(d => renderDocCard(d, false))}
                           </Box>
                         )}
                       </Paper>
@@ -1128,7 +1125,7 @@ export const SuperAdminDocumentVerificationDashboard = () => {
                               '&::-webkit-scrollbar-thumb': { bgcolor: '#CBD5E1', borderRadius: '4px' }
                             }}
                           >
-                            {rejectedDocs.map(renderDocCard)}
+                            {rejectedDocs.map(d => renderDocCard(d, false))}
                           </Box>
                         )}
                       </Paper>

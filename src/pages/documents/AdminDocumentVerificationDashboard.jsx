@@ -661,13 +661,9 @@ export const AdminDocumentVerificationDashboard = () => {
                   const allDocs = documents.filter(d => d && (d.clientId === selectedClient?.id || (selectedClient?.email && d.clientEmail === selectedClient.email)));
                   
                   const isStaffDoc = (d) => {
-                    const cat = (d.category || '').toLowerCase();
                     const belongs = (d.belongsTo || '').toLowerCase();
                     const role = (d.uploadedByRole || d.uploadedBy || '').toLowerCase();
                     return (
-                      cat.includes('sworn') ||
-                      cat.includes('official') ||
-                      cat.includes('translation') ||
                       belongs.includes('staff') ||
                       role === 'agent' ||
                       role === 'staff' ||
@@ -677,14 +673,21 @@ export const AdminDocumentVerificationDashboard = () => {
                     );
                   };
 
-                  const agentDocs = allDocs.filter(d => d.status !== 'Rejected' && isStaffDoc(d));
                   const customerDocs = allDocs.filter(d => d.status !== 'Rejected' && !isStaffDoc(d));
+                  const agentDocs = allDocs.filter(d => d.status !== 'Rejected' && (isStaffDoc(d) || Boolean(d.translatedUrl)));
                   const rejectedDocs = allDocs.filter(d => d.status === 'Rejected');
 
-                  const renderDocCard = (doc) => {
+                  const renderDocCard = (doc, isAgentCard = false) => {
                     const isApproved = doc.status === 'Verified' || doc.status === 'Approved';
                     const isRejected = doc.status === 'Rejected';
-                    const docName = doc.name || doc.fileName || 'Uploaded Document';
+                    const isTranslated = Boolean(isAgentCard && doc.translatedUrl);
+                    const docName = isTranslated ? `[Official Translation] ${doc.name || doc.fileName || 'Document.pdf'}` : (doc.name || doc.fileName || 'Uploaded Document');
+                    const targetUrl = isTranslated ? doc.translatedUrl : (doc.url || doc.fileUrl);
+                    const resolvedUrl = targetUrl
+                      ? (targetUrl.startsWith('http://') || targetUrl.startsWith('https://') || targetUrl.startsWith('data:')
+                          ? targetUrl
+                          : `${(import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1').replace('/api/v1', '')}${targetUrl.startsWith('/') ? '' : '/'}${targetUrl}`)
+                      : null;
 
                     return (
                       <Card
@@ -693,8 +696,8 @@ export const AdminDocumentVerificationDashboard = () => {
                         sx={{
                           borderRadius: 2,
                           mb: 1.2,
-                          borderColor: isApproved ? 'success.main' : isRejected ? 'error.main' : 'divider',
-                          bgcolor: isApproved ? '#F0FDF4' : isRejected ? '#FEF2F2' : '#FFFFFF',
+                          borderColor: isApproved || isTranslated ? 'success.main' : isRejected ? 'error.main' : 'divider',
+                          bgcolor: isApproved || isTranslated ? '#F0FDF4' : isRejected ? '#FEF2F2' : '#FFFFFF',
                           boxShadow: 'none',
                           transition: 'all 0.2s',
                           '&:hover': { boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }
@@ -704,7 +707,7 @@ export const AdminDocumentVerificationDashboard = () => {
                           {/* Top Line: File Icon + Truncated Name + Status Chip */}
                           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.8 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, minWidth: 0, flex: 1 }}>
-                              <InsertDriveFileIcon sx={{ fontSize: 18, color: isApproved ? '#16A34A' : isRejected ? '#DC2626' : '#64748B', flexShrink: 0 }} />
+                              <InsertDriveFileIcon sx={{ fontSize: 18, color: isApproved || isTranslated ? '#16A34A' : isRejected ? '#DC2626' : '#64748B', flexShrink: 0 }} />
                               <Typography
                                 variant="subtitle2"
                                 title={docName}
@@ -722,8 +725,8 @@ export const AdminDocumentVerificationDashboard = () => {
                               </Typography>
                             </Box>
                             <Chip
-                              label={doc.status || 'Pending'}
-                              color={isApproved ? 'success' : isRejected ? 'error' : 'warning'}
+                              label={isTranslated ? 'Translated' : (doc.status || 'Pending')}
+                              color={isApproved || isTranslated ? 'success' : isRejected ? 'error' : 'warning'}
                               size="small"
                               sx={{ fontWeight: 800, height: 18, fontSize: '0.6rem', px: 0.5, flexShrink: 0 }}
                             />
@@ -732,7 +735,7 @@ export const AdminDocumentVerificationDashboard = () => {
                           {/* Category & Size Sub-line */}
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, px: 0.2 }}>
                             <Typography variant="caption" sx={{ fontSize: '0.68rem', color: '#64748B' }}>
-                              Type: <strong style={{ color: '#334155' }}>{doc.docType || doc.category || 'General'}</strong>
+                              Type: <strong style={{ color: '#334155' }}>{isTranslated ? 'Certified Sworn Translation' : (doc.docType || doc.category || 'General')}</strong>
                             </Typography>
                           </Box>
 
@@ -749,12 +752,12 @@ export const AdminDocumentVerificationDashboard = () => {
 
                           {/* Compact Action Buttons Row (Single Line 100% Fit) */}
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, width: '100%', flexWrap: 'nowrap' }}>
-                            {doc.fileUrl && (
+                            {resolvedUrl && (
                               <Button
                                 size="small"
                                 variant="outlined"
                                 color="secondary"
-                                onClick={() => window.open(doc.fileUrl, '_blank')}
+                                onClick={() => window.open(resolvedUrl, '_blank')}
                                 sx={{ textTransform: 'none', fontSize: '0.62rem', fontWeight: 700, minWidth: 0, flex: 1, px: 0.4, py: 0.3 }}
                               >
                                 View
@@ -765,7 +768,7 @@ export const AdminDocumentVerificationDashboard = () => {
                               variant="contained"
                               color="success"
                               size="small"
-                              disabled={isApproved || reviewDocumentMutation.isLoading || clientsActions.canVerifyDocs === false}
+                              disabled={isApproved || isTranslated || reviewDocumentMutation.isLoading || clientsActions.canVerifyDocs === false}
                               onClick={() =>
                                 reviewDocumentMutation.mutate({
                                   documentId: doc.id,
@@ -827,7 +830,7 @@ export const AdminDocumentVerificationDashboard = () => {
                             '&::-webkit-scrollbar-thumb': { bgcolor: '#CBD5E1', borderRadius: '4px' }
                           }}
                         >
-                          {customerDocs.map(renderDocCard)}
+                          {customerDocs.map(d => renderDocCard(d, false))}
                         </Box>
                       )}
                     </Paper>
@@ -854,7 +857,7 @@ export const AdminDocumentVerificationDashboard = () => {
                             '&::-webkit-scrollbar-thumb': { bgcolor: '#CBD5E1', borderRadius: '4px' }
                           }}
                         >
-                          {agentDocs.map(renderDocCard)}
+                          {agentDocs.map(d => renderDocCard(d, true))}
                         </Box>
                       )}
                     </Paper>
