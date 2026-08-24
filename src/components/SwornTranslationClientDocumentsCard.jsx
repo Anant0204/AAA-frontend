@@ -17,6 +17,18 @@ import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { dbService } from '../services/dbService';
 import { useAlert } from '../contexts/AlertContext';
 
+const API_BASE = import.meta.env.VITE_API_URL 
+  ? import.meta.env.VITE_API_URL.replace('/api/v1', '') 
+  : 'http://localhost:5000';
+
+const getFullDocUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url;
+  }
+  return `${API_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
 const SwornTranslationClientDocumentsCard = ({ client, documents = [] }) => {
   const queryClient = useQueryClient();
   const { showAlert } = useAlert();
@@ -58,7 +70,7 @@ const SwornTranslationClientDocumentsCard = ({ client, documents = [] }) => {
   const uploadNewDocMutation = useMutation({
     mutationFn: async (file) => {
       const formData = new FormData();
-      formData.append('document', file);
+      formData.append('file', file);
       formData.append('clientId', client.id);
       formData.append('category', 'Sworn Translation');
       formData.append('name', file.name);
@@ -194,8 +206,34 @@ const SwornTranslationClientDocumentsCard = ({ client, documents = [] }) => {
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
             {clientDocs.map((doc, idx) => {
+              const originalDocUrl = getFullDocUrl(doc.url || doc.fileUrl);
+              const translatedDocUrl = getFullDocUrl(doc.translatedUrl);
               const hasTranslation = Boolean(doc.translatedUrl);
               const isUploadingThis = uploadingDocId === doc.id;
+
+              const rawLang = doc.documentLanguage || doc.sourceLanguage || '';
+              let docLang = rawLang && !rawLang.includes(',') ? rawLang : '';
+              if (!docLang && client?.lead?.qualificationData?.documents) {
+                const qualDocs = client.lead.qualificationData.documents;
+                const match = Array.isArray(qualDocs) && qualDocs.find(d => (d.name || d.filename) === doc.name);
+                if (match && (match.documentLanguage || match.sourceLanguage)) {
+                  docLang = match.documentLanguage || match.sourceLanguage;
+                }
+              }
+              if (!docLang) docLang = 'English';
+
+              const targetLang = 'Spanish (Español)';
+              const wordCount = doc.wordCount || (clientDocs.length === 1 ? client?.wordCount : 0) || 0;
+              const rate = docLang.toLowerCase().includes('urdu') ? 0.40 : docLang.toLowerCase().includes('arabic') ? 0.25 : 0.15;
+              const subtotal = parseFloat((wordCount * rate).toFixed(2));
+              const vat = parseFloat((subtotal * 0.05).toFixed(2));
+              const estimatedPrice = parseFloat((subtotal + vat).toFixed(2));
+
+              const isStaffUpload = doc.belongsTo === 'Staff Upload' || doc.uploadedByRole === 'agent' || doc.uploadedByRole === 'staff';
+              const uploaderLabel = isStaffUpload ? '👨‍💼 Staff / Translator' : `👤 Client (${client ? `${client.firstName} ${client.lastName}` : 'Client'})`;
+              const formattedDate = doc.uploadedDate || doc.createdAt
+                ? new Date(doc.uploadedDate || doc.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                : '';
 
               return (
                 <Paper
@@ -204,24 +242,63 @@ const SwornTranslationClientDocumentsCard = ({ client, documents = [] }) => {
                     p: 2.5,
                     borderRadius: 3,
                     border: '1.5px solid',
-                    borderColor: hasTranslation ? 'rgba(16, 185, 129, 0.3)' : 'rgba(197, 155, 39, 0.25)',
+                    borderColor: hasTranslation ? 'rgba(16, 185, 129, 0.35)' : 'rgba(197, 155, 39, 0.25)',
                     bgcolor: hasTranslation ? '#F0FDF4' : '#FFFDF7',
                     boxShadow: 'none'
                   }}
                 >
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
-                    {/* Left: Original File Details */}
-                    <Box sx={{ flex: 1, minWidth: 260 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#051A3B', fontSize: '0.95rem' }}>
+                    {/* Left: Original File Details & Badges */}
+                    <Box sx={{ flex: 1, minWidth: 280 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 900, color: '#051A3B', fontSize: '1rem', fontFamily: 'Outfit, sans-serif' }}>
                           📄 #{idx + 1} {doc.name || 'Document.pdf'}
                         </Typography>
                         <Chip
-                          label={doc.category || 'Sworn Translation'}
+                          label={doc.category || 'Passport'}
                           size="small"
-                          sx={{ height: 20, fontSize: '0.7rem', fontWeight: 700, bgcolor: 'rgba(5, 26, 59, 0.08)' }}
+                          sx={{ height: 22, fontSize: '0.72rem', fontWeight: 700, bgcolor: 'rgba(5, 26, 59, 0.08)', color: '#051A3B' }}
+                        />
+                        <Chip
+                          label={uploaderLabel}
+                          size="small"
+                          sx={{ height: 22, fontSize: '0.72rem', fontWeight: 700, bgcolor: isStaffUpload ? 'rgba(59, 130, 246, 0.1)' : 'rgba(197, 155, 39, 0.15)', color: isStaffUpload ? '#1D4ED8' : '#92400E' }}
                         />
                       </Box>
+
+                      {/* Language, Words & Date Metadata Row */}
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1, alignItems: 'center' }}>
+                        <Chip
+                          label={`🌐 ${docLang} ➔ ${targetLang} 🇪🇸`}
+                          size="small"
+                          variant="outlined"
+                          sx={{ height: 24, fontSize: '0.72rem', fontWeight: 800, borderColor: '#C59B27', color: '#051A3B' }}
+                        />
+                        {wordCount > 0 && (
+                          <Chip
+                            label={`📝 ${wordCount} words (@ €${rate.toFixed(2)}/word)`}
+                            size="small"
+                            sx={{ height: 24, fontSize: '0.72rem', fontWeight: 800, bgcolor: 'rgba(16, 185, 129, 0.12)', color: '#047857' }}
+                          />
+                        )}
+                        {doc.size && (
+                          <Chip
+                            label={`💾 ${doc.size}`}
+                            size="small"
+                            sx={{ height: 24, fontSize: '0.72rem', fontWeight: 600, bgcolor: 'rgba(0,0,0,0.04)', color: '#64748B' }}
+                          />
+                        )}
+                        {formattedDate && (
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500, fontSize: '0.72rem' }}>
+                            🕒 {formattedDate}
+                          </Typography>
+                        )}
+                      </Box>
+
+                      {/* Lead-style financial breakdown */}
+                      <Typography variant="caption" sx={{ color: '#475569', fontWeight: 600, display: 'block', mb: 1 }}>
+                        Subtotal: <strong>€{subtotal.toFixed(2)}</strong> + 5% VAT (<strong>€{vat.toFixed(2)}</strong>) = <strong style={{ color: '#059669', fontSize: '0.88rem' }}>€{estimatedPrice.toFixed(2)}</strong>
+                      </Typography>
 
                       {doc.notes && (
                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, fontWeight: 500 }}>
@@ -229,17 +306,17 @@ const SwornTranslationClientDocumentsCard = ({ client, documents = [] }) => {
                         </Typography>
                       )}
 
-                      <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                        {doc.fileUrl && (
+                      <Box sx={{ display: 'flex', gap: 1, mt: 1.5 }}>
+                        {originalDocUrl && (
                           <>
                             <Button
                               size="small"
                               variant="outlined"
                               startIcon={<VisibilityIcon />}
-                              href={doc.fileUrl}
+                              href={originalDocUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 1.5, fontSize: '0.75rem' }}
+                              sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 1.5, fontSize: '0.78rem' }}
                             >
                               View Original
                             </Button>
@@ -247,9 +324,11 @@ const SwornTranslationClientDocumentsCard = ({ client, documents = [] }) => {
                               size="small"
                               variant="outlined"
                               startIcon={<DownloadIcon />}
-                              href={doc.fileUrl}
+                              href={originalDocUrl}
                               download
-                              sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 1.5, fontSize: '0.75rem' }}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 1.5, fontSize: '0.78rem' }}
                             >
                               Download Original
                             </Button>
@@ -259,10 +338,18 @@ const SwornTranslationClientDocumentsCard = ({ client, documents = [] }) => {
                     </Box>
 
                     {/* Right: Translated Document Management */}
-                    <Box sx={{ flex: 1, minWidth: 280, p: 2, bgcolor: 'background.paper', borderRadius: 2, border: '1px solid rgba(0,0,0,0.06)' }}>
-                      <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 1 }}>
-                        Official Translated PDF (Traducción Jurada)
-                      </Typography>
+                    <Box sx={{ flex: 1, minWidth: 280, p: 2.2, bgcolor: 'background.paper', borderRadius: 2.5, border: '1px solid rgba(0,0,0,0.08)' }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Official Translated PDF (Traducción Jurada)
+                        </Typography>
+                        <Chip
+                          label={hasTranslation ? 'DELIVERED' : 'PENDING STAMP'}
+                          size="small"
+                          color={hasTranslation ? 'success' : 'warning'}
+                          sx={{ height: 20, fontSize: '0.65rem', fontWeight: 900 }}
+                        />
+                      </Box>
 
                       {hasTranslation ? (
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -279,7 +366,7 @@ const SwornTranslationClientDocumentsCard = ({ client, documents = [] }) => {
                               variant="contained"
                               color="success"
                               startIcon={<DownloadIcon />}
-                              href={doc.translatedUrl}
+                              href={translatedDocUrl}
                               target="_blank"
                               rel="noopener noreferrer"
                               sx={{ textTransform: 'none', fontWeight: 800, borderRadius: 1.5, fontSize: '0.78rem' }}
@@ -311,7 +398,7 @@ const SwornTranslationClientDocumentsCard = ({ client, documents = [] }) => {
                       ) : (
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                           <Typography variant="body2" sx={{ fontWeight: 500, color: '#92400E', fontSize: '0.8rem' }}>
-                            ⏳ Awaiting official translation upload. Once translated by sworn translator, upload the certified PDF below.
+                            ⏳ Awaiting official translation upload. Once translated by sworn translator with official ministry stamps, upload the certified PDF below.
                           </Typography>
 
                           <Button

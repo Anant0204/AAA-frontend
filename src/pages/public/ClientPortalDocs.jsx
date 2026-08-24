@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import dayjs from 'dayjs';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -64,6 +65,20 @@ import { validateIBAN, normalizeIBAN, maskIBAN } from '../../utils/ibanValidator
 import spainSevillePlaza from '../../assets/spain_seville_plaza.png';
 import spainRelocationLifestyle from '../../assets/spain_relocation_lifestyle.png';
 import { SERVICES } from '../../constants/mockData';
+
+const API_BASE = import.meta.env.VITE_API_URL 
+  ? import.meta.env.VITE_API_URL.replace('/api/v1', '') 
+  : 'http://localhost:5000';
+
+const API_URL = import.meta.env.VITE_API_URL || 'https://aaa-consultancy-backend-production.up.railway.app/api/v1';
+
+const getFullDocUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url;
+  }
+  return `${API_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
+};
 
 const TRANSLATIONS = {
   English: {
@@ -487,11 +502,12 @@ export const ClientPortalDocs = () => {
   const [addonFile, setAddonFile] = useState(null);
   const [addonCategory, setAddonCategory] = useState('Passport');
   const [addonCustomCategory, setAddonCustomCategory] = useState('');
-  const [addonWordCount, setAddonWordCount] = useState(250);
+  const [addonWordCount, setAddonWordCount] = useState(0);
   const [addonSourceLang, setAddonSourceLang] = useState('English');
   const [addonTargetLang, setAddonTargetLang] = useState('Spanish');
-  const [addonCalcPrice, setAddonCalcPrice] = useState(30);
+  const [addonCalcPrice, setAddonCalcPrice] = useState(0);
   const [addonLoading, setAddonLoading] = useState(false);
+  const [addonAnalyzing, setAddonAnalyzing] = useState(false);
 
   // Staged Documents Batch Upload State (Main Applicant + Additional Applicants)
   const [stagedFiles, setStagedFiles] = useState({});
@@ -1086,24 +1102,54 @@ export const ClientPortalDocs = () => {
       const targetRate = getRateForLang(addonTargetLang);
       rate = parseFloat(((rate + targetRate) / 2).toFixed(2));
     }
-    setAddonCalcPrice(parseFloat((addonWordCount * rate).toFixed(2)));
-  }, [addonSourceLang, addonTargetLang, addonWordCount]);
+    const subtotal = parseFloat(((addonWordCount || 0) * rate).toFixed(2));
+    const vat = parseFloat((subtotal * 0.05).toFixed(2));
+    setAddonCalcPrice(parseFloat((subtotal + vat).toFixed(2)));
+  }, [addonSourceLang, addonTargetLang, addonWordCount, generalSettings]);
+
+  const handleAddonFileSelect = async (file) => {
+    if (!file) return;
+    setAddonFile(file);
+    setAddonAnalyzing(true);
+    try {
+      const formData = new FormData();
+      formData.append('documents', file);
+      formData.append('firstName', client?.firstName || 'Client');
+      formData.append('lastName', client?.lastName || 'User');
+      formData.append('email', client?.email || 'client@example.com');
+      formData.append('phone', client?.phone || '+971500000000');
+      formData.append('sourceLanguage', addonSourceLang);
+      formData.append('targetLanguage', addonTargetLang);
+      formData.append('documentsMetadata', JSON.stringify([{
+        index: 0,
+        name: file.name,
+        category: addonCategory,
+        documentLanguage: addonSourceLang,
+        sourceLanguage: addonSourceLang,
+        targetLanguage: addonTargetLang
+      }]));
+
+      const res = await axios.post(`${API_URL}/booking/translation/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      const resData = res.data?.data || {};
+      const count = Number(resData.totalWordCount || resData.wordCount || (resData.documents?.[0]?.wordCount)) || 0;
+      setAddonWordCount(count);
+      showAlert(`Document analyzed: ${count} word${count === 1 ? '' : 's'} detected in "${file.name}"`, 'info');
+    } catch (err) {
+      console.warn('Could not auto-extract word count:', err);
+    } finally {
+      setAddonAnalyzing(false);
+    }
+  };
 
   const handlePayAddon = async () => {
     if (!addonFile) return;
     try {
       setAddonLoading(true);
-      // 1. Generate Invoice / Payment Link
-      const paymentLinkData = await dbService.generatePaymentLink({
-        clientId: client.id,
-        amount: addonCalcPrice,
-        discount: 0
-      });
 
-      // 2. Mock complete payment status
-      await dbService.updatePaymentStatus(paymentLinkData.id, 'Paid', 'Credit Card', 'TXN_ADDON_' + Math.floor(Math.random() * 10000000));
-
-      // 3. Upload document using the upload endpoint
+      // 1. Upload document so it is safely registered under client's dossier
       let category = addonCategory;
       if (addonCategory === 'Other') {
         category = `Other: ${addonCustomCategory || 'General Document'}`;
@@ -1112,22 +1158,41 @@ export const ClientPortalDocs = () => {
         file: addonFile,
         clientId: client.id,
         clientName: `${client.firstName} ${client.lastName}`,
-        category: category
+        category: category,
+        wordCount: addonWordCount
       });
 
-      // 4. Reset uploader and reload queries
+      // 2. Generate Live Stripe Checkout Session
+      const paymentLinkData = await dbService.generatePaymentLink({
+        clientId: client.id,
+        amount: addonCalcPrice,
+        discount: 0,
+        gateway: 'stripe',
+        serviceType: 'Spanish Sworn Translation',
+        packageName: 'Certified Spanish Sworn Translation (Add-on Document)',
+        wordCount: addonWordCount
+      });
+
+      // 3. Reset local file input
       setAddonFile(null);
-      setAddonWordCount(250);
+      setAddonWordCount(0);
       setAddonCategory('Passport');
       setAddonCustomCategory('');
-      queryClient.invalidateQueries({ queryKey: ['documents'] });
-      queryClient.invalidateQueries({ queryKey: ['payments'] });
-      refetchDocs();
+      const inputEl = document.getElementById('portal-addon-file');
+      if (inputEl) inputEl.value = '';
 
-      showAlert('Add-on payment successful & document uploaded for translation! 🎉', 'success');
+      // 4. Redirect to Stripe Checkout page
+      if (paymentLinkData && paymentLinkData.paymentUrl && paymentLinkData.paymentUrl.startsWith('http')) {
+        window.location.href = paymentLinkData.paymentUrl;
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['documents'] });
+        queryClient.invalidateQueries({ queryKey: ['payments'] });
+        refetchDocs();
+        showAlert('Add-on order registered successfully! 🎉', 'success');
+      }
     } catch (err) {
       console.error(err);
-      showAlert('Add-on checkout failed. Please try again.', 'error');
+      showAlert(err.response?.data?.message || 'Add-on checkout failed. Please try again.', 'error');
     } finally {
       setAddonLoading(false);
     }
@@ -1137,57 +1202,43 @@ export const ClientPortalDocs = () => {
     try {
       const doc = new jsPDF();
 
-      // Title / Header
+      // Company Header
+      doc.setFontSize(18);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(22);
-      doc.setTextColor(5, 26, 59); // Brand dark color
+      doc.setTextColor(5, 26, 59);
       doc.text("AAA BUSINESS CONSULTANCY", 14, 20);
 
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(100, 100, 100);
-      doc.text("Spain Relocation & Certified Sworn Translation Services", 14, 26);
-      doc.text("Email: info@aaabusinessconsultancy.com | Website: www.aaabusinessconsultancy.com", 14, 31);
+      doc.text("Spanish Sworn Translation Services", 14, 26);
+      doc.text("Email: client@aaabusinessconsultancy.com | Website: www.aaabusinessconsultancy.com", 14, 31);
 
       doc.setDrawColor(197, 155, 39); // Gold separator line
       doc.setLineWidth(0.5);
       doc.line(14, 35, 196, 35);
 
-      // Invoice Details
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(5, 26, 59);
-      doc.text("OFFICIAL PAYMENT RECEIPT", 14, 45);
-
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(50, 50, 50);
-
       // Metadata
-      doc.text(`Receipt Date: ${new Date().toLocaleDateString()}`, 130, 45);
+      doc.text(`Receipt Date: ${new Date().toLocaleDateString('en-US')}`, 130, 45);
       doc.text(`Receipt No: REC-ST-${client.id.substring(0, 8).toUpperCase()}`, 130, 50);
 
       // Client Details
       doc.setFont("helvetica", "bold");
       doc.text("Client Information:", 14, 60);
       doc.setFont("helvetica", "normal");
-      const receiptCustomerId = client?.clientCode || (client?.id ? `CID-${client.id.slice(-5).toUpperCase()}` : 'N/A');
-      doc.text(`Name: ${client.firstName} ${client.lastName}`, 14, 65);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(5, 26, 59);
-      doc.text(`Customer ID: ${receiptCustomerId}`, 14, 70);
-      doc.setFont("helvetica", "normal");
       doc.setTextColor(50, 50, 50);
+      doc.text(`Name: ${client.firstName} ${client.lastName}`, 14, 65);
       doc.text(`Email: ${client.email}`, 14, 75);
       doc.text(`Phone: ${client.phone || 'N/A'}`, 14, 80);
 
-      // Translation Settings
+      // Translation Settings (Selected Languages without rate per word)
       doc.setFont("helvetica", "bold");
       doc.text("Translation Details:", 110, 60);
       doc.setFont("helvetica", "normal");
-      doc.text(`Source Language: ${sourceLang}`, 110, 67);
-      doc.text(`Target Language: ${targetLang}`, 110, 73);
-      doc.text(`Translation Rate: EUR ${wordRate.toFixed(2)} / word`, 110, 79);
+      const cleanSourceLangs = client?.sourceLanguage || sourceLang || 'English';
+      doc.text(`Source Language: ${cleanSourceLangs}`, 110, 67);
+      doc.text(`Target Language: Spanish`, 110, 73);
+      doc.text(`Service Name: Spanish Sworn Translation`, 110, 79);
 
       doc.line(14, 87, 196, 87);
 
@@ -1205,14 +1256,28 @@ export const ClientPortalDocs = () => {
       doc.setTextColor(80, 80, 80);
       let currentY = 107;
 
-      const translationDocs = (documents || []).filter((d) => d && d.clientId === client?.id);
+      // Filter only client's original uploaded documents that were paid for
+      let translationDocs = (documents || []).filter(
+        (d) => d && (d.clientId === client?.id || d.clientId === clientId) &&
+        d.category !== 'Official Sworn Output' &&
+        d.belongsTo !== 'Staff Upload' &&
+        d.uploadedByRole !== 'agent' &&
+        d.uploadedByRole !== 'staff' &&
+        d.status !== 'Rejected'
+      );
+
+      // Fallback if empty
+      if (translationDocs.length === 0) {
+        translationDocs = (documents || []).filter((d) => d && (d.clientId === client?.id || d.clientId === clientId) && d.status !== 'Rejected');
+      }
+
       translationDocs.forEach((d) => {
-        // Document rows
         const displayName = d.name.length > 35 ? d.name.substring(0, 32) + '...' : d.name;
+        const docWords = Number(d.wordCount) || (translationDocs.length === 1 ? (client.wordCount || 0) : 0);
         doc.text(displayName, 16, currentY);
-        doc.text(d.category, 95, currentY);
-        doc.text(d.status, 140, currentY);
-        doc.text(String(client.wordCount || 250), 175, currentY); // fallback
+        doc.text(d.category || 'Sworn Document', 95, currentY);
+        doc.text("Verified & Paid", 140, currentY);
+        doc.text(String(docWords), 175, currentY);
         currentY += 8;
       });
 
@@ -2779,11 +2844,6 @@ export const ClientPortalDocs = () => {
                         sx={{ borderRadius: 2.5 }}
                       >
                         <MenuItem value="Spanish">Spanish (Español) 🇪🇸</MenuItem>
-                        <MenuItem value="English">English 🇺🇸</MenuItem>
-                        <MenuItem value="Arabic">Arabic (العربية) 🇦🇪</MenuItem>
-                        <MenuItem value="French">French (Français) 🇫🇷</MenuItem>
-                        <MenuItem value="German">German (Deutsch) 🇩🇪</MenuItem>
-                        <MenuItem value="Urdu">Urdu (اردو) 🇵🇰</MenuItem>
                       </Select>
                     </FormControl>
 
@@ -2889,78 +2949,175 @@ export const ClientPortalDocs = () => {
                             </Paper>
                           ) : (
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                              {translationInputDocs.map((doc) => {
+                              {translationInputDocs.map((doc, idx) => {
                                 const hasTranslation = Boolean(doc.translatedUrl);
+                                const rawLang = doc.documentLanguage || doc.sourceLanguage || '';
+                                let docLang = rawLang && !rawLang.includes(',') ? rawLang : '';
+                                if (!docLang && client?.lead?.qualificationData?.documents) {
+                                  const qualDocs = client.lead.qualificationData.documents;
+                                  const match = Array.isArray(qualDocs) && qualDocs.find(d => (d.name || d.filename) === doc.name);
+                                  if (match && (match.documentLanguage || match.sourceLanguage)) {
+                                    docLang = match.documentLanguage || match.sourceLanguage;
+                                  }
+                                }
+                                if (!docLang) docLang = 'English';
+
+                                const targetLang = 'Spanish (Español)';
+                                const wordCount = doc.wordCount || (translationInputDocs.length === 1 ? client?.wordCount : 0) || 0;
+                                const rate = docLang.toLowerCase().includes('urdu') ? 0.40 : docLang.toLowerCase().includes('arabic') ? 0.25 : 0.15;
+                                const subtotal = parseFloat((wordCount * rate).toFixed(2));
+                                const vat = parseFloat((subtotal * 0.05).toFixed(2));
+                                const estimatedPrice = parseFloat((subtotal + vat).toFixed(2));
+
+                                const formattedDate = doc.uploadedDate || doc.createdAt
+                                  ? new Date(doc.uploadedDate || doc.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                                  : '';
+
                                 return (
                                   <Paper
-                                    key={doc.id}
+                                    key={doc.id || idx}
                                     sx={{
                                       p: 2.5,
                                       border: '1.5px solid',
-                                      borderColor: hasTranslation ? 'rgba(16, 185, 129, 0.3)' : 'rgba(197, 155, 39, 0.25)',
-                                      borderRadius: 3,
+                                      borderColor: hasTranslation ? 'rgba(16, 185, 129, 0.4)' : 'rgba(197, 155, 39, 0.3)',
+                                      borderRadius: 3.5,
                                       display: 'flex',
                                       flexDirection: 'column',
-                                      gap: 1.5,
+                                      gap: 2,
                                       bgcolor: hasTranslation ? '#F0FDF4' : '#FFFDF7',
-                                      boxShadow: 'none'
+                                      boxShadow: '0 2px 12px rgba(5, 26, 59, 0.02)'
                                     }}
                                   >
+                                    {/* Top Header: Doc name, category, and status chip */}
                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
                                       <Box>
-                                        <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B', fontSize: '0.9rem' }}>
-                                          📄 {doc.name}
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 900, color: '#051A3B', fontSize: '0.98rem', fontFamily: 'Outfit, sans-serif' }}>
+                                          📄 #{idx + 1} {doc.name}
                                         </Typography>
-                                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500, display: 'block', mt: 0.2 }}>
-                                          Category: {doc.category || 'Sworn Translation'} {doc.size ? `| Size: ${doc.size}` : ''}
+                                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 0.8, alignItems: 'center' }}>
+                                          <Chip
+                                            label={doc.category || 'Passport'}
+                                            size="small"
+                                            sx={{ height: 22, fontSize: '0.72rem', fontWeight: 700, bgcolor: 'rgba(5, 26, 59, 0.08)', color: '#051A3B' }}
+                                          />
+                                          <Chip
+                                            label={`🌐 ${docLang} ➔ ${targetLang} 🇪🇸`}
+                                            size="small"
+                                            variant="outlined"
+                                            sx={{ height: 22, fontSize: '0.72rem', fontWeight: 800, borderColor: '#C59B27', color: '#051A3B' }}
+                                          />
+                                          {wordCount > 0 && (
+                                            <Chip
+                                              label={`📝 ${wordCount} words (@ €${rate.toFixed(2)}/word)`}
+                                              size="small"
+                                              sx={{ height: 22, fontSize: '0.72rem', fontWeight: 800, bgcolor: 'rgba(16, 185, 129, 0.12)', color: '#047857' }}
+                                            />
+                                          )}
+                                          {doc.size && (
+                                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, fontSize: '0.72rem' }}>
+                                              💾 {doc.size}
+                                            </Typography>
+                                          )}
+                                          {formattedDate && (
+                                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500, fontSize: '0.72rem' }}>
+                                              🕒 {formattedDate}
+                                            </Typography>
+                                          )}
+                                        </Box>
+                                        {/* Financial Breakdown */}
+                                        <Typography variant="caption" sx={{ color: '#475569', fontWeight: 600, display: 'block', mt: 0.5 }}>
+                                          Subtotal: <strong>€{subtotal.toFixed(2)}</strong> + 5% VAT (<strong>€{vat.toFixed(2)}</strong>) = <strong style={{ color: '#059669', fontSize: '0.88rem' }}>€{estimatedPrice.toFixed(2)}</strong>
                                         </Typography>
                                       </Box>
                                       <Chip
-                                        label={hasTranslation ? '✅ Translated & Certified' : '⏳ In Translation'}
+                                        label={hasTranslation ? '✅ Certified Translation Ready' : '⏳ In Translation'}
                                         size="small"
                                         color={hasTranslation ? 'success' : 'warning'}
-                                        sx={{ fontWeight: 800, fontSize: '0.7rem' }}
+                                        sx={{ fontWeight: 900, fontSize: '0.75rem', px: 0.5 }}
                                       />
                                     </Box>
 
-                                    {/* Action row */}
-                                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', pt: 1, borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-                                      {doc.fileUrl && (
-                                        <Button
-                                          size="small"
-                                          variant="outlined"
-                                          href={doc.fileUrl}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 1.5, fontSize: '0.75rem' }}
-                                        >
-                                          👁️ View Original
-                                        </Button>
-                                      )}
+                                    {/* Two sections: Source Document vs Certified Translation */}
+                                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2, pt: 1.5, borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                                      {/* Left: Your Original File */}
+                                      <Box sx={{ flex: 1, p: 2, bgcolor: 'background.paper', borderRadius: 2.5, border: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 1.5 }}>
+                                        <Box>
+                                          <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>
+                                            👤 Your Original Source Document
+                                          </Typography>
+                                          <Typography variant="body2" sx={{ fontWeight: 600, color: '#051A3B', mt: 0.5, fontSize: '0.85rem' }}>
+                                            {doc.name}
+                                          </Typography>
+                                        </Box>
+                                        {(doc.url || doc.fileUrl) && (
+                                          <Box sx={{ display: 'flex', gap: 1 }}>
+                                            <Button
+                                              size="small"
+                                              variant="outlined"
+                                              href={getFullDocUrl(doc.url || doc.fileUrl)}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 1.5, fontSize: '0.75rem' }}
+                                            >
+                                              👁️ View Original
+                                            </Button>
+                                            <Button
+                                              size="small"
+                                              variant="outlined"
+                                              href={getFullDocUrl(doc.url || doc.fileUrl)}
+                                              download
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 1.5, fontSize: '0.75rem' }}
+                                            >
+                                              ⬇️ Download
+                                            </Button>
+                                          </Box>
+                                        )}
+                                      </Box>
 
-                                      {hasTranslation ? (
-                                        <Button
-                                          size="small"
-                                          variant="contained"
-                                          color="success"
-                                          href={doc.translatedUrl}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          sx={{
-                                            textTransform: 'none',
-                                            fontWeight: 800,
-                                            borderRadius: 1.5,
-                                            fontSize: '0.8rem',
-                                            boxShadow: '0 2px 8px rgba(16, 185, 129, 0.25)'
-                                          }}
-                                        >
-                                          📥 Download Certified Translation PDF 🇪🇸
-                                        </Button>
-                                      ) : (
-                                        <Typography variant="caption" sx={{ color: '#92400E', fontWeight: 600, fontStyle: 'italic' }}>
-                                          ⏳ Official sworn translation is currently in progress. Download button will activate once certified.
-                                        </Typography>
-                                      )}
+                                      {/* Right: Official Stamped Sworn Translation */}
+                                      <Box sx={{ flex: 1.3, p: 2, bgcolor: hasTranslation ? '#F0FDF4' : 'rgba(250, 246, 237, 0.6)', borderRadius: 2.5, border: hasTranslation ? '1px solid #86EFAC' : '1px dashed rgba(197, 155, 39, 0.3)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 1.5 }}>
+                                        <Box>
+                                          <Typography variant="caption" sx={{ fontWeight: 800, color: hasTranslation ? '#166534' : '#92400E', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>
+                                            🇪🇸 Official Sworn Translation (Traducción Jurada)
+                                          </Typography>
+                                          {hasTranslation ? (
+                                            <Typography variant="body2" sx={{ fontWeight: 700, color: '#166534', mt: 0.5, fontSize: '0.85rem' }}>
+                                              Official Spanish Ministry certified stamped PDF is ready for download.
+                                            </Typography>
+                                          ) : (
+                                            <Typography variant="body2" sx={{ fontWeight: 500, color: '#92400E', mt: 0.5, fontSize: '0.82rem' }}>
+                                              ⏳ Translation in progress. Our certified sworn translator is translating and stamping this document.
+                                            </Typography>
+                                          )}
+                                        </Box>
+
+                                        {hasTranslation ? (
+                                          <Button
+                                            size="medium"
+                                            variant="contained"
+                                            color="success"
+                                            href={getFullDocUrl(doc.translatedUrl)}
+                                            download
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            sx={{
+                                              textTransform: 'none',
+                                              fontWeight: 900,
+                                              borderRadius: 2,
+                                              fontSize: '0.85rem',
+                                              boxShadow: '0 3px 10px rgba(16, 185, 129, 0.3)'
+                                            }}
+                                          >
+                                            📥 Download Certified Translation PDF 🇪🇸
+                                          </Button>
+                                        ) : (
+                                          <Typography variant="caption" sx={{ color: '#92400E', fontWeight: 600, fontStyle: 'italic' }}>
+                                            Download button will activate automatically once translation is uploaded.
+                                          </Typography>
+                                        )}
+                                      </Box>
                                     </Box>
                                   </Paper>
                                 );
@@ -3005,11 +3162,6 @@ export const ClientPortalDocs = () => {
                                   sx={{ borderRadius: 2 }}
                                 >
                                   <MenuItem value="Spanish">Spanish (Español) 🇪🇸</MenuItem>
-                                  <MenuItem value="English">English 🇺🇸</MenuItem>
-                                  <MenuItem value="Arabic">Arabic (العربية) 🇦🇪</MenuItem>
-                                  <MenuItem value="French">French (Français) 🇫🇷</MenuItem>
-                                  <MenuItem value="German">German (Deutsch) 🇩🇪</MenuItem>
-                                  <MenuItem value="Urdu">Urdu (اردو) 🇵🇰</MenuItem>
                                 </Select>
                               </FormControl>
 
@@ -3020,7 +3172,7 @@ export const ClientPortalDocs = () => {
                                 onDrop={(e) => {
                                   e.preventDefault();
                                   if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                                    setAddonFile(e.dataTransfer.files[0]);
+                                    handleAddonFileSelect(e.dataTransfer.files[0]);
                                   }
                                 }}
                                 sx={{
@@ -3040,7 +3192,7 @@ export const ClientPortalDocs = () => {
                                   accept="application/pdf"
                                   onChange={(e) => {
                                     if (e.target.files && e.target.files[0]) {
-                                      setAddonFile(e.target.files[0]);
+                                      handleAddonFileSelect(e.target.files[0]);
                                     }
                                   }}
                                   style={{ display: 'none' }}
@@ -3049,6 +3201,14 @@ export const ClientPortalDocs = () => {
                                 <Typography variant="body2" sx={{ fontWeight: 700, color: '#C59B27', fontSize: '0.8rem' }}>
                                   {addonFile ? `📄 ${addonFile.name} (${(addonFile.size / 1024).toFixed(1)} KB)` : 'Drag & drop your file here, or click to browse'}
                                 </Typography>
+                                {addonAnalyzing && (
+                                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mt: 1 }}>
+                                    <CircularProgress size={16} sx={{ color: '#C59B27' }} />
+                                    <Typography variant="caption" sx={{ color: '#051A3B', fontWeight: 600 }}>
+                                      Analyzing document word count...
+                                    </Typography>
+                                  </Box>
+                                )}
                               </Box>
 
                               {/* Selected file configuration area */}
@@ -3075,7 +3235,12 @@ export const ClientPortalDocs = () => {
                                     </Box>
                                     <IconButton
                                       size="small"
-                                      onClick={() => setAddonFile(null)}
+                                      onClick={() => {
+                                        setAddonFile(null);
+                                        setAddonWordCount(0);
+                                        const inputEl = document.getElementById('portal-addon-file');
+                                        if (inputEl) inputEl.value = '';
+                                      }}
                                       sx={{ color: 'text.secondary' }}
                                     >
                                       ✕
@@ -3115,19 +3280,46 @@ export const ClientPortalDocs = () => {
                                     size="small"
                                     value={addonWordCount}
                                     onChange={(e) => setAddonWordCount(parseInt(e.target.value, 10) || 0)}
+                                    helperText={addonAnalyzing ? "Analyzing PDF words..." : `Extracted: ${addonWordCount} words (@ €${getRateForLang(addonSourceLang).toFixed(2)}/word)`}
                                     fullWidth
                                   />
                                 </Paper>
                               )}
 
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
-                                <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B', fontSize: '0.85rem' }}>
-                                  Add-on Fee:
-                                </Typography>
-                                <Typography variant="h6" sx={{ fontWeight: 900, color: '#C59B27', fontFamily: 'Outfit, sans-serif' }}>
-                                  €{addonCalcPrice.toFixed(2)}
-                                </Typography>
-                              </Box>
+                              {(() => {
+                                const rate = getRateForLang(addonSourceLang);
+                                const subtotal = parseFloat(((addonWordCount || 0) * rate).toFixed(2));
+                                const vat = parseFloat((subtotal * 0.05).toFixed(2));
+                                return (
+                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 1, p: 1.5, bgcolor: '#FFFFFF', borderRadius: 2, border: '1px solid rgba(0,0,0,0.06)' }}>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                                        Subtotal ({addonWordCount || 0} words @ €{rate.toFixed(2)}/word):
+                                      </Typography>
+                                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#051A3B' }}>
+                                        €{subtotal.toFixed(2)}
+                                      </Typography>
+                                    </Box>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                                        5% VAT:
+                                      </Typography>
+                                      <Typography variant="caption" sx={{ fontWeight: 700, color: '#051A3B' }}>
+                                        €{vat.toFixed(2)}
+                                      </Typography>
+                                    </Box>
+                                    <Divider sx={{ my: 0.5 }} />
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B' }}>
+                                        Total Add-on Fee (incl. 5% VAT):
+                                      </Typography>
+                                      <Typography variant="h6" sx={{ fontWeight: 900, color: '#C59B27', fontFamily: 'Outfit, sans-serif' }}>
+                                        €{addonCalcPrice.toFixed(2)}
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+                                );
+                              })()}
 
                               <Button
                                 variant="contained"
@@ -3175,18 +3367,28 @@ export const ClientPortalDocs = () => {
                       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Translation Summary</Typography>
                       <Divider sx={{ my: 1.5, borderColor: 'rgba(197, 155, 39, 0.15)' }} />
 
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>Translation Route:</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B' }}>{sourceLang} to {targetLang}</Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>Word Rate:</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B' }}>€{wordRate.toFixed(2)} / word</Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>Total Words:</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B' }}>{wordCount} Words</Typography>
-                      </Box>
+                      {(() => {
+                        const totalCombinedWords = (documents || [])
+                          .filter(d => d && (d.clientId === client?.id || d.clientId === clientId))
+                          .reduce((sum, d) => sum + (Number(d.wordCount) || 0), 0) || wordCount || 0;
+
+                        return (
+                          <>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>Translation Route:</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B' }}>{sourceLang} to {targetLang}</Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>Word Rate:</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B' }}>€{wordRate.toFixed(2)} / word</Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>Total Words:</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B' }}>{totalCombinedWords} Words</Typography>
+                            </Box>
+                          </>
+                        );
+                      })()}
 
                       <Divider sx={{ my: 1.5, borderColor: 'rgba(197, 155, 39, 0.15)' }} />
 
@@ -4154,7 +4356,7 @@ export const ClientPortalDocs = () => {
                               </Typography>
                             )}
                             {r.proofUrl && (
-                              <Button size="small" href={r.proofUrl} target="_blank" rel="noopener noreferrer" sx={{ mt: 1, textTransform: 'none', fontWeight: 700 }}>
+                              <Button size="small" href={getFullDocUrl(r.proofUrl)} target="_blank" rel="noopener noreferrer" sx={{ mt: 1, textTransform: 'none', fontWeight: 700 }}>
                                 View Attached Proof PDF
                               </Button>
                             )}
