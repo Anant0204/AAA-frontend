@@ -361,6 +361,7 @@ export const SocialInbox = () => {
         sendSocialMessageMutation.mutate({ 
           conversationId: activeConvId, 
           phone: activeConv.phone, 
+          channel: activeConv.platform || activeConv.channel,
           message: newMsg 
         });
       }
