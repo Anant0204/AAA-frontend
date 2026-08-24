@@ -1327,6 +1327,7 @@ export const ClientPortalDocs = () => {
         doc.text(d.category || 'Sworn Document', 95, currentY);
         doc.text("Verified & Paid", 140, currentY);
         doc.text(String(docWords), 175, currentY);
+        currentY += 7.5;
       });
 
       doc.line(14, currentY, 196, currentY);
