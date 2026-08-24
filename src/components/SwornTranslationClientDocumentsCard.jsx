@@ -215,9 +215,18 @@ const SwornTranslationClientDocumentsCard = ({ client, documents = [] }) => {
               let docLang = rawLang && !rawLang.includes(',') ? rawLang : '';
               if (!docLang && client?.lead?.qualificationData?.documents) {
                 const qualDocs = client.lead.qualificationData.documents;
-                const match = Array.isArray(qualDocs) && qualDocs.find(d => (d.name || d.filename) === doc.name);
+                const match = Array.isArray(qualDocs) && qualDocs.find(d =>
+                  (d.name && doc.name && (d.name === doc.name || doc.name.includes(d.name) || d.name.includes(doc.name))) ||
+                  (d.filename && doc.name && (d.filename === doc.name || doc.name.includes(d.filename) || d.filename.includes(doc.name)))
+                );
                 if (match && (match.documentLanguage || match.sourceLanguage)) {
                   docLang = match.documentLanguage || match.sourceLanguage;
+                }
+              }
+              if (!docLang && client?.sourceLanguage) {
+                const clientLangs = String(client.sourceLanguage).split(',').map(l => l.trim()).filter(Boolean);
+                if (clientLangs.length > 0) {
+                  docLang = clientLangs[idx % clientLangs.length];
                 }
               }
               if (!docLang) docLang = 'English';
