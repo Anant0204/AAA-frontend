@@ -35,13 +35,46 @@ const SwornTranslationClientDocumentsCard = ({ client, documents = [] }) => {
   const [uploadingDocId, setUploadingDocId] = useState(null);
   const [addingNewDoc, setAddingNewDoc] = useState(false);
 
-  const clientDocs = (documents || []).filter(
-    (d) => d && (d.clientId === client?.id || d.leadId === client?.leadId)
+  let clientDocs = (documents || []).filter(
+    (d) => d && (d.clientId === client?.id || d.leadId === client?.leadId || d.clientId === client?.leadId)
   );
 
+  // Fallback: If no DB documents exist in `documents` array for this client, extract from qualificationData.documents!
+  if (clientDocs.length === 0) {
+    const qualDocs = client?.lead?.qualificationData?.documents || client?.qualificationData?.documents || [];
+    if (Array.isArray(qualDocs) && qualDocs.length > 0) {
+      clientDocs = qualDocs.map((qd, idx) => ({
+        id: qd.id || `qual_${idx}_${client?.id || 'client'}`,
+        clientId: client?.id,
+        name: qd.name || qd.filename || `Translation Document ${idx + 1}.pdf`,
+        url: qd.url || qd.fileUrl || '',
+        fileUrl: qd.url || qd.fileUrl || '',
+        category: qd.category || 'Sworn Translation',
+        wordCount: qd.wordCount || 0,
+        documentLanguage: qd.documentLanguage || qd.sourceLanguage || '',
+        sourceLanguage: qd.documentLanguage || qd.sourceLanguage || '',
+        uploadedDate: qd.uploadedAt || client?.createdAt,
+        status: 'Pending',
+        isVirtual: true,
+        virtualMeta: qd
+      }));
+    }
+  }
+
   const uploadTranslatedMutation = useMutation({
-    mutationFn: async ({ documentId, file }) => {
-      return await dbService.uploadTranslatedDocument(documentId, file);
+    mutationFn: async ({ documentId, docObj, file }) => {
+      let targetDocId = documentId;
+      if (docObj?.isVirtual || String(documentId).startsWith('qual_')) {
+        const created = await dbService.uploadDocument({
+          clientId: client.id,
+          name: docObj?.name || 'Translation Document.pdf',
+          fileUrl: docObj?.fileUrl || '',
+          category: docObj?.category || 'Sworn Translation',
+          status: 'Pending'
+        });
+        targetDocId = created?.data?.id || created?.id || created?.document?.id || documentId;
+      }
+      return await dbService.uploadTranslatedDocument(targetDocId, file);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
@@ -57,14 +90,16 @@ const SwornTranslationClientDocumentsCard = ({ client, documents = [] }) => {
     }
   });
 
-  const handleFileUpload = (docId, file) => {
+  const handleFileUpload = (doc, file) => {
     if (!file) return;
     if (!file.name.toLowerCase().endsWith('.pdf') && !file.type.includes('pdf')) {
       showAlert('Please upload an official certified PDF file (.pdf)', 'warning');
       return;
     }
+    const docId = typeof doc === 'object' ? doc.id : doc;
+    const docObj = typeof doc === 'object' ? doc : clientDocs.find(d => d.id === docId);
     setUploadingDocId(docId);
-    uploadTranslatedMutation.mutate({ documentId: docId, file });
+    uploadTranslatedMutation.mutate({ documentId: docId, docObj, file });
   };
 
   const uploadNewDocMutation = useMutation({
@@ -397,7 +432,7 @@ const SwornTranslationClientDocumentsCard = ({ client, documents = [] }) => {
                                 accept=".pdf"
                                 onChange={(e) => {
                                   if (e.target.files[0]) {
-                                    handleFileUpload(doc.id, e.target.files[0]);
+                                    handleFileUpload(doc, e.target.files[0]);
                                   }
                                 }}
                               />

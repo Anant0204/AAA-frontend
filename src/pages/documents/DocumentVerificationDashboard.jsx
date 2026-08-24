@@ -102,7 +102,25 @@ export const DocumentVerificationDashboard = () => {
   const viewMode = (selectedClientId && selectedClient) ? 'details' : 'list';
   const sId = (selectedClient?.serviceId || '').toLowerCase();
   const isTranslationClient = Boolean(selectedClient && (sId.includes('translation') || sId.includes('sworn')));
-  const clientDocs = documents.filter(d => d && d.clientId === selectedClientId);
+  let clientDocs = documents.filter(d => d && (d.clientId === selectedClientId || d.leadId === selectedClient?.leadId));
+  if (clientDocs.length === 0 && selectedClient) {
+    const qualDocs = selectedClient?.lead?.qualificationData?.documents || selectedClient?.qualificationData?.documents || [];
+    if (Array.isArray(qualDocs) && qualDocs.length > 0) {
+      clientDocs = qualDocs.map((qd, idx) => ({
+        id: qd.id || `qual_${idx}_${selectedClientId}`,
+        clientId: selectedClientId,
+        name: qd.name || qd.filename || `Translation Document ${idx + 1}.pdf`,
+        url: qd.url || qd.fileUrl || '',
+        fileUrl: qd.url || qd.fileUrl || '',
+        category: qd.category || 'Sworn Translation',
+        wordCount: qd.wordCount || 0,
+        documentLanguage: qd.documentLanguage || qd.sourceLanguage || '',
+        sourceLanguage: qd.documentLanguage || qd.sourceLanguage || '',
+        uploadedDate: qd.uploadedAt || selectedClient?.createdAt,
+        status: 'Pending'
+      }));
+    }
+  }
 
   const [swornUploadFile, setSwornUploadFile] = useState(null);
   const [isUploadingSworn, setIsUploadingSworn] = useState(false);
