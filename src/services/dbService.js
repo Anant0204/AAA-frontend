@@ -280,9 +280,14 @@ export const dbService = {
     const res = await apiClient.patch(`/documents/${documentId}/verify`, { status, feedbackComment: comment });
     return res.data;
   },
-  uploadTranslatedDocument: async (documentId, file) => {
+  uploadTranslatedDocument: async (documentId, file, extraMeta = {}) => {
     const formData = new FormData();
     formData.append('translatedFile', file);
+    formData.append('file', file);
+    if (extraMeta.clientId) formData.append('clientId', extraMeta.clientId);
+    if (extraMeta.name) formData.append('name', extraMeta.name);
+    if (extraMeta.fileUrl) formData.append('fileUrl', extraMeta.fileUrl);
+
     const res = await apiClient.patch(`/documents/${documentId}/translated`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });

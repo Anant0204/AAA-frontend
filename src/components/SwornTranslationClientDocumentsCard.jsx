@@ -63,18 +63,11 @@ const SwornTranslationClientDocumentsCard = ({ client, documents = [] }) => {
 
   const uploadTranslatedMutation = useMutation({
     mutationFn: async ({ documentId, docObj, file }) => {
-      let targetDocId = documentId;
-      if (docObj?.isVirtual || String(documentId).startsWith('qual_')) {
-        const created = await dbService.uploadDocument({
-          clientId: client.id,
-          name: docObj?.name || 'Translation Document.pdf',
-          fileUrl: docObj?.fileUrl || '',
-          category: docObj?.category || 'Sworn Translation',
-          status: 'Pending'
-        });
-        targetDocId = created?.data?.id || created?.id || created?.document?.id || documentId;
-      }
-      return await dbService.uploadTranslatedDocument(targetDocId, file);
+      return await dbService.uploadTranslatedDocument(documentId, file, {
+        clientId: client?.id,
+        name: docObj?.name,
+        fileUrl: docObj?.fileUrl || docObj?.url
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
