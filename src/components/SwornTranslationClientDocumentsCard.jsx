@@ -39,10 +39,9 @@ const SwornTranslationClientDocumentsCard = ({ client, documents = [] }) => {
     (d) => d && (d.clientId === client?.id || d.leadId === client?.leadId || d.clientId === client?.leadId)
   );
 
-  // Fallback: If no DB documents exist in `documents` array for this client, extract from qualificationData.documents!
-  if (clientDocs.length === 0) {
-    const qualDocs = client?.lead?.qualificationData?.documents || client?.qualificationData?.documents || [];
-    if (Array.isArray(qualDocs) && qualDocs.length > 0) {
+  const qualDocs = client?.lead?.qualificationData?.documents || client?.qualificationData?.documents || [];
+  if (Array.isArray(qualDocs) && qualDocs.length > 0) {
+    if (clientDocs.length === 0) {
       clientDocs = qualDocs.map((qd, idx) => ({
         id: qd.id || `qual_${idx}_${client?.id || 'client'}`,
         clientId: client?.id,
@@ -58,6 +57,26 @@ const SwornTranslationClientDocumentsCard = ({ client, documents = [] }) => {
         isVirtual: true,
         virtualMeta: qd
       }));
+    } else if (clientDocs.length < qualDocs.length) {
+      qualDocs.forEach((qd, idx) => {
+        if (idx >= clientDocs.length) {
+          clientDocs.push({
+            id: qd.id || `qual_${idx}_${client?.id || 'client'}`,
+            clientId: client?.id,
+            name: qd.name || qd.filename || `Translation Document ${idx + 1}.pdf`,
+            url: qd.url || qd.fileUrl || '',
+            fileUrl: qd.url || qd.fileUrl || '',
+            category: qd.category || 'Sworn Translation',
+            wordCount: qd.wordCount || 0,
+            documentLanguage: qd.documentLanguage || qd.sourceLanguage || '',
+            sourceLanguage: qd.documentLanguage || qd.sourceLanguage || '',
+            uploadedDate: qd.uploadedAt || client?.createdAt,
+            status: 'Pending',
+            isVirtual: true,
+            virtualMeta: qd
+          });
+        }
+      });
     }
   }
 

@@ -2991,9 +2991,9 @@ export const ClientPortalDocs = () => {
             {/* Documents list & Addon panel */}
                   {(() => {
                     let translationInputDocs = (documents || []).filter((d) => d && (d.clientId === client?.id || d.clientId === clientId || d.leadId === client?.leadId));
-                    if (translationInputDocs.length === 0) {
-                      const qualDocs = client?.lead?.qualificationData?.documents || client?.qualificationData?.documents || [];
-                      if (Array.isArray(qualDocs) && qualDocs.length > 0) {
+                    const qualDocs = client?.lead?.qualificationData?.documents || client?.qualificationData?.documents || [];
+                    if (Array.isArray(qualDocs) && qualDocs.length > 0) {
+                      if (translationInputDocs.length === 0) {
                         translationInputDocs = qualDocs.map((qd, idx) => ({
                           id: qd.id || `qual_${idx}_${client?.id || clientId}`,
                           clientId: client?.id || clientId,
@@ -3007,6 +3007,24 @@ export const ClientPortalDocs = () => {
                           uploadedDate: qd.uploadedAt || client?.createdAt,
                           status: 'Pending'
                         }));
+                      } else if (translationInputDocs.length < qualDocs.length) {
+                        qualDocs.forEach((qd, idx) => {
+                          if (idx >= translationInputDocs.length) {
+                            translationInputDocs.push({
+                              id: qd.id || `qual_${idx}_${client?.id || clientId}`,
+                              clientId: client?.id || clientId,
+                              name: qd.name || qd.filename || `Translation Document ${idx + 1}.pdf`,
+                              url: qd.url || qd.fileUrl || '',
+                              fileUrl: qd.url || qd.fileUrl || '',
+                              category: qd.category || 'Sworn Translation',
+                              wordCount: qd.wordCount || 0,
+                              documentLanguage: qd.documentLanguage || qd.sourceLanguage || '',
+                              sourceLanguage: qd.documentLanguage || qd.sourceLanguage || '',
+                              uploadedDate: qd.uploadedAt || client?.createdAt,
+                              status: 'Pending'
+                            });
+                          }
+                        });
                       }
                     }
                     return (

@@ -9,6 +9,7 @@ import TableSortLabel from '@mui/material/TableSortLabel';
 import TablePagination from '@mui/material/TablePagination';
 import Paper from '@mui/material/Paper';
 import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
 import StatusBadge from './StatusBadge';
 
 import { useQuery } from '@tanstack/react-query';
@@ -18,6 +19,12 @@ import { useAuth } from '../hooks/useAuth';
 const DEFAULT_COLUMNS = {
   leads: ['id', 'name', 'phone', 'email', 'nationality', 'countryOfResidence', 'service', 'status', 'assignedConsultant', 'source', 'createdDate'],
   clients: ['id', 'name', 'nationality', 'countryOfResidence', 'service', 'package', 'status', 'visaStatus', 'assignedConsultant']
+};
+
+const isSwornTranslationRow = (row) => {
+  if (!row) return false;
+  const checkStr = `${row.service || ''} ${row.serviceType || ''} ${row.serviceId || ''} ${row.targetVisa || ''} ${row.packageName || ''}`.toLowerCase();
+  return checkStr.includes('translation') || checkStr.includes('sworn');
 };
 
 export const AppTable = ({
@@ -190,54 +197,91 @@ export const AppTable = ({
                 </TableCell>
               </TableRow>
             ) : (
-              data.map((row, index) => (
-                <TableRow
-                  hover
-                  role="checkbox"
-                  tabIndex={-1}
-                  key={row.id || index}
-                  onClick={() => onRowClick && onRowClick(row)}
-                  sx={{
-                    cursor: onRowClick ? 'pointer' : 'default',
-                    '&:last-child td, &:last-child th': { border: 0 },
-                  }}
-                >
-                  {visibleColumns.map((column) => {
-                    const value = row[column.id];
-                    return (
+              data.map((row, index) => {
+                const isSwornRow = isSwornTranslationRow(row);
+                return (
+                  <TableRow
+                    hover
+                    role="checkbox"
+                    tabIndex={-1}
+                    key={row.id || index}
+                    onClick={() => onRowClick && onRowClick(row)}
+                    sx={{
+                      cursor: onRowClick ? 'pointer' : 'default',
+                      '&:last-child td, &:last-child th': { border: 0 },
+                      ...(isSwornRow ? {
+                        bgcolor: 'rgba(197, 155, 39, 0.08)',
+                        borderLeft: '4px solid #C59B27',
+                        '&:hover': { bgcolor: 'rgba(197, 155, 39, 0.16) !important' }
+                      } : {})
+                    }}
+                  >
+                    {visibleColumns.map((column) => {
+                      const value = row[column.id];
+                      const isServiceCol = column.id === 'service' || column.id === 'serviceId';
+                      const valueIsSworn = isSwornRow && (
+                        isServiceCol ||
+                        (typeof value === 'string' && (value.toLowerCase().includes('translation') || value.toLowerCase().includes('sworn')))
+                      );
+
+                      let cellContent;
+                      if (valueIsSworn) {
+                        const rawLabel = column.render ? column.render(row) : (value || 'Spanish Sworn Translation');
+                        const labelText = typeof rawLabel === 'string' ? rawLabel : 'Spanish Sworn Translation';
+                        cellContent = (
+                          <Chip
+                            label={`📜 ${labelText.replace(/^📜\s*/, '')}`}
+                            size="small"
+                            sx={{
+                              bgcolor: '#C59B27',
+                              color: '#051A3B',
+                              fontWeight: 900,
+                              fontSize: '0.78rem',
+                              borderRadius: '8px',
+                              px: 0.75,
+                              py: 0.25,
+                              boxShadow: '0 2px 8px rgba(197, 155, 39, 0.35)',
+                              fontFamily: 'Outfit, sans-serif'
+                            }}
+                          />
+                        );
+                      } else if (column.render) {
+                        cellContent = column.render(row);
+                      } else if (column.id === 'status' || column.id === 'visaStatus') {
+                        cellContent = <StatusBadge status={value} />;
+                      } else {
+                        cellContent = value ?? '-';
+                      }
+
+                      return (
+                        <TableCell
+                          key={column.id}
+                          align={column.align || 'left'}
+                          sx={{
+                            py: 0.8,
+                            fontSize: '0.8rem',
+                            whiteSpace: column.wrap ? 'normal' : 'nowrap',
+                            minWidth: column.minWidth || '120px',
+                          }}
+                        >
+                          {cellContent}
+                        </TableCell>
+                      );
+                    })}
+                    {actions && (
                       <TableCell
-                        key={column.id}
-                        align={column.align || 'left'}
-                        sx={{
-                          py: 0.8,
-                          fontSize: '0.8rem',
-                          whiteSpace: column.wrap ? 'normal' : 'nowrap',
-                          minWidth: column.minWidth || '120px',
-                        }}
+                        align="right"
+                        sx={{ py: 0.6 }}
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        {column.render ? (
-                          column.render(row)
-                        ) : column.id === 'status' || column.id === 'visaStatus' ? (
-                          <StatusBadge status={value} />
-                        ) : (
-                          value ?? '-'
-                        )}
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                          {actions(row)}
+                        </Box>
                       </TableCell>
-                    );
-                  })}
-                  {actions && (
-                    <TableCell
-                      align="right"
-                      sx={{ py: 0.6 }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                        {actions(row)}
-                      </Box>
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))
+                    )}
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
