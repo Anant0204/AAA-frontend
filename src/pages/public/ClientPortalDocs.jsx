@@ -3458,118 +3458,24 @@ export const ClientPortalDocs = () => {
                       textAlign: isRTL ? 'right' : 'left'
                     }}
                   >
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Translation Summary</Typography>
-                      <Divider sx={{ my: 1.5, borderColor: 'rgba(197, 155, 39, 0.15)' }} />
-
-                      {(() => {
-                        const qualList = client?.lead?.qualificationData?.documents || client?.qualificationData?.documents || [];
-                        const inputDocs = (documents || []).filter(d => d && (d.clientId === client?.id || d.clientId === clientId));
-                        const uniqueSourceLangs = [...new Set([
-                          ...inputDocs.map(d => d.documentLanguage || d.sourceLanguage),
-                          ...qualList.map(q => q.documentLanguage || q.sourceLanguage)
-                        ].filter(Boolean))];
-                        const routeText = uniqueSourceLangs.length > 0 ? `${uniqueSourceLangs.join(', ')} to ${targetLang || 'Spanish'}` : `${sourceLang} to ${targetLang}`;
-                        const ratesText = uniqueSourceLangs.length > 1 ? 'Itemized per language' : `€${wordRate.toFixed(2)} / word`;
-                        const totalCombinedWords = inputDocs.reduce((sum, d, idx) => {
-                          const matchQual = qualList[idx] || qualList.find(q => (q.name || q.filename) === d.name);
-                          return sum + (Number(d.wordCount) || Number(matchQual?.wordCount) || 0);
-                        }, 0) || Number(client?.wordCount) || Number(wordCount) || 0;
-
-                        return (
-                          <>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-                              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>Translation Route:</Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B' }}>{routeText}</Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-                              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>Word Rate:</Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B' }}>{ratesText}</Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-                              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>Total Words:</Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B' }}>{totalCombinedWords} Words</Typography>
-                            </Box>
-                          </>
-                        );
-                      })()}
-
-                      <Divider sx={{ my: 1.5, borderColor: 'rgba(197, 155, 39, 0.15)' }} />
-
-                      {isTranslationPaid ? (
-                        <Box sx={{ mb: 2 }}>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 1 }}>
-                            Payments History
-                          </Typography>
-                          {allPayments.filter(p => p.clientId === client.id && p.status === 'Paid').map((p, idx) => (
-                            <Box key={p.id} sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.8, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-                              <Typography variant="body2" color="text.secondary">
-                                {idx === 0 ? 'Initial Checkout:' : `Add-on Payment:`}
-                              </Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 700, color: '#051A3B' }}>
-                                €{Number(p.amount).toFixed(2)}
-                              </Typography>
-                            </Box>
-                          ))}
-                          <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 900, color: '#051A3B' }}>Grand Total Paid:</Typography>
-                            <Typography variant="h5" sx={{ fontWeight: 900, color: '#C59B27', fontFamily: 'Outfit, sans-serif' }}>
-                              €{allPayments.filter(p => p.clientId === client.id && p.status === 'Paid').reduce((sum, p) => sum + Number(p.amount), 0).toFixed(2)}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      ) : (
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#051A3B', fontFamily: 'Outfit, sans-serif' }}>Total Final Price:</Typography>
-                          <Typography variant="h4" sx={{ fontWeight: 900, color: '#C59B27', fontFamily: 'Outfit, sans-serif' }}>€{calcPrice.toFixed(2)}</Typography>
-                        </Box>
-                      )}
-
-                      {/* Timeline status track */}
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', mt: 2, display: 'block' }}>Translation Lifecycle Status</Typography>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-                        <Box sx={{ display: 'flex', gap: 1.5, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
-                          <CheckCircleIcon color={isCalculated ? 'success' : 'disabled'} sx={{ fontSize: '1.25rem' }} />
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: isCalculated ? 'text.primary' : 'text.disabled' }}>1. Price Quoted & Verified</Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', gap: 1.5, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
-                          <CheckCircleIcon color={isTranslationPaid ? 'success' : 'disabled'} sx={{ fontSize: '1.25rem' }} />
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: isTranslationPaid ? 'text.primary' : 'text.disabled' }}>2. Payment Processed</Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', gap: 1.5, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
-                          <CheckCircleIcon color={translationStatus === 'processing' || translationStatus === 'completed' || translationStatus === 'delivered' || translatedDocs.length > 0 ? 'success' : 'disabled'} sx={{ fontSize: '1.25rem' }} />
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: (translationStatus === 'processing' || translationStatus === 'completed' || translationStatus === 'delivered' || translatedDocs.length > 0) ? 'text.primary' : 'text.disabled' }}>3. In Process (Sworn Translators Assigned)</Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', gap: 1.5, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }}>
-                          <CheckCircleIcon color={translationStatus === 'delivered' || translatedDocs.length > 0 ? 'success' : 'disabled'} sx={{ fontSize: '1.25rem' }} />
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: (translationStatus === 'delivered' || translatedDocs.length > 0) ? 'text.primary' : 'text.disabled' }}>4. Certified PDF Sworn File Delivered</Typography>
-                        </Box>
-                      </Box>
-                    </Box>
-
-                    <Box sx={{ mt: 3 }}>
-                      {isTranslationPaid ? (
-                        <Box>
-                          <Chip label="Payment Verified" color="success" sx={{ py: 1.25, fontSize: '0.975rem', fontWeight: 800, mb: 1.5, width: '100%', borderRadius: 2.5 }} />
-                          <Button
-                            variant="outlined"
-                            fullWidth
-                            onClick={handleDownloadReceipt}
-                            sx={{
-                              py: 1.2,
-                              borderRadius: 2.5,
-                              fontWeight: 800,
-                              textTransform: 'none',
-                              borderColor: '#C59B27',
-                              color: '#C59B27',
-                              mb: 1.5,
-                              fontFamily: 'Outfit, sans-serif',
-                              '&:hover': { borderColor: '#051A3B', color: '#051A3B' }
-                            }}
-                          >
-                            📥 Download Detailed Receipt (PDF)
-                          </Button>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, my: 'auto' }}>
+                      <Button
+                        variant="outlined"
+                        fullWidth
+                        onClick={handleDownloadReceipt}
+                        sx={{
+                          py: 1.4,
+                          borderRadius: 2.5,
+                          fontWeight: 800,
+                          textTransform: 'none',
+                          borderColor: '#C59B27',
+                          color: '#C59B27',
+                          fontFamily: 'Outfit, sans-serif',
+                          '&:hover': { borderColor: '#051A3B', color: '#051A3B' }
+                        }}
+                      >
+                        📥 Download Detailed Receipt (PDF)
+                      </Button>
                           {(() => {
                             const clientAllDocs = (documents || []).filter(d => d && (d.clientId === client?.id || d.clientId === clientId));
                             const translatedDocs = clientAllDocs.filter(d => Boolean(d.translatedUrl));
