@@ -997,6 +997,25 @@ export const SuperAdminSocialInbox = () => {
                           displayEmpty
                           disabled={sendSocialMessageMutation.isPending}
                           renderValue={() => <QuickreplyIcon fontSize="small" sx={{ color: 'white' }} />}
+                          MenuProps={{
+                            anchorOrigin: {
+                              vertical: 'top',
+                              horizontal: 'left'
+                            },
+                            transformOrigin: {
+                              vertical: 'bottom',
+                              horizontal: 'left'
+                            },
+                            PaperProps: {
+                              sx: {
+                                maxHeight: 340,
+                                width: 320,
+                                borderRadius: 2.5,
+                                boxShadow: '0 12px 32px rgba(5, 26, 59, 0.25)',
+                                mt: -1
+                              }
+                            }
+                          }}
                           sx={{
                             bgcolor: 'secondary.main',
                             color: 'white',
