@@ -3101,13 +3101,7 @@ export const ClientPortalDocs = () => {
                                             variant="outlined"
                                             sx={{ height: 22, fontSize: '0.72rem', fontWeight: 800, borderColor: '#C59B27', color: '#051A3B' }}
                                           />
-                                          {wordCount > 0 && (
-                                            <Chip
-                                              label={`📝 ${wordCount} words (@ €${rate.toFixed(2)}/word)`}
-                                              size="small"
-                                              sx={{ height: 22, fontSize: '0.72rem', fontWeight: 800, bgcolor: 'rgba(16, 185, 129, 0.12)', color: '#047857' }}
-                                            />
-                                          )}
+
                                           {doc.size && (
                                             <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, fontSize: '0.72rem' }}>
                                               💾 {doc.size}
@@ -3119,10 +3113,7 @@ export const ClientPortalDocs = () => {
                                             </Typography>
                                           )}
                                         </Box>
-                                        {/* Financial Breakdown */}
-                                        <Typography variant="caption" sx={{ color: '#475569', fontWeight: 600, display: 'block', mt: 0.5 }}>
-                                          Subtotal: <strong>€{subtotal.toFixed(2)}</strong> + 5% VAT (<strong>€{vat.toFixed(2)}</strong>) = <strong style={{ color: '#059669', fontSize: '0.88rem' }}>€{estimatedPrice.toFixed(2)}</strong>
-                                        </Typography>
+
                                       </Box>
                                       <Chip
                                         label={hasTranslation ? '✅ Certified Translation Ready' : '⏳ In Translation'}
@@ -3149,7 +3140,7 @@ export const ClientPortalDocs = () => {
                                             <Button
                                               size="small"
                                               variant="outlined"
-                                              href={getFullDocUrl(doc.url || doc.fileUrl)}
+                                              href={getFullDocUrl((doc.url && !doc.url.includes('translation_doc_')) ? doc.url : (matchQual.url || matchQual.fileUrl || doc.url || doc.fileUrl))}
                                               target="_blank"
                                               rel="noopener noreferrer"
                                               sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 1.5, fontSize: '0.75rem' }}
@@ -3159,8 +3150,8 @@ export const ClientPortalDocs = () => {
                                             <Button
                                               size="small"
                                               variant="outlined"
-                                              href={getFullDocUrl(doc.url || doc.fileUrl)}
-                                              download
+                                              href={getFullDocUrl((doc.url && !doc.url.includes('translation_doc_')) ? doc.url : (matchQual.url || matchQual.fileUrl || doc.url || doc.fileUrl))}
+                                              download={doc.name || 'original_document.pdf'}
                                               target="_blank"
                                               rel="noopener noreferrer"
                                               sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 1.5, fontSize: '0.75rem' }}
@@ -3458,24 +3449,28 @@ export const ClientPortalDocs = () => {
                       textAlign: isRTL ? 'right' : 'left'
                     }}
                   >
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, my: 'auto' }}>
-                      <Button
-                        variant="outlined"
-                        fullWidth
-                        onClick={handleDownloadReceipt}
-                        sx={{
-                          py: 1.4,
-                          borderRadius: 2.5,
-                          fontWeight: 800,
-                          textTransform: 'none',
-                          borderColor: '#C59B27',
-                          color: '#C59B27',
-                          fontFamily: 'Outfit, sans-serif',
-                          '&:hover': { borderColor: '#051A3B', color: '#051A3B' }
-                        }}
-                      >
-                        📥 Download Detailed Receipt (PDF)
-                      </Button>
+                    <Box sx={{ mt: 0 }}>
+                      {isTranslationPaid ? (
+                        <Box>
+                          <Chip label="Payment Verified" color="success" sx={{ py: 1.25, fontSize: '0.975rem', fontWeight: 800, mb: 1.5, width: '100%', borderRadius: 2.5 }} />
+                          <Button
+                            variant="outlined"
+                            fullWidth
+                            onClick={handleDownloadReceipt}
+                            sx={{
+                              py: 1.2,
+                              borderRadius: 2.5,
+                              fontWeight: 800,
+                              textTransform: 'none',
+                              borderColor: '#C59B27',
+                              color: '#C59B27',
+                              mb: 1.5,
+                              fontFamily: 'Outfit, sans-serif',
+                              '&:hover': { borderColor: '#051A3B', color: '#051A3B' }
+                            }}
+                          >
+                            📥 Download Detailed Receipt (PDF)
+                          </Button>
                           {(() => {
                             const clientAllDocs = (documents || []).filter(d => d && (d.clientId === client?.id || d.clientId === clientId));
                             const translatedDocs = clientAllDocs.filter(d => Boolean(d.translatedUrl));

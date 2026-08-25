@@ -253,7 +253,10 @@ const SwornTranslationClientDocumentsCard = ({ client, documents = [] }) => {
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
             {clientDocs.map((doc, idx) => {
-              const originalDocUrl = getFullDocUrl(doc.url || doc.fileUrl);
+              const qualDocsList = client?.lead?.qualificationData?.documents || client?.qualificationData?.documents || [];
+              const matchQual = qualDocsList[idx] || (Array.isArray(qualDocsList) && qualDocsList.find(d => (d.name || d.filename) === doc.name)) || {};
+              const rawOrigUrl = (doc.url && !doc.url.includes('translation_doc_')) ? doc.url : (matchQual.url || matchQual.fileUrl || doc.url || doc.fileUrl);
+              const originalDocUrl = getFullDocUrl(rawOrigUrl);
               const translatedDocUrl = getFullDocUrl(doc.translatedUrl);
               const hasTranslation = Boolean(doc.translatedUrl);
               const isUploadingThis = uploadingDocId === doc.id;
