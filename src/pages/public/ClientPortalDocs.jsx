@@ -3121,10 +3121,33 @@ export const ClientPortalDocs = () => {
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                               {translationInputDocs.map((doc, idx) => {
                                 const hasTranslation = Boolean(doc.translatedUrl);
-                                const rawLang = doc.documentLanguage || doc.sourceLanguage || '';
                                 const qualDocsList = client?.lead?.qualificationData?.documents || client?.qualificationData?.documents || [];
                                 const matchQual = qualDocsList[idx] || (Array.isArray(qualDocsList) && qualDocsList.find(d => (d.name || d.filename) === doc.name)) || {};
-                                let docLang = rawLang && !rawLang.includes(',') ? rawLang : (matchQual.documentLanguage || matchQual.sourceLanguage || '');
+
+                                // Smart language extraction (Comment -> Property -> Exact Category -> Exact Index -> Fallback)
+                                let docLang = '';
+                                if (doc.comment) {
+                                  const commentMatch = doc.comment.match(/Source:\s*([^➔|\n]+)/i);
+                                  if (commentMatch && commentMatch[1]) {
+                                    docLang = commentMatch[1].trim();
+                                  }
+                                }
+
+                                if (!docLang) {
+                                  const rawLang = doc.documentLanguage || doc.sourceLanguage || '';
+                                  if (rawLang && !rawLang.includes(',')) docLang = rawLang;
+                                }
+
+                                if (!docLang && Array.isArray(qualDocsList) && qualDocsList.length > 0) {
+                                  const catMatch = qualDocsList.find(d => d.category && doc.category && d.category === doc.category);
+                                  if (catMatch && (catMatch.documentLanguage || catMatch.sourceLanguage)) {
+                                    docLang = catMatch.documentLanguage || catMatch.sourceLanguage;
+                                  }
+                                  if (!docLang && qualDocsList[idx]) {
+                                    docLang = qualDocsList[idx].documentLanguage || qualDocsList[idx].sourceLanguage || '';
+                                  }
+                                }
+
                                 if (!docLang) docLang = 'English';
 
                                 const targetLang = 'Spanish (Español)';
