@@ -271,8 +271,10 @@ export const SuperAdminRefundCommissionHub = () => {
     });
   };
 
-  const handleUpdateRefundStatus = (id, status) => {
-    updateRefundStatusMutation.mutate({ refundId: id, status });
+  const handleUpdateRefundStatus = (id, status, amount) => {
+    const refObj = (Array.isArray(refunds) ? refunds : []).find(r => r.id === id);
+    const targetAmount = amount !== undefined ? amount : (refObj?.amount || 0);
+    updateRefundStatusMutation.mutate({ refundId: id, status, amount: targetAmount });
   };
 
   const handleOpenRateModal = (agent) => {
@@ -770,6 +772,7 @@ export const SuperAdminRefundCommissionHub = () => {
                                 setAuditPayoutMethod('Stripe Automatic');
                                 setAuditTransactionRef(ref.transactionRef || '');
                                 setAuditNotes(ref.adminNotes || '');
+                                setAuditAmount(ref.amount ? String(ref.amount) : '');
                                 setAuditModalOpen(true);
                               }}
                               sx={{ fontWeight: 700 }}
@@ -778,7 +781,7 @@ export const SuperAdminRefundCommissionHub = () => {
                             </Button>
 
                             {!isViewOnly && ref.status === 'Pending Review' && (
-                              <Button size="small" variant="outlined" color="success" onClick={() => handleUpdateRefundStatus(ref.id, 'Approved')}>
+                              <Button size="small" variant="outlined" color="success" onClick={() => handleUpdateRefundStatus(ref.id, 'Approved', Number(ref.amount) || 0)}>
                                 Approve
                               </Button>
                             )}
@@ -1476,7 +1479,8 @@ export const SuperAdminRefundCommissionHub = () => {
                     onClick={() => updateRefundStatusMutation.mutate({
                       refundId: activeAuditRefund.id,
                       status: 'Approved',
-                      adminNotes: auditNotes
+                      adminNotes: auditNotes,
+                      amount: Number(auditAmount) || Number(activeAuditRefund?.amount) || 0
                     })}
                   >
                     Approve Claim (Mark Pending Payout)
@@ -1530,7 +1534,8 @@ export const SuperAdminRefundCommissionHub = () => {
                     status: pendingPayoutAction.status,
                     payoutMethod: pendingPayoutAction.payoutMethod,
                     transactionRef: pendingPayoutAction.transactionRef,
-                    adminNotes: pendingPayoutAction.adminNotes
+                    adminNotes: pendingPayoutAction.adminNotes,
+                    amount: pendingPayoutAction.amount
                   });
                   setConfirmModalOpen(false);
                 }}
