@@ -1271,7 +1271,13 @@ export const ClientPortalDocs = () => {
       doc.text(`${client.firstName} ${client.lastName}`, 19, 89);
 
       const receiptCustomerId = client?.clientCode || (client?.id ? `CID-${client.id.slice(-5).toUpperCase()}` : 'N/A');
-      const cleanSourceLangs = client?.sourceLanguage || sourceLang || 'English';
+      const qualDocsList = client?.lead?.qualificationData?.documents || client?.qualificationData?.documents || [];
+      const uniqueLangs = [...new Set(
+        qualDocsList.map(qd => qd.sourceLanguage || qd.documentLanguage).filter(Boolean)
+      )];
+      const cleanSourceLangs = uniqueLangs.length > 0 
+        ? uniqueLangs.join(', ') 
+        : (client?.sourceLanguage || sourceLang || 'English');
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8.5);
@@ -1320,9 +1326,10 @@ export const ClientPortalDocs = () => {
       doc.setFontSize(9);
       doc.setTextColor(30, 41, 59);
 
-      translationDocs.forEach((d) => {
+      translationDocs.forEach((d, idx) => {
         const displayName = d.name.length > 35 ? d.name.substring(0, 32) + '...' : d.name;
-        const docWords = Number(d.wordCount) || (translationDocs.length === 1 ? (client.wordCount || 0) : 0);
+        const matchQual = qualDocsList[idx] || qualDocsList.find(q => (q.name || q.filename) === d.name);
+        const docWords = Number(d.wordCount) || Number(matchQual?.wordCount) || (translationDocs.length === 1 ? (client.wordCount || 0) : 0);
         doc.text(displayName, 19, currentY);
         doc.text(d.category || 'Sworn Document', 95, currentY);
         doc.text("Verified & Paid", 140, currentY);
@@ -3045,18 +3052,13 @@ export const ClientPortalDocs = () => {
                               {translationInputDocs.map((doc, idx) => {
                                 const hasTranslation = Boolean(doc.translatedUrl);
                                 const rawLang = doc.documentLanguage || doc.sourceLanguage || '';
-                                let docLang = rawLang && !rawLang.includes(',') ? rawLang : '';
-                                if (!docLang && client?.lead?.qualificationData?.documents) {
-                                  const qualDocs = client.lead.qualificationData.documents;
-                                  const match = Array.isArray(qualDocs) && qualDocs.find(d => (d.name || d.filename) === doc.name);
-                                  if (match && (match.documentLanguage || match.sourceLanguage)) {
-                                    docLang = match.documentLanguage || match.sourceLanguage;
-                                  }
-                                }
+                                const qualDocsList = client?.lead?.qualificationData?.documents || client?.qualificationData?.documents || [];
+                                const matchQual = qualDocsList[idx] || (Array.isArray(qualDocsList) && qualDocsList.find(d => (d.name || d.filename) === doc.name)) || {};
+                                let docLang = rawLang && !rawLang.includes(',') ? rawLang : (matchQual.documentLanguage || matchQual.sourceLanguage || '');
                                 if (!docLang) docLang = 'English';
 
                                 const targetLang = 'Spanish (Español)';
-                                const wordCount = doc.wordCount || (translationInputDocs.length === 1 ? client?.wordCount : 0) || 0;
+                                const wordCount = Number(doc.wordCount) || Number(matchQual.wordCount) || (translationInputDocs.length === 1 ? (client?.wordCount || 0) : 0) || 0;
                                 const rate = docLang.toLowerCase().includes('urdu') ? 0.40 : docLang.toLowerCase().includes('arabic') ? 0.25 : 0.15;
                                 const subtotal = parseFloat((wordCount * rate).toFixed(2));
                                 const vat = parseFloat((subtotal * 0.05).toFixed(2));
@@ -3461,19 +3463,28 @@ export const ClientPortalDocs = () => {
                       <Divider sx={{ my: 1.5, borderColor: 'rgba(197, 155, 39, 0.15)' }} />
 
                       {(() => {
-                        const totalCombinedWords = (documents || [])
-                          .filter(d => d && (d.clientId === client?.id || d.clientId === clientId))
-                          .reduce((sum, d) => sum + (Number(d.wordCount) || 0), 0) || wordCount || 0;
+                        const qualList = client?.lead?.qualificationData?.documents || client?.qualificationData?.documents || [];
+                        const inputDocs = (documents || []).filter(d => d && (d.clientId === client?.id || d.clientId === clientId));
+                        const uniqueSourceLangs = [...new Set([
+                          ...inputDocs.map(d => d.documentLanguage || d.sourceLanguage),
+                          ...qualList.map(q => q.documentLanguage || q.sourceLanguage)
+                        ].filter(Boolean))];
+                        const routeText = uniqueSourceLangs.length > 0 ? `${uniqueSourceLangs.join(', ')} to ${targetLang || 'Spanish'}` : `${sourceLang} to ${targetLang}`;
+                        const ratesText = uniqueSourceLangs.length > 1 ? 'Itemized per language' : `€${wordRate.toFixed(2)} / word`;
+                        const totalCombinedWords = inputDocs.reduce((sum, d, idx) => {
+                          const matchQual = qualList[idx] || qualList.find(q => (q.name || q.filename) === d.name);
+                          return sum + (Number(d.wordCount) || Number(matchQual?.wordCount) || 0);
+                        }, 0) || Number(client?.wordCount) || Number(wordCount) || 0;
 
                         return (
                           <>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                               <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>Translation Route:</Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B' }}>{sourceLang} to {targetLang}</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B' }}>{routeText}</Typography>
                             </Box>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                               <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>Word Rate:</Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B' }}>€{wordRate.toFixed(2)} / word</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 800, color: '#051A3B' }}>{ratesText}</Typography>
                             </Box>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                               <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>Total Words:</Typography>
