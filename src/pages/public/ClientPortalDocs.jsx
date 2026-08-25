@@ -1204,72 +1204,6 @@ export const ClientPortalDocs = () => {
       const invoiceId = `REC-ST-${client.id.substring(0, 8).toUpperCase()}`;
       const paymentDate = new Date().toLocaleDateString('en-GB');
 
-      // 1. BRAND LETTERHEAD HEADER
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(20);
-      doc.setTextColor(12, 35, 64); // Deep Navy (#0C2340)
-      doc.text('AAA BUSINESS CONSULTANCY L.L.C', 14, 20);
-
-      // Tagline
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(197, 155, 39); // Gold (#C59B27)
-      doc.text('ADVISE  *  ASSIST  *  ACHIEVE', 14, 26);
-
-      // Address & Contact Information
-      doc.setFontSize(8.5);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(100, 116, 139); // Slate Gray (#64748B)
-      doc.text('Business Village B, Office F-09, Port Saeed, Deira, Dubai, UAE', 14, 32);
-      doc.text('Email: client@aaabusinessconsultancy.com | Tel: +971 50 955 4142', 14, 37);
-
-      // Top Gold Accent Line
-      doc.setDrawColor(197, 155, 39); // Gold (#C59B27)
-      doc.setLineWidth(1.2);
-      doc.line(14, 42, 196, 42);
-
-      // Second Navy Sub-Line
-      doc.setDrawColor(12, 35, 64);
-      doc.setLineWidth(0.4);
-      doc.line(14, 44, 196, 44);
-
-      // 2. DOCUMENT TITLE & RECEIPT META
-      doc.setFontSize(15);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(12, 35, 64);
-      doc.text('OFFICIAL PAYMENT RECEIPT', 14, 55);
-
-      // Status Badge (PAID)
-      doc.setFillColor(22, 163, 74); // Success Green (#16A34A)
-      doc.roundedRect(165, 49, 31, 8, 2, 2, 'F');
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(255, 255, 255);
-      doc.text('PAID', 175.5, 54.5);
-
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(71, 85, 105);
-      doc.text(`Receipt ID: #${invoiceId}`, 14, 63);
-      doc.text(`Receipt Date: ${paymentDate}`, 14, 69);
-      doc.text(`Payment Gateway: Online Checkout (Stripe)`, 115, 63);
-
-      // 3. CLIENT INFORMATION BOX
-      doc.setFillColor(248, 250, 252); // Light Gray/Blue (#F8FAFC)
-      doc.setDrawColor(226, 232, 240); // Border (#E2E8F0)
-      doc.setLineWidth(0.5);
-      doc.roundedRect(14, 75, 182, 30, 3, 3, 'FD');
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8.5);
-      doc.setTextColor(197, 155, 39);
-      doc.text('RECEIPT ISSUED TO:', 19, 82);
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(15, 23, 42);
-      doc.text(`${client.firstName} ${client.lastName}`, 19, 89);
-
       const receiptCustomerId = client?.clientCode || (client?.id ? `CID-${client.id.slice(-5).toUpperCase()}` : 'N/A');
       const qualDocsList = client?.lead?.qualificationData?.documents || client?.qualificationData?.documents || [];
       const uniqueLangs = [...new Set(
@@ -1279,36 +1213,151 @@ export const ClientPortalDocs = () => {
         ? uniqueLangs.join(', ') 
         : (client?.sourceLanguage || sourceLang || 'English');
 
+      // 1. BRAND LETTERHEAD HEADER (OFFICIAL INVOICE LETTERHEAD)
+      try {
+        doc.addImage(aaaLogo, 'PNG', 14, 10, 15, 15);
+      } catch (imgErr) {
+        console.warn('Logo embed warn:', imgErr);
+      }
+
+      // Vertical Gold Line next to logo
+      doc.setDrawColor(197, 155, 39); // #C59B27
+      doc.setLineWidth(0.6);
+      doc.line(31, 10, 31, 26);
+
+      // Company Title & Tagline Box
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(12, 35, 64); // #0C2340
+      doc.text('AAA BUSINESS CONSULTANCY L.L.C', 34, 15.5);
+
+      // Tagline container with gold border lines
+      doc.setDrawColor(197, 155, 39);
+      doc.setLineWidth(0.3);
+      doc.line(34, 18.5, 96, 18.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.2);
+      doc.setTextColor(197, 155, 39);
+      doc.text('ADVISE  •  ASSIST  •  ACHIEVE', 43, 21.5);
+      doc.line(34, 23.5, 96, 23.5);
+
+      // Right Header: Contact Details
+      doc.setDrawColor(197, 155, 39);
+      doc.setLineWidth(0.4);
+      doc.line(126, 10, 126, 26);
+
+      const contactItems = [
+        'client@aaabusinessconsultancy.com',
+        '+971509554142',
+        'www.aaabusinessconsultancy.com',
+        'Business Village B , office number F-09 Port Saeed Deira Dubai, UAE'
+      ];
+
+      doc.setFontSize(6.2);
+      let contactY = 12;
+      contactItems.forEach((text) => {
+        doc.setFillColor(12, 35, 64);
+        doc.circle(129.5, contactY - 0.8, 1.2, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(12, 35, 64);
+        doc.text(text, 133, contactY);
+        contactY += 3.8;
+      });
+
+      // 2. DUAL-TONE ACCENT DIVIDER BAR (Navy - Gold - Navy)
+      doc.setFillColor(12, 35, 64);
+      doc.rect(14, 29, 58, 1.4, 'F');
+      doc.setFillColor(197, 155, 39);
+      doc.rect(72, 29, 64, 1.4, 'F');
+      doc.setFillColor(12, 35, 64);
+      doc.rect(136, 29, 60, 1.4, 'F');
+
+      // 3. INVOICE / RECEIPT TITLE & STATUS
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.setTextColor(12, 35, 64);
+      doc.text('OFFICIAL PAYMENT RECEIPT', 14, 40);
+
+      doc.setFontSize(9.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(51, 65, 85);
+      doc.text(`Receipt #: ${invoiceId}`, 14, 46);
+
+      // Status Badge (Paid)
+      doc.setFillColor(220, 252, 231); // Light green #DCFCE7
+      doc.setDrawColor(134, 239, 172); // Border #86EFAC
+      doc.setLineWidth(0.3);
+      doc.roundedRect(14, 49.5, 18, 5.5, 2, 2, 'FD');
+      doc.setFillColor(22, 101, 52);
+      doc.circle(18, 52.2, 0.9, 'F');
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(22, 101, 52); // #166534
+      doc.text('Paid', 20.5, 53.4);
+
+      // Right meta details
+      doc.setFontSize(8.2);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
       doc.setTextColor(100, 116, 139);
-      doc.text(`Customer ID: ${receiptCustomerId}`, 19, 95);
-      doc.text(`Email: ${client.email}`, 19, 100);
+      doc.text(`Date Issued: ${paymentDate}`, 155, 40);
+      doc.text(`Payment Gateway: Online Checkout (Stripe)`, 134, 46);
+
+      // 4. BILL TO / SERVICE DETAILS BOX
+      doc.setFillColor(248, 250, 252); // #F8FAFC
+      doc.setDrawColor(226, 232, 240); // #E2E8F0
+      doc.setLineWidth(0.4);
+      doc.roundedRect(14, 58, 182, 30, 2.5, 2.5, 'FD');
+
+      // Left: BILL TO
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.2);
+      doc.setTextColor(100, 116, 139);
+      doc.text('BILL TO', 19, 64);
 
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(15, 23, 42);
-      doc.text(`Service Name: Spanish Sworn Translation`, 115, 89);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Source Language: ${cleanSourceLangs}`, 115, 95);
-      doc.text(`Target Language: Spanish (Español)`, 115, 100);
+      doc.setFontSize(10.5);
+      doc.setTextColor(12, 35, 64);
+      doc.text(`${client.firstName} ${client.lastName}`, 19, 70);
 
-      // 4. ITEMIZATION TABLE (DOCUMENTS FILENAME, CATEGORY, STATUS, WORDS)
-      let currentY = 114;
-      doc.setFillColor(12, 35, 64); // Navy Header Bar
-      doc.rect(14, currentY, 182, 8, 'F');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(71, 85, 105);
+      doc.text(`Customer ID: ${receiptCustomerId}`, 19, 75.5);
+      doc.text(`Email: ${client.email}`, 19, 80.5);
+
+      // Right: SERVICE & LANGUAGE DETAILS
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.2);
+      doc.setTextColor(100, 116, 139);
+      doc.text('SERVICE DETAILS', 115, 64);
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8.5);
+      doc.setFontSize(9);
+      doc.setTextColor(12, 35, 64);
+      doc.text(`Spanish Sworn Translation`, 115, 70);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.8);
+      doc.setTextColor(71, 85, 105);
+      doc.text(`Source Language: ${cleanSourceLangs}`, 115, 75);
+      doc.text(`Target Language: Spanish (Espanol)`, 115, 79.5);
+      doc.text(`Method: Online Instant Checkout`, 115, 84);
+
+      // 5. ITEMIZATION TABLE
+      let currentY = 94;
+      doc.setFillColor(12, 35, 64); // Dark Navy #0C2340
+      doc.roundedRect(14, currentY, 182, 7.5, 1.5, 1.5, 'F');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.8);
       doc.setTextColor(255, 255, 255);
-      doc.text('DOCUMENT FILENAME', 19, currentY + 5.5);
-      doc.text('CATEGORY', 95, currentY + 5.5);
-      doc.text('STATUS', 140, currentY + 5.5);
-      doc.text('WORDS', 175, currentY + 5.5);
+      doc.text('DOCUMENT FILENAME', 19, currentY + 5);
+      doc.text('CATEGORY', 95, currentY + 5);
+      doc.text('STATUS', 140, currentY + 5);
+      doc.text('WORDS', 176, currentY + 5);
 
-      currentY += 14;
+      currentY += 12;
 
-      // Filter only client's original uploaded documents that were paid for
       let translationDocs = (documents || []).filter(
         (d) => d && (d.clientId === client?.id || d.clientId === clientId) &&
         d.category !== 'Official Sworn Output' &&
@@ -1323,70 +1372,91 @@ export const ClientPortalDocs = () => {
       }
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
+      doc.setFontSize(8.5);
       doc.setTextColor(30, 41, 59);
 
+      let totalCalcWords = 0;
+      let totalCalcSubtotal = 0;
+
       translationDocs.forEach((d, idx) => {
-        const displayName = d.name.length > 35 ? d.name.substring(0, 32) + '...' : d.name;
+        const displayName = d.name.length > 38 ? d.name.substring(0, 35) + '...' : d.name;
         const matchQual = qualDocsList[idx] || qualDocsList.find(q => (q.name || q.filename) === d.name);
         const docWords = Number(d.wordCount) || Number(matchQual?.wordCount) || (translationDocs.length === 1 ? (client.wordCount || 0) : 0);
+        totalCalcWords += docWords;
+
+        const docLang = d.documentLanguage || d.sourceLanguage || matchQual?.documentLanguage || matchQual?.sourceLanguage || 'English';
+        const rate = docLang.toLowerCase().includes('urdu') ? 0.40 : docLang.toLowerCase().includes('arabic') ? 0.25 : 0.15;
+        totalCalcSubtotal += (docWords * rate);
+
         doc.text(displayName, 19, currentY);
-        doc.text(d.category || 'Sworn Document', 95, currentY);
-        doc.text("Verified & Paid", 140, currentY);
-        doc.text(String(docWords), 175, currentY);
-        currentY += 7.5;
-      });
+        doc.text(d.category || 'Passport', 95, currentY);
+        doc.text('Verified & Paid', 140, currentY);
+        doc.text(String(docWords), 178, currentY);
 
-      doc.line(14, currentY, 196, currentY);
-      currentY += 8;
+        doc.setDrawColor(241, 245, 249);
+        doc.setLineWidth(0.3);
+        doc.line(14, currentY + 2.5, 196, currentY + 2.5);
 
-      // Payments Breakdown
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(5, 26, 59);
-      doc.text("PAYMENT LOG", 14, currentY);
-      currentY += 6;
-
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(80, 80, 80);
-
-      const paidPays = allPayments.filter(p => p.clientId === client.id && p.status === 'Paid');
-      let totalAmountPaid = 0;
-
-      paidPays.forEach((p, idx) => {
-        const desc = idx === 0 ? "Initial Sworn Translation Checkout" : "Additional Add-on Translation Order";
-        doc.text(desc, 16, currentY);
-        doc.text(`EUR ${Number(p.amount).toFixed(2)}`, 160, currentY);
-        totalAmountPaid += Number(p.amount);
         currentY += 7;
       });
 
-      doc.line(14, currentY, 196, currentY);
-      currentY += 8;
+      currentY += 3;
 
-      // Totals Box
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(5, 26, 59);
+      // 6. TOTALS BREAKDOWN & NAVY GRAND TOTAL HIGHLIGHT BOX
+      const paidPays = allPayments.filter(p => p.clientId === client.id && p.status === 'Paid');
+      const totalAmountPaid = paidPays.reduce((sum, p) => sum + Number(p.amount), 0) || (totalCalcSubtotal * 1.05) || 1.15;
+      const baseSubtotal = parseFloat((totalAmountPaid / 1.05).toFixed(2));
+      const vatAmount = parseFloat((totalAmountPaid - baseSubtotal).toFixed(2));
+
+      // Base Service Fee Line
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text('Base Service Fee', 135, currentY);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(15, 23, 42);
+      doc.text(`€${baseSubtotal.toFixed(2)}`, 182, currentY, { align: 'right' });
+
+      currentY += 5.5;
+
+      // UAE VAT Line
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text('UAE VAT (5%)', 135, currentY);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(15, 23, 42);
+      doc.text(`€${vatAmount.toFixed(2)}`, 182, currentY, { align: 'right' });
+
+      currentY += 6.5;
+
+      // GRAND TOTAL SOLID NAVY HIGHLIGHT BOX (Exact replica of Screenshot 2)
+      doc.setFillColor(12, 35, 64); // #0C2340
+      doc.roundedRect(125, currentY, 71, 10, 2, 2, 'F');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(255, 255, 255);
+      doc.text('Grand Total', 130, currentY + 6.8);
+
       doc.setFontSize(11);
-      doc.text("TOTAL AMOUNT PAID (PAID IN FULL):", 85, currentY);
-      doc.setTextColor(197, 155, 39); // brand gold
-      doc.setFontSize(13);
-      doc.text(`EUR ${totalAmountPaid.toFixed(2)}`, 160, currentY);
+      doc.setTextColor(245, 158, 11); // Gold #F59E0B
+      doc.text(`€${totalAmountPaid.toFixed(2)}`, 191, currentY + 6.8, { align: 'right' });
 
-      currentY += 15;
+      currentY += 22;
 
-      // Footer Note
-      doc.setFont("helvetica", "italic");
-      doc.setFontSize(9);
-      doc.setTextColor(120, 120, 120);
-      doc.text("Thank you for choosing AAA Business Consultancy. This document is a digitally generated copy,", 14, currentY);
-      doc.text("validating full clearance of Sworn Translation fees. For support, email client@aaabusinessconsultancy.com.", 14, currentY + 4);
+      // 7. FOOTER NOTE (Centered)
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(148, 163, 184);
+      doc.text('Thank you for choosing AAA Business Consultancy for your Spain Relocation journey.', 105, currentY, { align: 'center' });
 
       // Save PDF
       doc.save(`Receipt_Sworn_Translation_${client.firstName}_${client.lastName}.pdf`);
-      showAlert("Receipt PDF generated and downloaded successfully!", "success");
+      showAlert('Receipt PDF generated and downloaded successfully!', 'success');
     } catch (error) {
-      console.error("PDF generation failed:", error);
-      showAlert("Failed to generate PDF receipt.", "error");
+      console.error('PDF generation failed:', error);
+      showAlert('Failed to generate PDF receipt.', 'error');
     }
   };
 
