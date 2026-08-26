@@ -1253,11 +1253,13 @@ export const SuperAdminLeadDetails = () => {
                             <Typography variant="caption" sx={{ fontWeight: 700, color: 'success.main', display: 'block', mb: 1 }}>
                               WhatsApp — Inbound (Intake form)
                             </Typography>
-                            {Object.entries(lead.qualificationData).map(([k, v]) => (
-                              <Typography key={k} variant="body2" sx={{ display: 'block', mb: 0.5 }}>
-                                <strong>{k.replace(/([A-Z])/g, ' $1').trim()}:</strong> {v}
-                              </Typography>
-                            ))}
+                            {Object.entries(lead.qualificationData)
+                              .filter(([k, v]) => !['documents', 'documentUrl', 'stripeSessionId'].includes(k) && typeof v !== 'object')
+                              .map(([k, v]) => (
+                                <Typography key={k} variant="body2" sx={{ display: 'block', mb: 0.5 }}>
+                                  <strong>{k.replace(/([A-Z])/g, ' $1').trim()}:</strong> {typeof v === 'object' ? JSON.stringify(v) : String(v)}
+                                </Typography>
+                              ))}
                           </Paper>
                         ) : (
                           <Paper sx={{ p: 2, textAlign: 'center', border: '1px dashed', borderColor: 'divider', borderRadius: 2.5 }}>
