@@ -340,8 +340,7 @@ export const LeadSelfFillForm = () => {
     meetingPreferredTime: "",
     meetingPreferredLanguage: "English",
     meetingNotes: "",
-    preferableAreaInSpain: "",
-    budget: "€100k - €250k"
+    preferableAreaInSpain: ""
   });
 
   const { data: bookedSlotsData = [] } = useQuery({
@@ -652,8 +651,7 @@ export const LeadSelfFillForm = () => {
                 meetingPreferredTime: "",
                 meetingPreferredLanguage: data.preferredLanguage || "English",
                 meetingNotes: "",
-                preferableAreaInSpain: data.preferableArea || "",
-                budget: data.budget || "€100k - €250k"
+                preferableAreaInSpain: data.preferableArea || ""
               };
             });
             setIsExistingLead(true);
@@ -714,8 +712,7 @@ export const LeadSelfFillForm = () => {
               meetingPreferredTime: (data.meetingPreferredTime && !data.meetingPreferredTime.toLowerCase().includes("tbd") && !data.meetingPreferredTime.toLowerCase().includes("flexible")) ? data.meetingPreferredTime : "",
               meetingPreferredLanguage: data.meetingPreferredLanguage || data.preferredLanguage || "English",
               meetingNotes: data.meetingNotes || "",
-              preferableAreaInSpain: qData.preferableAreaInSpain || "",
-              budget: qData.budget || "€100k - €250k"
+              preferableAreaInSpain: qData.preferableAreaInSpain || ""
             };
           });
           setIsExistingLead(true);
@@ -988,15 +985,13 @@ export const LeadSelfFillForm = () => {
       ...form,
       preferredLanguage: finalPrefLang,
       meetingPreferredLanguage: finalMeetingLang,
-      preferableArea: serviceCategory === "property" ? form.preferableAreaInSpain : undefined,
-      budget: serviceCategory === "property" ? form.budget : undefined
+      preferableArea: serviceCategory === "property" ? form.preferableAreaInSpain : undefined
     };
     if (serviceCategory === "property") {
       payload.serviceType = "Property Investment Guidance";
       payload.serviceId = "property";
       payload.qualificationData = {
-        preferableAreaInSpain: form.preferableAreaInSpain,
-        budget: form.budget
+        preferableAreaInSpain: form.preferableAreaInSpain
       };
     } else {
       payload.serviceType = form.serviceId;
@@ -1039,8 +1034,7 @@ export const LeadSelfFillForm = () => {
           meetingPreferredTime: "",
           meetingPreferredLanguage: "English",
           meetingNotes: "",
-          preferableAreaInSpain: "",
-          budget: "€100k - €250k"
+          preferableAreaInSpain: ""
         });
         setLocalNumber("");
         setStep(2);

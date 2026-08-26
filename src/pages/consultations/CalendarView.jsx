@@ -163,9 +163,10 @@ const navigate = useNavigate();
     const dateStr = `${yearMonthPrefix}-${String(dayNum).padStart(2, '0')}`;
     const dayMeetings = consultations.filter(
       (c) =>
-        c.meetingDate === dateStr &&
+        ((c.meetingDate || c.date || '').split('T')[0] === dateStr) &&
+        (c.status !== 'Cancelled' && c.status !== 'Canceled') &&
         (activeAgentId 
-          ? (c.assignedConsultantId === activeAgentId || (isConsultant && !c.assignedConsultantId))
+          ? (c.assignedConsultantId === activeAgentId || c.consultantId === activeAgentId || (isConsultant && !c.assignedConsultantId && !c.consultantId))
           : true)
     );
     return { dayNum, dateStr, meetings: dayMeetings, isPadding: false, key: dateStr };

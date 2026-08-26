@@ -913,19 +913,6 @@ export const AdminLeadList = () => {
                       <MenuItem value="Other">Other / Not Decided</MenuItem>
                     </Select>
                   </FormControl>
-                  <FormControl fullWidth size="small">
-                    <InputLabel id="budget-label">Investment Budget</InputLabel>
-                    <Select
-                      labelId="budget-label"
-                      {...register('budget')}
-                      defaultValue="€100k - €250k"
-                      label="Investment Budget"
-                    >
-                      <MenuItem value="€100k - €250k">€100,000 – €250,000</MenuItem>
-                      <MenuItem value="€250k - €500k">€250,000 – €500,000</MenuItem>
-                      <MenuItem value="€500k+ (Golden Visa)">€500,000+ (Golden Visa)</MenuItem>
-                    </Select>
-                  </FormControl>
                 </Box>
               )}
 

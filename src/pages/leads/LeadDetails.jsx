@@ -827,6 +827,7 @@ export const LeadDetails = () => {
                             if (isSwornTranslationLead && hiddenKeys.includes(key)) {
                               return false;
                             }
+                            if (key.toLowerCase() === 'budget') return false;
                             return key !== 'documentUrl' && key !== 'documents';
                           })
                           .map(([key, value]) => {

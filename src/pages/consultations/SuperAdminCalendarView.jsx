@@ -257,6 +257,7 @@ const navigate = useNavigate();
     const dayMeetings = consultations.filter(
       (c) =>
         ((c.meetingDate || c.date || '').split('T')[0] === dateStr) &&
+        (c.status !== 'Cancelled' && c.status !== 'Canceled') &&
         (activeAgentId 
           ? (c.assignedConsultantId === activeAgentId || c.consultantId === activeAgentId || (isConsultant && !c.assignedConsultantId && !c.consultantId))
           : true) &&

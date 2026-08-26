@@ -836,6 +836,7 @@ export const OperationsLeadDetails = () => {
                             if (isSwornTranslationLead && hiddenKeys.includes(key)) {
                               return false;
                             }
+                            if (key.toLowerCase() === 'budget') return false;
                             return key !== 'documentUrl' && key !== 'documents';
                           })
                           .map(([key, value]) => {
@@ -876,31 +877,7 @@ export const OperationsLeadDetails = () => {
                   </Box>
 
 
-                  {/* Property Investment Details — only for property service leads */}
-                  {(lead.serviceType || lead.serviceId || '').toLowerCase().includes('property') || (lead.serviceType || lead.serviceId || '').toLowerCase().includes('investment') ? (
-                    <Box className="col-span-12">
-                      <Divider sx={{ my: 1.5 }} />
-                      <Box sx={{ p: 2, borderRadius: 2, background: 'rgba(245, 158, 11, 0.06)', border: '1px solid rgba(245, 158, 11, 0.25)', mb: 1.5 }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
-                          🏠 Property Investment Details
-                        </Typography>
-                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-                          <Box>
-                            <Typography variant="caption" color="text.secondary">Preferable Area in Spain</Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              📍 {lead.preferableArea || (lead.qualificationData?.preferableAreaInSpain) || '—'}
-                            </Typography>
-                          </Box>
-                          <Box>
-                            <Typography variant="caption" color="text.secondary">Investment Budget</Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              💰 {lead.budget || (lead.qualificationData?.budget) || '—'}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </Box>
-                    </Box>
-                  ) : null}
+
 
                   <Box className="col-span-12">
                     <Divider sx={{ my: 1.5 }} />
