@@ -59,6 +59,7 @@ export const AgentConsultationDetails = () => {
   const [outcomeNotes, setOutcomeNotes] = useState('');
   const [eligibilityStatus, setEligibilityStatus] = useState('Eligible');
   const [recommendedPackage, setRecommendedPackage] = useState('Option B'); // Option B = Full Processing per client Option B/C/D labels
+  const [followUpStatus, setFollowUpStatus] = useState('Completed');
 
   // Interactive Audio Player States (for legacy S3 playback)
   const [isPlaying, setIsPlaying] = useState(false);
@@ -228,8 +229,6 @@ export const AgentConsultationDetails = () => {
   const handleStatusChange = (status) => {
     updateStatusMutation.mutate({ id: cons.id, status });
   };
-
-  const [followUpStatus, setFollowUpStatus] = useState('Completed');
 
   const handleCompleteSubmit = () => {
     if (cons?.type === 'follow_up' || cons?.clientId) {
