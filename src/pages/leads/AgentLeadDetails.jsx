@@ -533,16 +533,6 @@ export const AgentLeadDetails = () => {
                     {serviceObj ? serviceObj.name : lead.serviceId}
                   </Typography>
                 </Box>
-                {!isSwornTranslationLead && (
-                  <Box>
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      Source
-                    </Typography>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                      {lead.source || '—'}
-                    </Typography>
-                  </Box>
-                )}
               </Box>
             </Box>
           </Paper>

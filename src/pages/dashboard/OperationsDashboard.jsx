@@ -280,8 +280,8 @@ export const OperationsDashboard = () => {
     {
       id: 'service',
       label: 'Visa Service',
-      render: (row) => SERVICES.find((s) => s.id === row.serviceId)?.name || row.serviceId },
-    { id: 'source', label: 'Source' },
+      render: (row) => SERVICES.find((s) => s.id === row.serviceId)?.name || row.serviceId 
+    },
     { id: 'status', label: 'Status' },
   ];
 

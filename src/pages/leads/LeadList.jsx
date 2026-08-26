@@ -419,8 +419,8 @@ export const LeadList = () => {
       render: (row) => {
         const agent = agents.find((c) => c.id === row.assignedConsultantId);
         return agent ? agent.name : <Typography variant="caption" color="text.secondary">Unassigned</Typography>;
-      } },
-    { id: 'source', label: 'Source', sortable: true },
+      }
+    },
   ];
 
   const standardStatuses = [

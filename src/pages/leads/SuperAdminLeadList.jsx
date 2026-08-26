@@ -565,7 +565,6 @@ export const SuperAdminLeadList = () => {
         );
       }
     },
-    { id: 'source', label: 'Source', sortable: true },
   ];
 
   const leadStatuses = Array.from(new Set([...leadStages.map(s => s.name), ...SWORN_TRANSLATION_STATUSES, 'No Show']));

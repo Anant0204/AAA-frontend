@@ -461,8 +461,8 @@ export const AgentLeadList = () => {
       render: (row) => {
         const agent = agents.find((c) => c.id === row.assignedToId);
         return agent ? agent.name : <Typography variant="caption" color="text.secondary">Unassigned</Typography>;
-      } },
-    { id: 'source', label: 'Source', sortable: true },
+      }
+    },
   ];
 
   const standardStatuses = [
