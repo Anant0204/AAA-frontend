@@ -1103,8 +1103,6 @@ export const LeadSelfFillForm = () => {
     const day = String(d.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
-  const allowSameDay = Boolean(customizationSettings?.flowAutomationSettings?.allowSameDayBooking);
-  const minBookingDate = allowSameDay ? getTodayStr() : getNextDayStr();
 
 
 
