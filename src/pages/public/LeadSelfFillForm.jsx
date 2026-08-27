@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { io } from "socket.io-client";
 import { getServicesForCountry, ALL_COUNTRIES } from "../../constants/countryServices";
 import { NATIONALITIES } from "../../constants/nationalities";
-import { getAvailableTimeSlots, getHolidayInfo, getTodayStr } from "../../utils/bookingTimeSlots";
+import { getAvailableTimeSlots, getHolidayInfo, getTodayStr, getTomorrowMinDateStr } from "../../utils/bookingTimeSlots";
 import { dbService } from "../../services/dbService";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://aaa-consultancy-backend-production.up.railway.app/api/v1";
@@ -357,6 +357,9 @@ export const LeadSelfFillForm = () => {
   const availableTimeSlots = getAvailableTimeSlots(customizationSettings, form.meetingPreferredDate, bookedSlotsData);
   const holidayInfo = getHolidayInfo(customizationSettings, form.meetingPreferredDate);
 
+  const allowSameDay = Boolean(customizationSettings?.flowAutomationSettings?.allowSameDayBooking);
+  const minBookingDate = (rescheduleConsultationId || !allowSameDay) ? getTomorrowMinDateStr() : getTodayStr();
+
   // Multi-Language sub-selection state
   const [selectedMultiLangs, setSelectedMultiLangs] = useState(['English', 'Urdu']);
   const [otherLangInput, setOtherLangInput] = useState('');
@@ -558,7 +561,13 @@ export const LeadSelfFillForm = () => {
         if (!isCancel) {
           setRescheduleConsultationId(data.consultationId || activeTokenOrId);
           if (data.canReschedule === false) {
-            setError(data.status === 'Cancelled' ? "This meeting has already been cancelled and cannot be rescheduled." : "This meeting has already been completed and cannot be rescheduled.");
+            if (data.remainingHours !== undefined && data.remainingHours <= 1.0) {
+              setError("Meeting cannot be rescheduled within 1 hour of the scheduled meeting time.");
+            } else if (data.status === 'Cancelled') {
+              setError("This meeting has already been cancelled and cannot be rescheduled.");
+            } else {
+              setError("This meeting has already been completed and cannot be rescheduled.");
+            }
           }
           setIsExistingLead(true);
 
@@ -568,6 +577,9 @@ export const LeadSelfFillForm = () => {
             setLocalNumber(parsed.localNumber);
           }
 
+          // For rescheduling, clear prefilled date if it is today or in the past so user picks a valid new date >= tomorrow
+          const validRescheduleDate = (data.currentDate && data.currentDate > getTodayStr()) ? data.currentDate : "";
+
           setForm((prev) => ({
             ...prev,
             firstName: data.firstName || prev.firstName,
@@ -576,8 +588,8 @@ export const LeadSelfFillForm = () => {
             phone: data.phone || prev.phone,
             nationality: data.nationality || prev.nationality,
             countryOfResidence: data.countryOfResidence || prev.countryOfResidence,
-            meetingPreferredDate: data.currentDate || prev.meetingPreferredDate,
-            meetingPreferredTime: (data.currentTime && !data.currentTime.toLowerCase().includes("tbd") && !data.currentTime.toLowerCase().includes("flexible")) ? data.currentTime : ""
+            meetingPreferredDate: validRescheduleDate,
+            meetingPreferredTime: (validRescheduleDate && data.currentTime && !data.currentTime.toLowerCase().includes("tbd") && !data.currentTime.toLowerCase().includes("flexible")) ? data.currentTime : ""
           }));
         } else {
           setCancelConsultationId(data.consultationId || activeTokenOrId);
